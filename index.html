@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>DSE Vocab V4.6</title>
+<title>DSE Vocab V4.7</title>
 <style>
 :root{
   --primary:#4F6DF5; --primary-dark:#3B55D9; --primary-light:#E8EDFF;
@@ -299,7 +299,7 @@ canvas{width:100%;display:block}
 .guide{position:fixed;inset:0;background:rgba(10,12,18,.92);z-index:80;display:none;align-items:center;justify-content:center;padding:24px;color:#fff}
 .guide.show{display:flex}
 .guide-card{max-width:440px;width:100%;text-align:center;position:relative}
-.guide-skip{position:absolute;top:-4px;right:-4px;background:rgba(255,255,255,.14);border:none;color:#fff;font-size:12px;padding:6px 12px;border-radius:99px;cursor:pointer}
+.guide-skip{position:absolute;top:-4px;right:-4px;background:rgba(255,255,255,.14);border:none;color:#fff;font-size:14px;padding:10px 18px;border-radius:99px;cursor:pointer;z-index:2}
 .guide-card h2{font-size:24px;margin-bottom:6px}
 .guide-card p{color:#B9BFD4;font-size:14px;margin-bottom:18px}
 .guide-item{display:flex;align-items:center;gap:12px;text-align:left;background:rgba(255,255,255,.06);border-radius:14px;padding:12px 14px;margin-bottom:10px}
@@ -765,7 +765,7 @@ canvas{width:100%;display:block}
 
 <!-- 引導 -->
 <div class="guide" id="guide" onclick="App.closeGuide()">
-  <div class="guide-card" onclick="event.stopPropagation()">
+  <div class="guide-card">
     <button class="guide-skip" onclick="App.closeGuide()" title="跳過引導">✕ 跳過</button>
     <h2>👋 歡迎嚟到 DSE Vocab</h2>
     <p>9,551 詞・SM-2 智能複習・全離線可用</p>
