@@ -347,6 +347,7 @@ textarea.field{min-height:150px;line-height:1.7}
 .kw-detail .kd-t{font-size:13px;font-weight:800;margin-bottom:6px}
 .kw-detail .kd-d{font-size:12.3px;line-height:1.65;color:var(--sub)}
 [data-theme=dark] .topic-card,[data-theme=dark] .arg-box,[data-theme=dark] .timer-wrap,[data-theme=dark] .step-item,[data-theme=dark] .kw-detail,[data-theme=dark] .x-tab{box-shadow:none}
+.pos-tag{display:inline-block;font-size:10px;font-weight:700;color:#7C3AED;background:#F3E8FF;border-radius:6px;padding:1px 5px;margin-left:4px;vertical-align:1px;line-height:1.6;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -423,6 +424,23 @@ const Utils = {
   esc: s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
   shuffle(a){ const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; },
   today(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); },
+  posTag(w){ if(!w||!w.pos) return ''; const m={n:'n.',v:'v.',adj:'adj.',adv:'adv.',phr:'phr.'}[w.pos]; return m?`<span class="pos-tag">(${m})</span>`:''; },
+  lvFromScore(s){ return s>=90?'5**':s>=82?'5*':s>=74?'5':s>=64?'4':s>=52?'3':s>=40?'2':'1'; },
+  lvLabel(lv){ return ({'S級':'5**','A級':'5*','B級':'5','C級':'4','努力級':'1'})[lv]||lv; },
+  priorityPlan(lv){
+    const map={
+      '5**':{tag:'挑戰組', range:[5,5], desc:'已達頂尖，專攻 5★ 進階詞彙', emoji:'🔥'},
+      '5*':{tag:'進階組', range:[4,5], desc:'能力強勁，主力攻克 4-5★ 高階詞彙', emoji:'🚀'},
+      '5':{tag:'進階組', range:[4,5], desc:'穩步提升，攻克 4-5★ 高階詞彙', emoji:'📈'},
+      '4':{tag:'鞏固組', range:[3,4], desc:'鞏固中高階，掌握 3-4★ 詞彙', emoji:'🎯'},
+      '3':{tag:'鞏固組', range:[3,4], desc:'打穩中階基礎，集中 3-4★ 詞彙', emoji:'📘'},
+      '2':{tag:'基礎組', range:[2,3], desc:'補強基礎，先掌握 2-3★ 常用詞', emoji:'🌱'},
+      '1':{tag:'打底組', range:[1,2], desc:'從基礎打起，優先 1-2★ 核心詞', emoji:'🛠️'}
+    };
+    return map[lv]||null;
+  },
+  dw(stars){ return ({1:0.8,2:0.9,3:1.0,4:1.1,5:1.2})[stars]||1; },
+  lvOldScore(sc){ return sc<=10 ? Math.min(100, Math.round(sc*10)) : sc; },
   dseDays(){ const target=Store.state.dseDate||'2027-04-06'; const t=new Date(target+'T00:00:00'), n=new Date(); n.setHours(0,0,0,0); return Math.max(0, Math.round((t-n)/86400000)); },
   masteryScore(){
     const s=Store.state;
@@ -467,7 +485,7 @@ const Store = {
   defaultState(){ return {
     v:3, known:new Set(), wrong:new Set(), fav:new Set(),
     sched:{}, history:{}, goal:20, mode:'all', dark:false,
-    quizCount:0, onboarded:false, dseDate:'', essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false }
+    quizCount:0, onboarded:false, dseDate:'', lvTest:null, essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false }
   }; },
   init(){
     const raw=Storage.get('dse_state');
@@ -478,6 +496,11 @@ const Store = {
       sched:saved?.sched||{}, history:saved?.history||{}, essay:{ ...d.essay, ...(saved?.essay||{}) }
     };
     this.state=st;
+    // 舊版 Level 測試數據遷移：舊制（score<=10 且無 pct）轉百分制
+    if(st.lvTest && typeof st.lvTest.pct!=='number'){
+      const old=st.lvTest;
+      st.lvTest={ score:old.score, maxRaw:old.score, raw:old.score*10, pct:old.score*10, lv:Utils.lvLabel(old.lv||''), ts:old.ts||Date.now(), old:true };
+    }
     // 相容舊版 key
     ['known','wrong','fav'].forEach(k=>{ const v=Storage.get(k); if(v){ try{ const arr=JSON.parse(v); if(Array.isArray(arr)) this.state[k]=new Set(arr); }catch(e){} } });
     const dk=Storage.get('dark'); if(dk==='1' && !saved) this.state.dark=true;
@@ -486,7 +509,7 @@ const Store = {
   },
   persist(){
     const s=this.state;
-    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], sched:s.sched, history:s.history, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, essay:s.essay };
+    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], sched:s.sched, history:s.history, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay };
     Storage.set('dse_state', JSON.stringify(snap));
     Storage.idbSet('backup', { s: JSON.stringify(snap), t: Date.now() });
   },
@@ -512,7 +535,7 @@ const Data = {
       if(Array.isArray(c)&&c.length) return c;
       if(c.data&&Array.isArray(c.data)&&c.data.length){
         const meta=c.meta||{};
-        return c.data.map((r,i)=>({ id:i, phrase:r[0], meaning:r[1], stars:r[2], category:(meta.cats&&meta.cats[r[3]])||('分類'+(r[3]||1)) }));
+        return c.data.map((r,i)=>({ id:i, phrase:r[0], meaning:r[1], stars:r[2], category:(meta.cats&&meta.cats[r[3]])||('分類'+(r[3]||1)), pos:r[4]||'' }));
       }
       return null;
     };
@@ -678,6 +701,16 @@ const Home = {
         <div class="stat-card"><div class="num">${master}%</div><div class="lbl">掌握率</div></div>
       </div>
       ${Mission.render()}
+      ${s.lvTest?(()=>{const pp=Utils.priorityPlan(s.lvTest.lv);return `
+      <div class="dse-card" style="margin-bottom:12px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)">
+        <div class="dse-left"><div class="dse-lv" style="font-size:30px">${Utils.lvLabel(s.lvTest.lv)}</div><div class="dse-lbl" style="color:rgba(255,255,255,.85)">DSE Level</div></div>
+        <div class="dse-mid">
+          <div class="dse-count" style="color:#fff">🎯 學習優先級：${pp.tag}</div>
+          <div class="dse-txt" style="color:rgba(255,255,255,.9)">${pp.desc}（推薦溫 ★${pp.range}）</div>
+          <div class="dse-txt" style="color:rgba(255,255,255,.75);margin-top:4px">Quiz 已自動加權，主力溫呢個範圍</div>
+        </div>
+        <div class="dse-right"><div class="dse-gap" style="color:#fff">★${pp.range}</div><div class="dse-lbl" style="color:rgba(255,255,255,.85)">推薦星級</div></div>
+      </div>`;})():''}
       <div class="dse-card">
         <div class="dse-left"><div class="dse-lv">${pct}%</div><div class="dse-lbl">詞庫進度</div></div>
         <div class="dse-mid">
@@ -738,7 +771,7 @@ const Flash = {
       <div class="flash-card">
         <div class="fc-inner ${Flash.flipped?'flipped':''}" id="fcCard" onclick="Flash.flip()">
           <span class="fc-cat">${Utils.esc(w.category)}</span>
-          <div class="fc-phrase">${Utils.esc(w.phrase)}</div>
+          <div class="fc-phrase">${Utils.esc(w.phrase)} ${Utils.posTag(w)}</div>
           ${Flash.flipped?`<div class="fc-mean">${Utils.esc(w.meaning)}</div>${w.example?`<div class="fc-ex">${Utils.esc(w.example)}</div>`:''}`:`<div class="fc-hint">點擊揭曉 👆</div>`}
         </div>
         ${Flash.flipped?`
@@ -876,7 +909,21 @@ const Quiz = {
     if(Quiz.mode==='known') pool=pool.filter(w=>s.known.has(Store.key(w)));
     if(Quiz.mode==='wrong') pool=pool.filter(w=>s.wrong.has(Store.key(w)));
     if(pool.length<4){ Utils.toast('詞彙不足，試下其他範圍'); return; }
-    const picked=Utils.shuffle(pool).slice(0,10);
+    // DSE Level 優先級加權抽題：70% 來自推薦星級範圍，30% 其他
+    const plan=Utils.priorityPlan((Store.state.lvTest&&Store.state.lvTest.lv)||'');
+    let picked;
+    if(plan&&plan.range&&pool.length>=10){
+      const lo=plan.range[0], hi=plan.range[1];
+      const focus=pool.filter(w=>w.stars>=lo&&w.stars<=hi);
+      const rest=pool.filter(w=>w.stars<lo||w.stars>hi);
+      const nFocus=Math.min(focus.length, Math.round(10*0.7));
+      const nRest=Math.min(rest.length, 10-nFocus);
+      picked=[...Utils.shuffle(focus).slice(0,nFocus), ...Utils.shuffle(rest).slice(0,nRest)];
+      if(picked.length<10) picked=[...picked, ...Utils.shuffle(pool.filter(w=>!picked.includes(w))).slice(0,10-picked.length)];
+      picked=Utils.shuffle(picked);
+    } else {
+      picked=Utils.shuffle(pool).slice(0,10);
+    }
     Quiz.qs=picked.map(w=>{
       const opts=Utils.shuffle(pool).filter(x=>x.id!==w.id).slice(0,3);
       const all=Utils.shuffle([w,...opts]);
@@ -896,9 +943,9 @@ const Quiz = {
       <div class="quiz-card">
         <div class="quiz-q">${Utils.esc(q.w.meaning)}</div>
         <div class="quiz-opts">
-          ${q.opts.map((o,i)=>`<button class="quiz-opt ${Quiz.answered?(o.id===q.w.id?'correct':(Quiz._picked===o.id?'wrong':'')):''}" onclick="Quiz.pick(${i})"><span class="qk">${'ABCD'[i]}</span><span>${Utils.esc(o.phrase)}</span></button>`).join('')}
+          ${q.opts.map((o,i)=>`<button class="quiz-opt ${Quiz.answered?(o.id===q.w.id?'correct':(Quiz._picked===o.id?'wrong':'')):''}" onclick="Quiz.pick(${i})"><span class="qk">${'ABCD'[i]}</span><span>${Utils.esc(o.phrase)} ${Utils.posTag(o)}</span></button>`).join('')}
         </div>
-        ${Quiz.answered?`<div class="quiz-explain show">✅ 正確答案：<b>${Utils.esc(q.w.phrase)}</b>${q.w.example?`<br>📝 ${Utils.esc(q.w.example)}`:''}<br><button class="btn sm soft" style="margin-top:10px" onclick="Quiz.next()">下一題 →</button></div>`:''}
+        ${Quiz.answered?`<div class="quiz-explain show">✅ 正確答案：<b>${Utils.esc(q.w.phrase)} ${Utils.posTag(q.w)}</b>${q.w.example?`<br>📝 ${Utils.esc(q.w.example)}`:''}<br><button class="btn sm soft" style="margin-top:10px" onclick="Quiz.next()">下一題 →</button></div>`:''}
       </div>
     `;
   },
@@ -986,7 +1033,7 @@ const Browse = {
       <div class="cat-chips">${cats.map(c=>`<button class="cat-chip ${Browse.cat===c?'active':''}" onclick="Browse.setCat('${c.replace(/'/g,"\\'")}')">${c}</button>`).join('')}</div>
       <div style="font-size:11px;color:var(--faint);margin:2px 2px 10px">共 ${Browse.filtered.length} 詞 · 長按可收藏</div>
       ${Browse.filtered.map(w=>`<div class="list-item" id="li-${w.id}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
-        <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}</div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
+        <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)} ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}</div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
         <div class="li-fav">${Store.state.fav.has(Store.key(w))?'★':''}</div>
       </div>`).join('')||`<div class="empty"><div class="e-icon">🔍</div>搵唔到相關詞彙</div>`}
     `;
@@ -1356,11 +1403,13 @@ const More = {
   },
   showLvTest(){
     const v=Utils.$('#view-sub');
+    const s=Store.state;
     v.innerHTML=`
       <button class="btn ghost sm" style="margin-top:10px" onclick="App.go('more')">← 返回更多</button>
       <div class="section-title"><span class="dot"></span>Level 測試</div>
+      ${s.lvTest?`<div class="card" style="margin-bottom:12px"><div class="st-t">而家 DSE Level</div><div style="font-size:24px;font-weight:800;color:#2563EB;margin-top:4px">${Utils.lvLabel(s.lvTest.lv)} <span style="font-size:13px;color:#666;font-weight:400">（上次 ${s.lvTest.maxRaw?(s.lvTest.raw+'/'+s.lvTest.maxRaw+'分 · 百分制 '+s.lvTest.pct):(s.lvTest.score+'/10')} · ${new Date(s.lvTest.ts).toLocaleDateString('zh-HK')}）</span></div></div>`:''}
       <div class="card" style="margin-bottom:12px">
-        <div class="highlight" style="font-size:13px;line-height:1.7">隨機抽 10 題，睇你掌握到幾多。全部答啱即挑戰成功！</div>
+        <div class="highlight" style="font-size:13px;line-height:1.7">12 題分層測試：初階 3 題（1-2★）＋中階 5 題（3-4★）＋進階 4 題（5★），難度越高佔分越重，進階題更會反轉考你。完成後自動更新 DSE Level。</div>
         <button class="btn" style="width:100%;margin-top:12px" onclick="LvTest.start()">開始測試 🎯</button>
       </div>
       <div id="lvtestBody"></div>
@@ -1384,6 +1433,12 @@ const More = {
         <div><div class="sh-num">${perDay}</div><div class="sh-lbl">每日需學</div></div>
       </div>
       <div class="card" style="margin-bottom:12px">
+        <div class="section-title" style="margin-top:0"><span class="dot"></span>DSE Level</div>
+        ${s.lvTest
+          ? `<div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:28px;font-weight:800;color:#2563EB">${Utils.lvLabel(s.lvTest.lv)}</div><div style="font-size:12px;color:#999;margin-top:2px">Level 測試 ${s.lvTest.maxRaw?(s.lvTest.raw+'/'+s.lvTest.maxRaw+'分 · 百分制 '+s.lvTest.pct):(s.lvTest.score+'/10')} · ${new Date(s.lvTest.ts).toLocaleDateString('zh-HK')}</div></div><button class="btn sm" onclick="More.showLvTest()">再測一次</button></div>`
+          : `<div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:15px;color:#666">未測試</div><div style="font-size:12px;color:#999;margin-top:2px">完成 Level 測試後自動更新 DSE Level</div></div><button class="btn sm" onclick="More.showLvTest()">去測試</button></div>`}
+      </div>
+      <div class="card" style="margin-bottom:12px">
         <div class="section-title" style="margin-top:0"><span class="dot"></span>等級目標分析</div>
         ${[['5**',95],['5*',90],['5',80],['4',70],['3',55]].map(([lv,th])=>{
           const diff=Math.max(0,Math.round(total*th/100-known));
@@ -1399,31 +1454,59 @@ const More = {
  * Level 測試（精簡版）
  * ===================================================================== */
 const LvTest = {
-  qs:[], idx:0, score:0, done:false,
+  qs:[], idx:0, score:0, parts:{a:0,b:0,c:0}, done:false, score100:0,
   start(){
-    const pool=Utils.shuffle(Data.raw).slice(0,10);
-    LvTest.qs=pool.map(w=>{ const opts=Utils.shuffle(Data.raw.filter(x=>x.id!==w.id)).slice(0,3); return {w, opts:Utils.shuffle([w,...opts])}; });
+    const byStar=s=>Data.raw.filter(w=>w.stars===s);
+    const pick=(pool,n)=>Utils.shuffle(pool).slice(0,n);
+    const fill=(arr,n)=>{ while(arr.length<n){ const alt=Utils.shuffle(Data.raw).find(w=>!arr.includes(w)); if(!alt)break; arr.push(alt); } return arr; };
+    // 分層抽題：初階 3 題(1-2星) + 中階 5 題(3-4星) + 進階 4 題(5星)
+    let easy=[...pick(byStar(1),2),...pick(byStar(2),1)];
+    let mid=[...pick(byStar(3),3),...pick(byStar(4),2)];
+    let hard=pick(byStar(5),4);
+    easy=fill(easy,3); mid=fill(mid,5); hard=fill(hard,4);
+    const pool=[...easy.map(w=>({w,tier:0})),...mid.map(w=>({w,tier:1})),...hard.map(w=>({w,tier:2}))];
+    LvTest.qs=Utils.shuffle(pool).map(({w,tier})=>{
+      const rev=tier===2?true:(Math.random()<0.5);
+      const opts=Utils.shuffle(Data.raw.filter(x=>x.id!==w.id&&Math.abs(x.stars-w.stars)<=1)).slice(0,3);
+      return {w, opts:Utils.shuffle([w,...opts]), tier, rev};
+    });
     LvTest.idx=0; LvTest.score=0; LvTest.done=false;
+    LvTest.parts={a:0,b:0,c:0};
     LvTest.render();
   },
+  baseScore(tier){ return tier===0?5:tier===1?8:12; },
+  tierName(t){ return t===0?'初階':t===1?'中階':'進階'; },
   render(){
     const body=Utils.$('#lvtestBody');
     if(LvTest.done){
-      const lv=LvTest.score>=10?'S級':LvTest.score>=8?'A級':LvTest.score>=6?'B級':LvTest.score>=4?'C級':'努力級';
-      body.innerHTML=`<div class="empty"><div class="e-icon">${LvTest.score>=8?'🏆':'📚'}</div><div style="font-size:22px;font-weight:800;margin-bottom:4px">${LvTest.score} / 10</div><div class="chip brand" style="margin-bottom:16px">等級：${lv}</div><br><button class="btn" onclick="LvTest.start()">再測一次</button></div>`;
+      const maxRaw=LvTest.qs.reduce((s,q)=>s+LvTest.baseScore(q.tier),0);
+      LvTest.score100=Math.round(LvTest.score/maxRaw*100);
+      const lv=Utils.lvFromScore(LvTest.score100);
+      Store.state.lvTest={ score:LvTest.score100, lv, ts:Date.now(), raw:LvTest.score, maxRaw, parts:LvTest.parts };
+      Store.persist();
+      const partHtml=[['初階',LvTest.parts.a,3],['中階',LvTest.parts.b,5],['進階',LvTest.parts.c,4]].map(([nm,got,n],i)=>{
+        const pct=Math.round(got/(n*LvTest.baseScore(i))*100);
+        return `<div style="display:flex;justify-content:space-between;font-size:12px;margin:6px 0"><span>${nm}（${got}/${n*LvTest.baseScore(i)}）</span><span>${pct}%</span></div><div style="height:6px;background:#E5E7EB;border-radius:3px;margin-bottom:8px"><div style="height:6px;width:${pct}%;background:${pct>=70?'#22C55E':pct>=50?'#F59E0B':'#EF4444'};border-radius:3px"></div></div>`;
+      }).join('');
+      const tip=LvTest.score100>=90?'穩陣 5** 水平，繼續保持！':LvTest.score100>=82?'達 5*，衝 5** 要再熟啲高階詞':LvTest.score100>=74?'達 5 級，5* 需要強化 Part 5A/5B 進階詞':LvTest.score100>=64?'達 4 級，建議每日加量背高階詞':LvTest.score100>=52?'達 3 級，需要系統補底初中階詞':LvTest.score100>=40?'達 2 級，建議先鞏固 Part 1 基礎詞':'屬 1 級，建議由基礎詞開始逐步建立詞彙庫';
+      body.innerHTML=`<div class="empty"><div class="e-icon">${LvTest.score100>=74?'🏆':'📚'}</div><div style="font-size:22px;font-weight:800;margin-bottom:4px">${LvTest.score100} / 100</div><div class="chip brand" style="margin-bottom:16px">DSE Level：${lv}</div><div class="card" style="width:100%;text-align:left;margin-bottom:12px">${partHtml}</div><div class="chip" style="margin-bottom:16px;background:#E8F5E9;color:#2E7D32">✅ DSE Level 已更新</div><div style="font-size:13px;color:#666;margin-bottom:16px;max-width:300px;line-height:1.6">${tip}</div><button class="btn" onclick="LvTest.start()">再測一次</button></div>`;
       return;
     }
     const q=LvTest.qs[LvTest.idx];
     body.innerHTML=`
       <div class="quiz-progress"><div class="quiz-fill" style="width:${LvTest.idx/LvTest.qs.length*100}%"></div></div>
-      <div class="quiz-meta"><span>${LvTest.idx+1} / ${LvTest.qs.length}</span><span>答啱 ${LvTest.score}</span></div>
-      <div class="quiz-card"><div class="quiz-q">${Utils.esc(q.w.meaning)}</div>
-        <div class="quiz-opts">${q.opts.map((o,i)=>`<button class="quiz-opt" onclick="LvTest.pick(${i})"><span class="qk">${'ABCD'[i]}</span><span>${Utils.esc(o.phrase)}</span></button>`).join('')}</div>
+      <div class="quiz-meta"><span>${LvTest.idx+1} / ${LvTest.qs.length}</span><span class="chip sm" style="background:${q.tier===0?'#E3F2FD;color:#1565C0':q.tier===1?'#FFF3E0;color:#E65100':'#FCE4EC;color:#C62828'}">${LvTest.tierName(q.tier)}</span></div>
+      <div class="quiz-card"><div class="quiz-q">${q.rev?`${Utils.esc(q.w.phrase)} <span style="font-size:12px;color:#999">（揀正確意思）</span>`:Utils.esc(q.w.meaning)}</div>
+        <div class="quiz-opts">${q.opts.map((o,i)=>`<button class="quiz-opt" onclick="LvTest.pick(${i})"><span class="qk">${'ABCD'[i]}</span><span>${Utils.esc(q.rev?o.meaning:o.phrase)}</span></button>`).join('')}</div>
       </div>`;
   },
   pick(i){
     const q=LvTest.qs[LvTest.idx];
-    if(q.opts[i].id===q.w.id) LvTest.score++;
+    const ok=q.opts[i].id===q.w.id;
+    if(ok){
+      LvTest.score+=LvTest.baseScore(q.tier);
+      LvTest.parts[q.tier===0?'a':q.tier===1?'b':'c']+=LvTest.baseScore(q.tier);
+    }
     LvTest.idx++;
     if(LvTest.idx>=LvTest.qs.length){ LvTest.done=true; }
     LvTest.render();
