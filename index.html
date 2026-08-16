@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>DSE Vocab V5.0</title>
+<meta name="theme-color" content="#6366F1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>DSE Vocab V5.2</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -380,6 +385,8 @@ textarea.field{min-height:150px;line-height:1.7}
     <section class="view" id="view-debate" role="tabpanel"></section>
     <!-- 閱讀拆題 -->
     <section class="view" id="view-reading" role="tabpanel"></section>
+    <!-- 聆聽綜合 -->
+    <section class="view" id="view-listening" role="tabpanel"></section>
     <!-- 更多 -->
     <section class="view" id="view-more" role="tabpanel"></section>
     <section class="view" id="view-stats" role="tabpanel"></section>
@@ -468,7 +475,105 @@ const Utils = {
   /* 段落切分 */
   paragraphs(text){ return (text||'').split(/\n\s*\n|\n+/).map(p=>p.trim()).filter(p=>p.length>0); },
   /* 平均句長 */
-  avgSentenceLen(text){ const n=this.wordCount(text), s=this.sentenceCount(text); return n&&s?Math.round(n/s*10)/10:0; }
+  avgSentenceLen(text){ const n=this.wordCount(text), s=this.sentenceCount(text); return n&&s?Math.round(n/s*10)/10:0; },
+  /* 連續打卡更新 */
+  touchStreak(){
+    const s=Store.state;
+    const t=Utils.today();
+    if(s.lastActive===t) return;
+    const y=new Date(); y.setDate(y.getDate()-1);
+    const yk=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
+    s.streak = s.lastActive===yk ? (s.streak||0)+1 : 1;
+    s.lastActive=t;
+    Store.persist();
+  },
+  /* 成就計算 */
+  achievements(){
+    const s=Store.state, total=Data.raw.length;
+    const list=[];
+    if(s.known.size>=10) list.push({id:'first10',ic:'🌱',t:'初嚐甜頭',d:'掌握 10 詞'});
+    if(s.known.size>=100) list.push({id:'century',ic:'💯',t:'百詞達人',d:'掌握 100 詞'});
+    if(s.known.size>=500) list.push({id:'half',ic:'🏅',t:'半庫高手',d:'掌握 500 詞'});
+    if(s.known.size>=1000) list.push({id:'kilo',ic:'🎖️',t:'千詞挑戰者',d:'掌握 1000 詞'});
+    if(total&&s.known.size>=total) list.push({id:'master',ic:'👑',t:'詞庫霸主',d:'掌握全詞庫'});
+    if(s.streak>=3) list.push({id:'s3',ic:'🔥',t:'三日之約',d:'連續 3 日打卡'});
+    if(s.streak>=7) list.push({id:'s7',ic:'⚡',t:'一週堅持',d:'連續 7 日打卡'});
+    if(s.streak>=30) list.push({id:'s30',ic:'🏆',t:'月級恆心',d:'連續 30 日打卡'});
+    if(s.quizBest>=80) list.push({id:'q80',ic:'🎯',t:'測驗高手',d:'Quiz 攞到 80 分'});
+    if(s.lvTest&&(s.lvTest.lv==='5**'||s.lvTest.lv==='5*')) list.push({id:'lv55',ic:'🚀',t:'DSE 高手',d:'Level 測試達 5* 或以上'});
+    if(total&&s.known.size>0&&s.wrong.size===0) list.push({id:'perfect',ic:'✨',t:'完美無瑕',d:'冇錯詞紀錄'});
+    return list;
+  },
+  /* 成就解鎖檢查 */
+  unlockCheck(){
+    const s=Store.state;
+    const ach=Utils.achievements();
+    if(ach.length>s.achievements.size){
+      const newOnes=ach.filter(a=>!s.achievements.has(a.id));
+      newOnes.forEach(a=>{ s.achievements.add(a.id); setTimeout(()=>Utils.toast('🏆 解鎖成就：'+a.t), 120); });
+      Store.persist();
+    }
+    return ach;
+  },
+  /* 錯題弱點分析 */
+  weakAnalysis(){
+    const s=Store.state;
+    const wrongWords=Data.raw.filter(w=>s.wrong.has(Store.key(w)));
+    const byStar={1:0,2:0,3:0,4:0,5:0};
+    const byPos={n:0,v:0,adj:0,adv:0,phr:0};
+    const byCat={};
+    wrongWords.forEach(w=>{ byStar[w.stars]=(byStar[w.stars]||0)+1; byPos[w.pos]=(byPos[w.pos]||0)+1; byCat[w.category]=(byCat[w.category]||0)+1; });
+    const sortBest=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>0)[0]||null;
+    return { total:wrongWords.length, byStar, byPos, byCat, topStar:sortBest(byStar), topPos:sortBest(byPos), topCat:sortBest(byCat) };
+  },
+  /* 學習曲線（近 30 日） */
+  curveData(){
+    const s=Store.state;
+    const days=[];
+    const today=new Date();
+    for(let i=29;i>=0;i--){
+      const d=new Date(today); d.setDate(d.getDate()-i);
+      const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      days.push({k, n:s.history[k]||0});
+    }
+    return days;
+  },
+  /* DSE 真題高頻詞 */
+  EXAM_WORDS:new Set(['abandon','achieve','benefit','climate change','consequence','contribute','crucial','decline','demand','despite','economic','effective','efficient','emission','environment','essential','evidence','expand','factor','globalisation','government','impact','improve','increase','issue','lack','major','measure','modern','obvious','opportunity','pollution','population','positive','potential','poverty','prevent','prosperity','reduce','resource','responsible','significant','solution','society','source','survive','sustainable','technology','threat','trend','urban','vary','welfare','awareness','commitment','implement','initiative','legislation','regulate','stakeholder','transparency']),
+  isExamWord(w){ const ph=(w.phrase||'').toLowerCase(); return Utils.EXAM_WORDS.has(ph); },
+  /* 同義詞網絡 */
+  SYNONYMS:{
+    'important':['crucial','essential','vital','significant','paramount'],
+    'good':['beneficial','advantageous','favourable','positive'],
+    'bad':['harmful','detrimental','adverse','damaging'],
+    'big':['enormous','substantial','considerable','significant'],
+    'small':['minor','slight','negligible','insignificant'],
+    'many':['numerous','countless','a multitude of','a wide range of'],
+    'very':['extremely','remarkably','exceptionally','profoundly'],
+    'show':['demonstrate','illustrate','reveal','indicate'],
+    'get':['obtain','acquire','gain','attain'],
+    'need':['require','necessitate','call for'],
+    'help':['assist','facilitate','support'],
+    'think':['believe','consider','reckon','hold the view'],
+    'problem':['challenge','obstacle','difficulty','drawback'],
+    'solution':['resolution','remedy','answer'],
+    'cause':['lead to','result in','give rise to','bring about'],
+    'change':['alter','transform','modify','shift'],
+    'increase':['rise','grow','escalate','surge'],
+    'decrease':['decline','reduce','diminish','drop'],
+    'use':['utilise','employ','make use of'],
+    'make':['create','produce','generate']
+  },
+  synonymsHtml(w){
+    const ph=(w.phrase||'').toLowerCase();
+    const group=Object.entries(Utils.SYNONYMS).find(([k,v])=>k===ph||v.includes(ph));
+    if(!group) return '';
+    const list=group[1];
+    return `<div class="d-ex" style="border-top:1px dashed var(--border);padding-top:8px;margin-top:8px"><b>🔗 同義詞網絡</b> <span style="color:var(--sub)">${list.map(s=>{
+      const found=Data.raw.find(x=>(x.phrase||'').toLowerCase()===s);
+      return found?`<a style="color:#2563EB;text-decoration:underline;cursor:pointer" onclick="App.openDetail('${found.id}')">${s}</a>`:s;
+    }).join('、')}</span></div>`;
+  }
 };
 /* ===== 本地儲存 ===== */
 const Storage = {
@@ -485,7 +590,8 @@ const Store = {
   defaultState(){ return {
     v:3, known:new Set(), wrong:new Set(), fav:new Set(),
     sched:{}, history:{}, goal:20, mode:'all', dark:false,
-    quizCount:0, onboarded:false, dseDate:'', lvTest:null, essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false }
+    quizCount:0, onboarded:false, dseDate:'', lvTest:null, essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false },
+    streak:0, lastActive:'', achievements:[], fontSize:16, quizBest:0
   }; },
   init(){
     const raw=Storage.get('dse_state');
@@ -501,6 +607,12 @@ const Store = {
       const old=st.lvTest;
       st.lvTest={ score:old.score, maxRaw:old.score, raw:old.score*10, pct:old.score*10, lv:Utils.lvLabel(old.lv||''), ts:old.ts||Date.now(), old:true };
     }
+    // V5.2 新字段遷移
+    if(typeof st.streak!=='number') st.streak=0;
+    if(typeof st.lastActive!=='string') st.lastActive='';
+    st.achievements=new Set(st.achievements||[]);
+    if(typeof st.fontSize!=='number') st.fontSize=16;
+    if(typeof st.quizBest!=='number') st.quizBest=0;
     // 相容舊版 key
     ['known','wrong','fav'].forEach(k=>{ const v=Storage.get(k); if(v){ try{ const arr=JSON.parse(v); if(Array.isArray(arr)) this.state[k]=new Set(arr); }catch(e){} } });
     const dk=Storage.get('dark'); if(dk==='1' && !saved) this.state.dark=true;
@@ -509,7 +621,7 @@ const Store = {
   },
   persist(){
     const s=this.state;
-    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], sched:s.sched, history:s.history, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay };
+    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], sched:s.sched, history:s.history, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0 };
     Storage.set('dse_state', JSON.stringify(snap));
     Storage.idbSet('backup', { s: JSON.stringify(snap), t: Date.now() });
   },
@@ -520,7 +632,7 @@ const Store = {
     const d=this.defaultState();
     this.state={ ...d, ...snap,
       known:new Set(snap.known||[]), wrong:new Set(snap.wrong||[]), fav:new Set(snap.fav||[]),
-      sched:snap.sched||{}, history:snap.history||{}, essay:{ ...d.essay, ...(snap.essay||{}) } };
+      sched:snap.sched||{}, history:snap.history||{}, essay:{ ...d.essay, ...(snap.essay||{}) }, streak:snap.streak||0, lastActive:snap.lastActive||'', achievements:new Set(snap.achievements||[]), fontSize:snap.fontSize||16, quizBest:snap.quizBest||0 };
     this.persist();
   }
 };
@@ -600,6 +712,16 @@ const UI = {
 };
 /* ===== SM-2 演算法 ===== */
 const SM2 = {
+  /* 自適應節奏：錯詞比例高 -> 放慢複習節奏，先打穩基礎 */
+  adaptive(){
+    const s=Store.state;
+    const tot=s.known.size+s.wrong.size;
+    if(!tot) return 1;
+    const wrongRate=s.wrong.size/tot;
+    if(wrongRate>0.35) return 0.6;
+    if(wrongRate>0.2) return 0.8;
+    return 1;
+  },
   review(w, quality){
     const s=Store.state;
     const k=Store.key(w);
@@ -607,7 +729,7 @@ const SM2 = {
     let {int,rep,ef}=cur;
     if(quality>=3){
       if(rep===0) int=1;
-      else if(rep===1) int=6;
+      else if(rep===1) int=Math.round(6*SM2.adaptive());
       else int=Math.round(int*ef);
       rep++;
     }else{
@@ -688,6 +810,8 @@ const Home = {
     const gap=Utils.gapToTop();
     const stars=[5,4,3].map(st=>{ const c=Data.raw.filter(w=>w.stars>=st).length; return `<div class="rp-cell"><div class="rp-lv">★${st}</div><div class="rp-num">${c}</div><div class="rp-lbl">詞</div></div>`; }).join('');
     const catInfo=[['情境詞彙',s.mode==='all'||s.mode==='情境'?'active':''],['寫作慣用語',s.mode==='寫作'?'active':''],['議題詞彙',s.mode==='議題'?'active':''],['21世紀潮語',s.mode==='潮語'?'active':''],['進階詞彙A',s.mode==='進階A'?'active':''],['進階短語B',s.mode==='進階B'?'active':'']];
+    Utils.touchStreak();
+    const ach=Utils.unlockCheck();
     Utils.$('#view-home').innerHTML=`
       <div class="hero">
         <h2>${days>0?`距離 DSE 仲有 <b style="font-size:26px">${days}</b> 日`:'DSE 加油！'}</h2>
@@ -700,6 +824,14 @@ const Home = {
         <div class="stat-card"><div class="num">${total-known}</div><div class="lbl">未掌握</div></div>
         <div class="stat-card"><div class="num">${master}%</div><div class="lbl">掌握率</div></div>
       </div>
+      <div class="streak-card" style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:28px">${s.streak>0?'🔥':'🌱'}</div>
+          <div><div style="font-size:17px;font-weight:800">連續 ${s.streak} 日</div><div style="font-size:11px;opacity:.85">${todayP>=goal?'今日已達標 ✅':'今日仲差 '+(goal-todayP)+' 詞'}</div></div>
+        </div>
+        <div style="text-align:right"><div style="font-size:15px;font-weight:800">${ach.length} 個成就</div><div style="font-size:11px;opacity:.85">🏆 已解鎖</div></div>
+      </div>
+      ${ach.length?`<div class="ach-row" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px">${ach.map(a=>`<div style="flex:0 0 auto;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;text-align:center;min-width:64px"><div style="font-size:18px">${a.ic}</div><div style="font-size:10px;font-weight:700;margin-top:2px">${a.t}</div></div>`).join('')}</div>`:''}
       ${Mission.render()}
       ${s.lvTest?(()=>{const pp=Utils.priorityPlan(s.lvTest.lv);return `
       <div class="dse-card" style="margin-bottom:12px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)">
@@ -731,6 +863,7 @@ const Home = {
       <div class="section-title"><span class="dot"></span>快速入口</div>
       <div class="quick">
         <div class="qb" onclick="App.go('essay')"><span class="badge">NEW</span><span class="ic">🤖</span><span class="t">AI 作文評分</span><span class="d">DSE 作文即時評分反饋</span></div>
+        <div class="qb" onclick="App.go('listening')"><span class="ic">🎧</span><span class="t">聆聽綜合</span><span class="d">Paper 3 聽力訓練</span></div>
         <div class="qb" onclick="App.go('writing')"><span class="ic">✍️</span><span class="t">寫作工具箱</span><span class="d">急救句式 × 寫作框架</span></div>
         <div class="qb" onclick="App.go('flash')"><span class="ic">🃏</span><span class="t">閃卡複習</span><span class="d">SM-2 智能複習</span></div>
         <div class="qb" onclick="App.go('quiz')"><span class="ic">📝</span><span class="t">詞彙測驗</span><span class="d">即時測驗練手感</span></div>
@@ -876,6 +1009,24 @@ const Stats = {
       const pct=arr.length?Math.round(k/arr.length*100):0;
       return `<div class="dim-bar"><div class="dim-head"><span class="dim-name">${Utils.esc(c)}</span><span class="dim-score">${k}/${arr.length}</span></div><div class="dim-track"><div class="dim-fill" style="width:${pct}%"></div></div></div>`;
     }).join('');
+    const wk=Utils.weakAnalysis();
+    const posName={n:'名詞',v:'動詞',adj:'形容詞',adv:'副詞',phr:'慣用語'};
+    const wkHtml=!wrong
+      ? `<div style="color:var(--faint);font-size:13px;text-align:center;padding:18px 0">冇錯詞，繼續保持！</div>`
+      : `<div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <div style="background:var(--bg-soft);border-radius:10px;padding:10px;text-align:center"><div style="font-size:11px;color:var(--sub)">最弱星級</div><div style="font-size:17px;font-weight:800;margin-top:2px">${'★'.repeat(Number(wk.topStar?wk.topStar[0]:0))}</div><div style="font-size:11px;color:var(--err)">${wk.topStar?wk.topStar[1]+' 錯':''}</div></div>
+            <div style="background:var(--bg-soft);border-radius:10px;padding:10px;text-align:center"><div style="font-size:11px;color:var(--sub)">最弱詞性</div><div style="font-size:17px;font-weight:800;margin-top:2px">${wk.topPos?posName[wk.topPos[0]]||wk.topPos[0]:'-'}</div><div style="font-size:11px;color:var(--err)">${wk.topPos?wk.topPos[1]+' 錯':''}</div></div>
+            <div style="background:var(--bg-soft);border-radius:10px;padding:10px;text-align:center"><div style="font-size:11px;color:var(--sub)">最弱分類</div><div style="font-size:11px;font-weight:800;margin-top:4px;line-height:1.3">${wk.topCat?Utils.esc(wk.topCat[0]).slice(0,10):'-'}</div><div style="font-size:11px;color:var(--err)">${wk.topCat?wk.topCat[1]+' 錯':''}</div></div>
+          </div>
+          <div class="dim-bar"><div class="dim-head"><span class="dim-name">錯詞星級分佈</span><span class="dim-score">${wk.total} 詞</span></div><div class="dim-track"><div class="dim-fill" style="width:${Math.min(100,Math.round(wk.total/Math.max(1,s.known.size)*100))}%"></div></div></div>
+        </div>`;
+    const curve=Utils.curveData();
+    const cMax=Math.max(1,...curve.map(c=>c.n));
+    const curveHtml=`<div class="hist-row" style="height:120px">${curve.map((c,i)=>{
+      const h=Math.max(3,Math.round(c.n/cMax*100));
+      return `<div class="hist-col" title="${c.k} ${c.n} 詞"><div class="bar ${c.k===Utils.today()?'today':''}" style="height:${h}%"></div>${i%5===0?`<div class="day">${c.k.slice(5)}</div>`:'<div class="day" style="visibility:hidden">·</div>'}</div>`;
+    }).join('')}</div>`;
     v.innerHTML=`
       <div class="stats-hero">
         <div><div class="sh-num">${master}%</div><div class="sh-lbl">掌握率</div></div>
@@ -884,6 +1035,8 @@ const Stats = {
         <div><div class="sh-num">${fav}</div><div class="sh-lbl">已收藏</div></div>
       </div>
       <div class="chart-card"><h4>📈 近 14 日學習紀錄</h4>${histHtml}</div>
+      <div class="chart-card"><h4>📉 學習曲線（近 30 日）</h4>${curveHtml}</div>
+      <div class="chart-card"><h4>🧭 錯題弱點雷達</h4>${wkHtml}</div>
       <div class="chart-card"><h4>📚 各分類掌握度</h4><div style="display:flex;flex-direction:column;gap:10px">${catRows}</div></div>
       <div class="card" style="margin-bottom:12px">
         <div class="section-title" style="margin-top:0"><span class="dot"></span>數據管理</div>
@@ -900,7 +1053,7 @@ const Stats = {
 };
 
 const Quiz = {
-  qs:[], idx:0, score:0, answered:false, cat:'all', mode:'choice',
+  qs:[], idx:0, score:0, answered:false, cat:'all', mode:'choice', timed:false, timeLeft:0, _timer:null,
   enter(){ Quiz._setup(); },
   _setup(){
     const s=Store.state;
@@ -930,7 +1083,34 @@ const Quiz = {
       return {w, opts:all};
     });
     Quiz.idx=0; Quiz.score=0; Quiz.answered=false;
+    if(Quiz.timed){ Quiz.timeLeft=Quiz.qs.length*15; Quiz._startTimer(); }
     Quiz.render();
+  },
+  _startTimer(){
+    clearInterval(Quiz._timer);
+    Quiz._timer=setInterval(()=>{
+      Quiz.timeLeft--;
+      const el=Utils.$('#quizTimer'); if(el) el.textContent='⏱ '+Quiz.timeLeft+'s';
+      if(Quiz.timeLeft<=0){ clearInterval(Quiz._timer); Quiz.finish(); }
+    },1000);
+  },
+  _stopTimer(){ clearInterval(Quiz._timer); Quiz._timer=null; },
+  finish(){
+    clearInterval(Quiz._timer);
+    const total=Quiz.qs.length;
+    const pct=total?Math.round(Quiz.score/total*100):0;
+    if(pct>Store.state.quizBest){ Store.state.quizBest=pct; Store.persist(); }
+    Utils.unlockCheck();
+    const v=Utils.$('#view-quiz');
+    v.innerHTML=`
+      <div class="empty" style="padding-top:60px"><div class="e-icon">🏁</div>
+      <div style="font-size:22px;font-weight:800;margin:10px 0 4px">測驗完成</div>
+      <div style="color:var(--sub)">答啱 ${Quiz.score} / ${total} 題（${pct}%）</div>
+      ${Quiz.timed?`<div style="color:var(--sub);margin-top:2px">計時模式</div>`:''}
+      <div style="margin-top:18px;display:flex;gap:8px;justify-content:center">
+        <button class="btn sm ghost" onclick="Quiz.timed=false;Quiz.enter()">再測一次</button>
+        <button class="btn sm" onclick="Quiz.timed=!Quiz.timed;Quiz.enter()">${Quiz.timed?'轉普通':'轉計時'}模式</button>
+      </div></div>`;
   },
   render(){
     const v=Utils.$('#view-quiz');
@@ -1207,7 +1387,8 @@ const EssayGrader = {
         <textarea class="field" id="essayText" rows="12" placeholder="貼上／輸入學生作文（建議 300-600 字）…">${Utils.esc(EssayGrader.text)}</textarea>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11.5px;color:var(--faint)"><span id="essayCount">0 字</span><span>DSE Paper 2 建議約 500 字</span></div>
       </div>
-      <button class="btn" style="width:100%;margin-bottom:14px" onclick="EssayGrader.grade()">${cfg.useApi?'🤖 AI 深度評分':'📊 立即評分'}</button>
+      <button class="btn" style="width:100%;margin-bottom:8px" onclick="EssayGrader.grade()">${cfg.useApi?'🤖 AI 深度評分':'📊 立即評分'}</button>
+      <button class="btn ghost" style="width:100%;margin-bottom:14px" onclick="EssayGrader.showSample()">📖 睇 5** 示範文＋結構分析</button>
       ${EssayGrader.result?EssayGrader._resultHtml():''}
     `;
     const ta=Utils.$('#essayText');
@@ -1216,6 +1397,37 @@ const EssayGrader = {
     tp.addEventListener('input',()=>{ EssayGrader.topic=tp.value; });
   },
   setTopic(i){ EssayGrader.topic=EssayGrader.prompts[i]; EssayGrader.render(); },
+  SAMPLE:{title:'5** 示範文（議論體）', body:`In recent years, social media has become an inseparable part of young people's daily lives. While it is often blamed for its negative impact on teenagers, I believe that social media is a double-edged sword whose effects depend largely on how it is used.
+
+To begin with, it is undeniable that social media offers unprecedented opportunities for learning and connection. Students can gain instant access to global news, educational resources and online courses that were once beyond their reach. Moreover, platforms such as Instagram and YouTube enable young people to showcase their creativity and build digital literacy, which is increasingly valued in the modern workplace. A case in point is the growing number of student-run accounts that raise awareness of environmental issues.
+
+Nevertheless, the potential dangers of social media should not be overlooked. One major concern is cyberbullying, which can have a devastating effect on teenagers' mental health. Unlike traditional bullying, online harassment follows victims everywhere, making it difficult to escape. In addition, the addictive nature of these platforms often leads to excessive screen time, which in turn causes sleep deprivation and poor concentration in class.
+
+From my perspective, the key lies in striking a balance rather than imposing a total ban. Schools should incorporate digital literacy into the curriculum, teaching students how to identify reliable information and protect their privacy online. Parents, for their part, can set reasonable boundaries on screen time while remaining open to dialogue with their children.
+
+To conclude, social media is neither entirely beneficial nor wholly harmful. If we equip young people with the skills to use it wisely, it can become a powerful tool for growth rather than a source of harm. After all, the problem does not lie in the technology itself, but in how we choose to use it.`},
+  showSample(){
+    const v=Utils.$('#view-essay');
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin-top:10px" onclick="EssayGrader.render()">← 返回評分</button>
+      <div class="section-title"><span class="dot"></span>${EssayGrader.SAMPLE.title}</div>
+      <div class="card" style="margin-bottom:12px">${EssayGrader.SAMPLE.body.split('\n\n').map(p=>'<p style="line-height:1.9;margin:0 0 12px;font-size:14px">'+p+'</p>').join('')}</div>
+      <div class="section-title"><span class="dot"></span>結構分析</div>
+      <div class="card" style="margin-bottom:12px;font-size:13px;line-height:1.8">
+        <div style="font-weight:800;margin-bottom:6px">📐 五段式結構</div>
+        <div>1. 引言：立場清晰（double-edged sword），亮出主線</div>
+        <div>2. 正文①：論點＋例證（Moreover／A case in point）</div>
+        <div>3. 正文②：反方論點＋後果（Nevertheless／In addition）</div>
+        <div>4. 正文③：個人立場＋建議（From my perspective）</div>
+        <div>5. 結論：重申立場＋昇華（To conclude／After all）</div>
+        <div style="font-weight:800;margin:10px 0 6px">🏆 5** 關鍵</div>
+        <div>· 連接詞多樣：To begin with／Moreover／Nevertheless／From my perspective／To conclude／After all</div>
+        <div>· 高階詞彙：unprecedented、digital literacy、cyberbullying、devastating、addictive、excessive、striking a balance、equip...with</div>
+        <div>· 長短句交替，平均句長 14-18 詞</div>
+        <div>· 完整 5 段、約 480 字</div>
+      </div>
+    `;
+  },
   _useApi(on){ Store.state.essay.useApi=on; Store.persist(); EssayGrader.render(); },
   async grade(){
     const text=Utils.$('#essayText').value.trim();
@@ -1365,12 +1577,14 @@ const More = {
         <div class="qb" onclick="App.go('speaking')"><span class="ic">🗣️</span><span class="t">口語特訓</span><span class="d">Paper 4 話題論點</span></div>
         <div class="qb" onclick="App.go('debate')"><span class="ic">⚔️</span><span class="t">辯論訓練</span><span class="d">正反論點攻防</span></div>
         <div class="qb" onclick="App.go('reading')"><span class="ic">📖</span><span class="t">閱讀拆題</span><span class="d">Paper 1 題型技巧</span></div>
+        <div class="qb" onclick="App.go('listening')"><span class="ic">🎧</span><span class="t">聆聽綜合</span><span class="d">Paper 3 聽力 + Data File</span></div>
       </div>
       <div class="section-title"><span class="dot"></span>設定</div>
       <div class="card" style="margin-bottom:12px">
         <div class="setting-row"><div class="st-info"><div class="st-t">DSE 考試日期</div><div class="st-d">影響首頁倒數</div></div><button class="btn sm ghost" onclick="App.setDseDate()">${s.dseDate||'2027-04-06'}</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">每日學習目標</div><div class="st-d">而家 ${s.goal} 詞／日</div></div><button class="btn sm ghost" onclick="App.setGoal()">調整</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">深色模式</div><div class="st-d">夜間護眼</div></div><div class="switch ${s.dark?'on':''}" onclick="App.toggleTheme()"></div></div>
+        <div class="setting-row"><div class="st-info"><div class="st-t">字體大小</div><div class="st-d">而家 ${s.fontSize||16}px</div></div><div style="display:flex;gap:6px"><button class="btn sm ghost" onclick="App.setFont(-1)">A−</button><button class="btn sm ghost" onclick="App.setFont(1)">A+</button></div></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">AI 評分設置</div><div class="st-d">API Key ／模型</div></div><button class="btn sm ghost" onclick="EssayGrader.renderSettings();App.go('essay')">設置</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">數據備份</div><div class="st-d">匯出／匯入／WebDAV</div></div><button class="btn sm ghost" onclick="App.go('stats')">管理</button></div>
       </div>
@@ -1518,8 +1732,9 @@ const LvTest = {
 const App = {
   _cur:null,
   go(view){
+    clearInterval(Quiz._timer);
     UI.go(view);
-    const routers={ home:()=>Home.render(), flash:()=>Flash.enter(), quiz:()=>Quiz.enter(), browse:()=>Browse.enter(), writing:()=>WritingToolkit.enter(), essay:()=>EssayGrader.enter(), speaking:()=>Speaking.enter(), debate:()=>Debate.enter(), reading:()=>ReadingTool.enter(), more:()=>More.render(), stats:()=>Stats.render() };
+    const routers={ home:()=>Home.render(), flash:()=>Flash.enter(), quiz:()=>Quiz.enter(), browse:()=>Browse.enter(), writing:()=>WritingToolkit.enter(), essay:()=>EssayGrader.enter(), speaking:()=>Speaking.enter(), debate:()=>Debate.enter(), reading:()=>ReadingTool.enter(), listening:()=>Listening.enter(), more:()=>More.render(), stats:()=>Stats.render() };
     if(routers[view]) routers[view]();
   },
   openDetail(id){
@@ -1532,7 +1747,9 @@ const App = {
         <div class="d-ph">${Utils.esc(w.phrase)}</div>
         <div class="d-stars">${'★'.repeat(Math.min(w.stars,5))}${w.stars>5?'（高階）':''}</div>
         <div class="d-mean">${Utils.esc(w.meaning)}</div>
+        ${Utils.isExamWord(w)?'<div class="d-ex" style="color:#F59E0B;font-weight:700">📌 DSE 真題高頻詞</div>':''}
         ${w.example?`<div class="d-ex">📝 ${Utils.esc(w.example)}</div>`:''}
+        ${Utils.synonymsHtml(w)}
         <div class="d-actions">
           <button class="btn sm ghost" onclick="App.toggleFav()">${Store.state.fav.has(Store.key(w))?'★ 已收藏':'☆ 收藏'}</button>
           <button class="btn sm ${Store.state.known.has(Store.key(w))?'ghost':'soft'}" onclick="App.toggleKnown()">${Store.state.known.has(Store.key(w))?'↩️ 取消掌握':'✅ 標記掌握'}</button>
@@ -1587,6 +1804,14 @@ const App = {
     const btn=Utils.$('#themeBtn'); if(btn) btn.textContent=Store.state.dark?'☀️':'🌙';
     Store.persist();
   },
+  setFont(d){
+    const s=Store.state;
+    s.fontSize=Math.min(22,Math.max(12,(s.fontSize||16)+d));
+    document.body.style.zoom=(s.fontSize/16).toFixed(2);
+    Store.persist();
+    More.render();
+    Utils.toast('字體 '+(s.fontSize||16)+'px');
+  },
   exportData(){
     const s=Store.state;
     const blob=new Blob([JSON.stringify({app:'dse_vocab',v:3,t:Date.now(),known:[...s.known],wrong:[...s.wrong],fav:[...s.fav],sched:s.sched,history:s.history,goal:s.goal,mode:s.mode,quizCount:s.quizCount},null,2)],{type:'application/json'});
@@ -1623,6 +1848,7 @@ const App = {
     window.onerror=(msg)=>{ Utils.toast('⚠️ '+msg); };
     window.addEventListener('unhandledrejection',e=>{ Utils.toast('⚠️ '+(e.reason&&e.reason.message||'未知錯誤')); });
     Store.init();
+    document.body.style.zoom=(Store.state.fontSize/16||1).toFixed(2);
     document.documentElement.setAttribute('data-theme', Store.state.dark?'dark':'');
     const btn=Utils.$('#themeBtn'); if(btn) btn.textContent=Store.state.dark?'☀️':'🌙';
     if(!Store.state.onboarded) Utils.$('#guide').classList.add('show');
@@ -1646,6 +1872,7 @@ const App = {
     }
     Home.render();
     Utils.toast('詞庫載入完成 ✅');
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
     window.__booted=true;
   }
 };
@@ -1674,7 +1901,12 @@ const Speaking={
   enter(){
     const v=Utils.$('#view-speaking');
     v.innerHTML=`
-      <div class="x-toolbar"><div class="x-tab on"><span class="ic">🗣️</span>口語特訓</div><div class="x-tab" onclick="App.go('debate')"><span class="ic">⚔️</span>辯論</div><div class="x-tab" onclick="App.go('reading')"><span class="ic">📖</span>閱讀</div></div>
+      <div class="x-toolbar"><div class="x-tab on"><span class="ic">🗣️</span>口語特訓</div><div class="x-tab" onclick="App.go('debate')"><span class="ic">⚔️</span>辯論</div><div class="x-tab" onclick="App.go('reading')"><span class="ic">📖</span>閱讀</div><div class="x-tab" onclick="App.go('listening')"><span class="ic">🎧</span>聆聽</div></div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="st-t">🎤 發音評分練習</div>
+        <div class="st-d">用咪高峰讀出詞彙，AI 即時比對評分（需允許麥克風權限）</div>
+        <button class="btn sm" style="margin-top:8px" onclick="Speaking.speakPractice()">開始練習</button>
+      </div>
       <div class="section-title"><span class="dot"></span>DSE Paper 4 討論話題</div>
       <button class="btn" style="width:100%;margin-bottom:12px" onclick="Speaking.random()">🎲 隨機抽一題</button>
       ${Speaking.TOPICS.map((t,i)=>'<div class="topic-card" onclick="Speaking.open('+i+')"><span class="n">'+(i+1)+'</span><span class="q">'+t.q+'</span><span class="go">›</span></div>').join('')}
@@ -1697,6 +1929,60 @@ const Speaking={
       <div class="card" style="margin-bottom:12px">${t.ph.map(p=>'<span class="ph-chip">'+p+'</span>').join('')}</div>
       <button class="btn sm ghost" style="width:100%;margin-bottom:20px" onclick="Speaking.random()">🎲 下一題（隨機）</button>
     `;
+  },
+  _pw:null,
+  speak(text,lang,rate){ try{ if(!('speechSynthesis' in window)){ Utils.toast('瀏覽器唔支援語音'); return; } speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang=lang||'en-US'; u.rate=rate||0.8; speechSynthesis.speak(u); }catch(e){} },
+  stopSpeak(){ try{ speechSynthesis.cancel(); }catch(e){} },
+  speakPractice(){
+    const v=Utils.$('#view-speaking');
+    const pool=Data.raw.filter(w=>w.pos&&w.pos!=='phr');
+    const w=pool[Math.floor(Math.random()*pool.length)];
+    Speaking._pw=w;
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin-top:10px" onclick="Speaking.enter()">← 返回</button>
+      <div class="topic-hero" style="margin-top:10px"><div class="tq">${Utils.esc(w.phrase)}</div><div class="tg">${Utils.esc(w.meaning)}</div></div>
+      <div class="card" style="margin-bottom:12px;text-align:center">
+        <button class="btn" onclick="Speaking.speak(Speaking._pw.phrase,'en-US',0.75)">🔊 聽正確發音</button>
+        <button class="btn" style="margin-left:8px" onclick="Speaking._listen()">🎙️ 開始朗讀</button>
+        <button class="btn sm ghost" style="margin-left:8px" onclick="Speaking.speakPractice()">🎲 換一隻</button>
+      </div>
+      <div id="spkResult"></div>
+    `;
+  },
+  _listen(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){ Utils.toast('瀏覽器唔支援語音識別'); return; }
+    const r=new SR(); r.lang='en-US'; r.interimResults=false; r.maxAlternatives=1;
+    Utils.toast('🎙️ 請朗讀詞彙...');
+    r.onresult=e=>{
+      const said=e.results[0][0].transcript;
+      const w=Speaking._pw;
+      const score=Speaking._score(w.phrase, said);
+      const el=Utils.$('#spkResult');
+      el.innerHTML=`<div class="card" style="text-align:center">
+        <div style="font-size:32px;font-weight:800;color:${score>=80?'var(--ok)':score>=50?'#f59e0b':'var(--err)'}">${score} 分</div>
+        <div style="font-size:13px;color:var(--sub);margin-top:4px">辨識到：「${Utils.esc(said)}」</div>
+        <div style="font-size:13px;margin-top:4px">目標：「${Utils.esc(w.phrase)}」</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:8px">${score>=80?'🎉 發音好標準':score>=50?'👍 唔錯，留意尾音同重音':'💪 再聽一次正確發音，慢慢讀'}</div>
+      </div>`;
+    };
+    r.onerror=()=>Utils.toast('未能辨識，請再試');
+    r.start();
+  },
+  _score(a,b){
+    const A=a.toLowerCase().replace(/[^a-z ]/g,'').trim();
+    const B=b.toLowerCase().replace(/[^a-z ]/g,'').trim();
+    if(A===B) return 100;
+    const d=Speaking._lev(A,B);
+    return Math.max(0, Math.round((1-d/Math.max(A.length,B.length,1))*100));
+  },
+  _lev(a,b){
+    const m=a.length, n=b.length;
+    const dp=Array.from({length:m+1},(_,i)=>{ const r=new Array(n+1).fill(0); r[0]=i; return r; });
+    for(let j=0;j<=n;j++) dp[0][j]=j;
+    for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+      dp[i][j]=Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+    return dp[m][n];
   },
   _iv:null,
   timer(sec){
@@ -1839,7 +2125,176 @@ const ReadingTool={
   }
 };
 
-window.Speaking=Speaking; window.Debate=Debate; window.ReadingTool=ReadingTool;
+/* =====================================================================
+ * Paper 3 聆聽及綜合能力
+ * ===================================================================== */
+const Listening={
+  _cur:null,
+  enter(){
+    const v=Utils.$('#view-listening');
+    v.innerHTML=`
+      <div class="x-toolbar"><div class="x-tab on"><span class="ic">🎧</span>聆聽綜合</div><div class="x-tab" onclick="App.go('speaking')"><span class="ic">🗣️</span>口語</div><div class="x-tab" onclick="App.go('reading')"><span class="ic">📖</span>閱讀</div></div>
+      <div class="section-title"><span class="dot"></span>Paper 3 聆聽及綜合能力（佔 30%）</div>
+      <div class="quick">
+        <div class="qb" onclick="Listening.vocab()"><span class="ic">🔊</span><span class="t">聆聽詞彙</span><span class="d">TTS 發音訓練</span></div>
+        <div class="qb" onclick="Listening.passage(0)"><span class="ic">📻</span><span class="t">聆聽理解</span><span class="d">聽廣播答題</span></div>
+        <div class="qb" onclick="Listening.dataset(0)"><span class="ic">🗂️</span><span class="t">Data File 綜合</span><span class="d">Paper 3 整合題型</span></div>
+      </div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.7">💡 Paper 3 佔 DSE 英文科最大比重。聆聽題用瀏覽器語音朗讀（TTS）模擬，建議戴耳機做練習。<br>📱 Chrome 支援語音朗讀同語音識別，Android/iOS 都用到。</div>
+    `;
+  },
+  speak(text,lang,rate){
+    try{
+      if(!('speechSynthesis' in window)){ Utils.toast('瀏覽器唔支援語音'); return; }
+      speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(text);
+      u.lang=lang||'en-US'; u.rate=rate||0.85; u.pitch=1;
+      speechSynthesis.speak(u);
+    }catch(e){ Utils.toast('語音播放失敗'); }
+  },
+  stop(){ try{ speechSynthesis.cancel(); }catch(e){} },
+  /* ---- 聆聽詞彙 ---- */
+  vocab(){
+    const v=Utils.$('#view-listening');
+    const cats=[...new Set(Data.raw.map(w=>w.category))];
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin-top:10px" onclick="Listening.enter()">← 返回</button>
+      <div class="section-title"><span class="dot"></span>揀分類聆聽詞彙</div>
+      <div class="card" style="margin-bottom:12px">${cats.map(c=>'<button class="btn sm ghost" style="margin:3px" onclick="Listening.vocabList(\''+c+'\')">'+c+'</button>').join('')}</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6">🔊 撳詞彙即聽發音（英文 + 中文解釋）</div>
+    `;
+  },
+  vocabList(cat){
+    const words=Data.raw.filter(w=>w.category===cat).slice(0,40);
+    const v=Utils.$('#view-listening');
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin-top:10px" onclick="Listening.vocab()">← 返回分類</button>
+      <div class="section-title"><span class="dot"></span>${cat}（顯示 ${words.length} 詞）</div>
+      <div class="card" style="margin-bottom:12px">${words.map(w=>'<div class="list-item" onclick="Listening.word(\''+w.id+'\')"><div class="li-main"><div class="li-ph">'+Utils.esc(w.phrase)+' <span class="pos-tag">'+Utils.esc(w.pos||'')+'</span></div><div class="li-mean">'+Utils.esc(w.meaning)+'</div></div><div class="li-fav" style="font-size:15px">🔊</div></div>').join('')}</div>
+    `;
+  },
+  word(id){
+    const w=Data.byId.get(id); if(!w) return;
+    Listening.stop();
+    Listening.speak(w.phrase,'en-US',0.8);
+    setTimeout(()=>Listening.speak(w.meaning,'zh-HK',0.9), 700);
+    Utils.toast('🔊 播放中');
+  },
+  /* ---- 聆聽理解 ---- */
+  PASSAGES:[
+    {title:'Open Day 廣播', audio:"Good morning, everyone. This is an announcement from the principal's office. Our school open day will be held on Saturday, the twenty-eighth of March, from ten in the morning to four in the afternoon. There will be guided tours, science demonstrations and a book fair. Students who volunteer will receive a certificate and ten community service hours. Interested students should sign up at the general office before Friday. Thank you for your attention.",
+     qs:[
+       {q:'Open Day 喺幾時舉行？', opts:['3 月 28 日','3 月 25 日','4 月 28 日'], a:0},
+       {q:'活動包括以下邊樣？', opts:['科學示範','音樂會','烹飪比賽'], a:0},
+       {q:'義工學生可以獲得咩？', opts:['獎金同證書','證書同 10 小時社區服務','免費午餐同證書'], a:1},
+       {q:'點樣報名做義工？', opts:['網上報名','去教務處登記','搵班主任'], a:1}
+     ]},
+    {title:'環保週活動', audio:"Hi everyone, this is the Environmental Club. Next week is our Green Week! From Monday to Friday, we have arranged different activities. On Monday, there is a recycling workshop in the hall after school. On Wednesday, we will have a clothes swap party where you can exchange old clothes. On Friday, we will plant trees in the school garden. Also, remember to bring your own water bottle every day to save plastic. See you there!",
+     qs:[
+       {q:'星期一有咩活動？', opts:['植樹活動','回收工作坊','換衫派對'], a:1},
+       {q:'換衫派對喺星期幾？', opts:['星期二','星期三','星期五'], a:1},
+       {q:'每日記得帶咩？', opts:['水樽','環保袋','午餐盒'], a:0}
+     ]}
+  ],
+  playPassage(i){ const p=Listening.PASSAGES[i]; Listening.speak(p.audio,'en-US',0.85); },
+  passage(i){
+    const p=Listening.PASSAGES[i];
+    const v=Utils.$('#view-listening');
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin-top:10px" onclick="Listening.enter()">← 返回</button>
+      <div class="topic-hero" style="margin-top:10px"><div class="tq">${p.title}</div><div class="tg">聆聽理解 · ${p.qs.length} 題</div></div>
+      <div class="card" style="margin-bottom:12px;text-align:center">
+        <button class="btn" onclick="Listening.playPassage(0)">🔊 播放錄音</button>
+        <button class="btn sm ghost" style="margin-left:8px" onclick="Listening.stop()">⏹ 停止</button>
+        <div style="font-size:11px;color:var(--sub);margin-top:8px">建議先聽一次再做題，可以重播</div>
+      </div>
+      <div class="section-title"><span class="dot"></span>答題</div>
+      <div id="listenQs"></div>
+      <button class="btn" style="width:100%;margin-bottom:20px" onclick="Listening.check()">✅ 提交答案</button>
+      <div id="listenResult"></div>
+    `;
+    Listening._cur={type:'passage', p:p, ans:new Array(p.qs.length).fill(-1)};
+    const qb=Utils.$('#listenQs');
+    qb.innerHTML=p.qs.map((q,qi)=>`
+      <div class="card" style="margin-bottom:12px">
+        <div class="st-t">${qi+1}. ${q.q}</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${q.opts.map((o,oi)=>'<button class="btn sm ghost" style="text-align:left;justify-content:flex-start" onclick="Listening.choose('+qi+','+oi+',this)">'+o+'</button>').join('')}</div>
+      </div>`).join('');
+  },
+  choose(qi,oi,el){
+    if(!Listening._cur) return;
+    Listening._cur.ans[qi]=oi;
+    const card=Utils.$$('#listenQs .card')[qi];
+    Utils.$$(card).forEach(b=>b.classList.remove('brand'));
+    el.classList.add('brand');
+  },
+  check(){
+    const c=Listening._cur; if(!c) return;
+    const total=c.p.qs.length;
+    let score=0;
+    const detail=c.p.qs.map((q,qi)=>{
+      const ok=c.ans[qi]===q.a;
+      if(ok) score++;
+      return `<div style="font-size:13px;padding:5px 0;color:${ok?'var(--ok)':'var(--err)'}">${ok?'✅':'❌'} ${q.q}${ok?'':'（答案：'+q.opts[q.a]+'）'}</div>`;
+    }).join('');
+    const pct=Math.round(score/total*100);
+    const r=Utils.$('#listenResult');
+    r.innerHTML=`<div class="card" style="background:${pct>=80?'var(--bg-soft)':'var(--bg-soft)'}"><div style="font-size:18px;font-weight:800">得分 ${score}/${total}（${pct}%）</div><div style="font-size:12px;color:var(--sub)">${pct>=80?'🎉 好犀利，Paper 3 高分冇難度':pct>=60?'👍 唔錯，重播再聽鞏固':pct>=40?'💪 有進步空間，建議睇稿再聽':'📖 多啲聽英文，慢慢進步'}</div></div><div class="card" style="margin-top:8px">${detail}</div>`;
+    Utils.toast('已提交');
+  },
+  /* ---- Data File 綜合 ---- */
+  DATASETS:[
+    {title:'English Fun Fair 活動策劃', scenario:'你係學生會幹事，要根據錄音同資料整理一份活動計劃書。', audio:"Hello Amy, this is Mr Lee. I have received the proposal for the English Fun Fair. The venue and the budget have been approved. The fair will be held on the twenty-eighth of March in the school playground. You have a budget of five thousand dollars for ten game booths. Please confirm the number of student helpers with the teachers before the fifteenth of March. Also, remember to prepare rain backup: if it rains, move the fair to the covered basketball court.",
+     data:[['活動名稱','English Fun Fair'],['日期','3 月 28 日'],['地點','學校操場（雨天：有蓋籃球場）'],['攤位數量','10 個'],['預算','$5,000'],['確認義工人數限期','3 月 15 日前']],
+     qs:[
+       {q:'活動地點係邊？', opts:['學校操場','禮堂','有蓋籃球場'], a:0},
+       {q:'預算係幾多？', opts:['$3,000','$5,000','$10,000'], a:1},
+       {q:'下雨天嘅後備安排係咩？', opts:['取消活動','移去有蓋籃球場','改期'], a:1}
+     ]},
+    {title:'義工服務安排', scenario:'你係活動統籌，要整理義工服務嘅安排。', audio:"Welcome to the volunteer team! Our community service day will be on the fifth of April, from two to five in the afternoon. We will visit the elderly home in Sham Shui Po. There are two groups: the cleaning group and the conversation group. The cleaning group will tidy the common areas, and the conversation group will chat with the elderly. Please wear comfortable clothes and bring your own water bottle. The bus will leave the school gate at one fifteen.",
+     data:[['服務日期','4 月 5 日'],['時間','下午 2:00 - 5:00'],['地點','深水埗長者中心'],['分組','清潔組 / 傾偈組'],['集合時間','下午 1:15 學校門口'],['自備物品','水樽']],
+     qs:[
+       {q:'義工服務喺邊日？', opts:['4 月 5 日','4 月 15 日','5 月 4 日'], a:0},
+       {q:'有邊兩個組？', opts:['清潔組同烹飪組','清潔組同傾偈組','傾偈組同教書組'], a:1},
+       {q:'旅遊巴幾點開？', opts:['1:15','2:00','3:00'], a:0}
+     ]}
+  ],
+  playDataset(i){ const d=Listening.DATASETS[i]; Listening.speak(d.audio,'en-US',0.85); },
+  dataset(i){
+    const d=Listening.DATASETS[i];
+    const v=Utils.$('#view-listening');
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin-top:10px" onclick="Listening.enter()">← 返回</button>
+      <div class="topic-hero" style="margin-top:10px"><div class="tq">${d.title}</div><div class="tg">Data File 綜合能力</div></div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="st-t">📋 情境</div>
+        <div class="st-d" style="line-height:1.7">${d.scenario}</div>
+      </div>
+      <div class="card" style="margin-bottom:12px;text-align:center">
+        <button class="btn" onclick="Listening.playDataset(0)">🔊 播放錄音</button>
+        <button class="btn sm ghost" style="margin-left:8px" onclick="Listening.stop()">⏹ 停止</button>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="st-t">🗂️ Data File 資料</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">${d.data.map(r=>'<div style="background:var(--bg-soft);border-radius:8px;padding:8px;font-size:12px"><div style="font-weight:700;color:var(--sub)">'+r[0]+'</div><div style="margin-top:2px">'+r[1]+'</div></div>').join('')}</div>
+        <div style="font-size:11px;color:var(--faint);margin-top:8px">Paper 3 考你同時睇資料 + 聽錄音，整合資訊作答</div>
+      </div>
+      <div class="section-title"><span class="dot"></span>答題</div>
+      <div id="listenQs"></div>
+      <button class="btn" style="width:100%;margin-bottom:20px" onclick="Listening.check()">✅ 提交答案</button>
+      <div id="listenResult"></div>
+    `;
+    Listening._cur={type:'dataset', p:d, ans:new Array(d.qs.length).fill(-1)};
+    const qb=Utils.$('#listenQs');
+    qb.innerHTML=d.qs.map((q,qi)=>`
+      <div class="card" style="margin-bottom:12px">
+        <div class="st-t">${qi+1}. ${q.q}</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${q.opts.map((o,oi)=>'<button class="btn sm ghost" style="text-align:left;justify-content:flex-start" onclick="Listening.choose('+qi+','+oi+',this)">'+o+'</button>').join('')}</div>
+      </div>`).join('');
+  }
+};
+
+window.Speaking=Speaking; window.Debate=Debate; window.ReadingTool=ReadingTool; window.Listening=Listening;
 
 window.LvTest=LvTest;
 App.boot();
