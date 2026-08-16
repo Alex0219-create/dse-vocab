@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.2</title>
+<title>DSE Vocab V5.3</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -942,10 +942,17 @@ const WRITING_GENRES = ["Argumentative Writing","Persuasive Writing","Analytical
  * 寫作工具箱
  * ===================================================================== */
 const WritingToolkit = {
-  _fmt: null, _genre: null,
+  _fmt: null, _genre: null, _tab:'fmt', _cat:null,
   enter(){ WritingToolkit._fmt=null; WritingToolkit._genre=null; WritingToolkit.render(); },
+  _tabs(){
+    return `<div class="x-toolbar" style="margin-top:10px">
+      <div class="x-tab ${WritingToolkit._tab==='fmt'?'on':''}" onclick="WritingToolkit._tab='fmt';WritingToolkit.render()"><span class="ic">📝</span>格式詞庫</div>
+      <div class="x-tab ${WritingToolkit._tab==='struct'?'on':''}" onclick="WritingToolkit._tab='struct';WritingToolkit.render()"><span class="ic">🧩</span>進階句式</div>
+    </div>`;
+  },
   render(){
     const v=Utils.$('#view-writing');
+    if(WritingToolkit._tab==='struct'){ WritingToolkit._cat?WritingToolkit._renderStructDetail():WritingToolkit._renderStructList(); return; }
     if(WritingToolkit._fmt){
       WritingToolkit._renderDetail(); return;
     }
@@ -954,10 +961,7 @@ const WritingToolkit = {
       .filter(([k,val])=>!WritingToolkit._genre||val.genre===WritingToolkit._genre)
       .map(([k,val])=>`<div class="wt-fmt" onclick="WritingToolkit.open('${k.replace(/'/g,"\\'")}')"><div class="t">${Utils.esc(k)}</div><div class="p">${Utils.esc(val.purpose)}</div></div>`).join('');
     v.innerHTML=`
-      <div class="essay-toolbar" style="margin-top:10px">
-        <button class="btn sm soft" onclick="App.go('essay')">🤖 AI 作文評分</button>
-        <button class="btn sm ghost" onclick="App.go('more')">☰ 更多工具</button>
-      </div>
+      ${WritingToolkit._tabs()}
       <div class="section-title"><span class="dot"></span>揀寫作格式</div>
       <div class="cat-chips">${genreTabs}</div>
       <div class="wt-grid">${list}</div>
@@ -984,6 +988,149 @@ const WritingToolkit = {
     try{ navigator.clipboard.writeText(txt); }catch(e){}
     btn.textContent='✓ 已複製'; btn.classList.add('done');
     setTimeout(()=>{ btn.textContent='複製'; btn.classList.remove('done'); },1400);
+  },
+  /* ---------- 進階句式結構 ---------- */
+  _renderStructList(){
+    const v=Utils.$('#view-writing');
+    v.innerHTML=`
+      ${WritingToolkit._tabs()}
+      <div class="section-title"><span class="dot"></span>進階句式結構</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">💡 唔好為用而用！每段用 1-2 款已好足夠。DSE Paper 2 想攞 5**，句式多樣性（Topic sentence → 倒裝 → 分詞 → 強調句）係 Language 分嘅關鍵。</div>
+      <div class="wt-grid">${Object.entries(SENTENCE_STRUCTURES).map(([k,val])=>`<div class="wt-fmt" onclick="WritingToolkit._cat='${k.replace(/'/g,"\'")}';WritingToolkit.render()"><div class="t">${Utils.esc(k)}</div><div class="p">${Utils.esc(val.d)}</div></div>`).join('')}</div>
+    `;
+  },
+  _renderStructDetail(){
+    const v=Utils.$('#view-writing');
+    const cat=SENTENCE_STRUCTURES[WritingToolkit._cat];
+    if(!cat){ WritingToolkit._cat=null; WritingToolkit._renderStructList(); return; }
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin:10px 0 6px" onclick="WritingToolkit._cat=null;WritingToolkit.render()">← 返回句式分類</button>
+      <div class="wt-detail-top" style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:13px 15px;margin-bottom:12px">
+        <h3 style="font-size:16px;font-weight:800;margin-bottom:4px">${Utils.esc(WritingToolkit._cat)}</h3>
+        <div class="meta" style="font-size:12px;color:var(--sub)">${Utils.esc(cat.d)}</div>
+      </div>
+      ${cat.items.map(s=>`
+        <div class="wt-group">
+          <h4>${Utils.esc(s.n)}</h4>
+          <div class="card" style="padding:12px;margin-bottom:12px">
+            ${s.p?`<div style="font-size:12px;color:#6366F1;font-weight:700;margin-bottom:6px;font-family:monospace">${Utils.esc(s.p)}</div>`:''}
+            <div style="font-size:13.5px;line-height:1.7;font-style:italic;color:var(--text)">「${Utils.esc(s.e)}」</div>
+            <div style="font-size:12px;color:var(--sub);margin-top:5px">${Utils.esc(s.m)}</div>
+            ${s.t?`<div style="font-size:11.5px;color:var(--faint);margin-top:6px;border-top:1px dashed var(--border);padding-top:6px">💡 ${Utils.esc(s.t)}</div>`:''}
+            <button class="btn sm ghost" style="margin-top:8px" onclick="WritingToolkit.copy(this,'${Utils.esc(s.e).replace(/'/g,"\'")}')">複製例句</button>
+          </div>
+        </div>`).join('')}
+    `;
+  }
+};
+
+/* =====================================================================
+ * 進階句式結構庫（Paper 2 寫作）
+ * ===================================================================== */
+const SENTENCE_STRUCTURES = {
+  'Topic Sentence 主題句':{
+    d:'8 款高分開頭句式，令每段主題句即刻加分',
+    items:[
+      {n:'觀點直述式', p:'[Topic] is/are [adj] for [who] because...', e:'Social media is particularly damaging to teenagers because it fuels constant comparison.', m:'社交媒體對青少年尤其有害，因為佢助長不斷嘅比較。', t:'最穩陣嘅主題句：直接表態＋原因。'},
+      {n:'讓步式', p:'While it is true that [opposing view], [your view]...', e:'While it is true that examinations create stress, they remain the fairest way to assess ability.', m:'雖然考試確實會造成壓力，但佢仍然係最公平嘅能力評估方式。', t:'先讓步再反駁，顯得客觀成熟。'},
+      {n:'轉折式', p:'Despite [X], [Y]...', e:'Despite the popularity of online learning, traditional classrooms still offer irreplaceable benefits.', m:'儘管網上學習流行，傳統課堂仍然提供無可取代嘅好處。', t:'適合寫「新舊對比」類題目。'},
+      {n:'反問式', p:'Is it not time we [Vpast]...?', e:'Is it not time we took decisive action against plastic pollution?', m:'我哋係咪應該採取果斷行動應對塑膠污染呢？', t:'修辭問句開頭，語氣有力。'},
+      {n:'背景導入式', p:'In recent years, [topic] has emerged as...', e:'In recent years, remote working has emerged as a defining feature of modern life.', m:'近年嚟，遙距工作已成為現代生活嘅標誌性特徵。', t:'適用於社會現象類題目。'},
+      {n:'事實/數據式', p:'According to [source], [statistic]...', e:'According to recent surveys, nearly seventy per cent of students experience examination-related stress.', m:'根據近期調查，近七成學生經歷考試相關壓力。', t:'用數據開頭，證據感強；唔好作虛假數據，可用 roughly/approximately。'},
+      {n:'立場宣示式', p:'It is beyond doubt that...', e:'It is beyond doubt that education is the most powerful weapon for social mobility.', m:'毋庸置疑，教育係社會流動最強大嘅武器。', t:'強立場開頭，適合觀點明確嘅題目。'},
+      {n:'對比式', p:'While [A] tends to [X], [B] has the opposite effect...', e:'While video games are often blamed for laziness, they can actually sharpen problem-solving skills.', m:'雖然電子遊戲常被指令人懶散，但佢哋其實可以提升解難能力。', t:'打破刻板印象，反轉觀點。'}
+    ]
+  },
+  'Linking Words 進階連接詞':{
+    d:'7 大功能、40+ 個進階連接詞，取代 basic 嘅 and/but/so',
+    items:[
+      {n:'因果關係', p:'', e:'The proposal was rejected; consequently, the team had to revise its strategy.', m:'建議被否決，因此團隊要重新修改策略。', t:'進階因果：consequently / hence / thereby / owing to / on account of'},
+      {n:'讓步', p:'', e:'Notwithstanding the criticism, the policy has brought tangible benefits.', m:'儘管受到批評，呢項政策仍然帶嚟實際好處。', t:'進階讓步：notwithstanding / albeit / even so / be that as it may'},
+      {n:'對比', p:'', e:'City life offers convenience, whereas rural life offers tranquillity.', m:'城市生活提供便利，而鄉郊生活提供寧靜。', t:'進階對比：conversely / in stark contrast / on the flip side'},
+      {n:'舉例', p:'', e:'To illustrate, a growing number of schools have introduced financial literacy courses.', m:'舉例嚟講，愈嚟愈多學校開設理財課程。', t:'進階舉例：to illustrate / by way of example / a notable case is'},
+      {n:'總結', p:'', e:'In light of the above, it is clear that a balanced approach is essential.', m:'綜上所述，好明顯平衡嘅方法係必不可少。', t:'進階總結：in essence / to encapsulate / all things considered / in light of the above'},
+      {n:'強調', p:'', e:'Undeniably, technology has revolutionised the way we communicate.', m:'不可否認，科技徹底改變咗我哋嘅溝通方式。', t:'進階強調：undeniably / without question / needless to say / it goes without saying'},
+      {n:'條件', p:'', e:'Provided that students receive proper guidance, online learning can be highly effective.', m:'只要學生得到適當指導，網上學習可以非常有效。', t:'進階條件：provided that / assuming that / in the event that'}
+    ]
+  },
+  'Inversion 倒裝句':{
+    d:'8 款倒裝句式，Language 分數即刻提升',
+    items:[
+      {n:'Not only...but also', p:'Not only does [S] [V], but it also [V]...', e:'Not only does exercise improve physical health, but it also boosts mental well-being.', m:'運動唔單止改善身體健康，仲提升心理健康。', t:'寫作最常用倒裝，放段尾做總結好有力。'},
+      {n:'No sooner...than', p:'No sooner had [S] [Vpp] than [S] [Vpast]...', e:'No sooner had the class begun than the fire alarm rang.', m:'課堂一開始，火警鐘就響起。', t:'表「一…就…」，注意 had + Vpp 結構。'},
+      {n:'Hardly...when', p:'Hardly had [S] [Vpp] when [S] [Vpast]...', e:'Hardly had the news spread when public outrage erupted.', m:'消息一傳開，公眾憤怒就爆發。', t:'同 No sooner...than 用法相似，可交替用。'},
+      {n:'Under no circumstances', p:'Under no circumstances should [S] [V]...', e:'Under no circumstances should students be allowed to use phones during examinations.', m:'任何情況下都唔應該准許學生考試期間用手機。', t:'強烈禁止語氣，注意助動詞提前。'},
+      {n:'Only when / Only by', p:'Only by [V-ing] can [S] [V]...', e:'Only by working together can we solve this crisis.', m:'只有齊心合力，我哋先可以解決呢場危機。', t:'表「唯有…先可以」，好適合建議段。'},
+      {n:'Rarely / Seldom', p:'Rarely have [S] [Vpp]...', e:'Rarely have I witnessed such dedication among students.', m:'我好少見到學生有咁嘅投入。', t:'表「好少」，適合寫個人觀察。'},
+      {n:'Never', p:'Never have [S] [Vpp]...', e:'Never has the issue of mental health been more urgent.', m:'心理健康問題從未如此迫切。', t:'表「從未」，適合強調現況嚴重。'},
+      {n:'Not until', p:'Not until [clause] did [S] [V]...', e:'Not until the final moment did the team realise the true cost of the delay.', m:'直到最後一刻，團隊先意識到延誤嘅真正代價。', t:'表「直到…先」，注意 did + V。'}
+    ]
+  },
+  '強調句 Emphatic Structures':{
+    d:'6 款結構，令觀點更有力',
+    items:[
+      {n:'It is...that', p:'It is [X] that [Y]...', e:'It is perseverance that separates the successful from the rest.', m:'係毅力令成功人士與眾不同。', t:'萬能強調句式，突出重點。'},
+      {n:'What...is', p:'What [S] [V] is...', e:'What students really need is guidance, not pressure.', m:'學生真正需要嘅係引導，而唔係壓力。', t:'將重點放句首，對比鮮明。'},
+      {n:'Do + 動詞', p:'[S] do/does/did [V]...', e:'We do recognise the challenges involved in this reform.', m:'我哋確實明白呢次改革涉及嘅挑戰。', t:'用 do 加強肯定語氣。'},
+      {n:'無可否認式', p:'There is no denying that...', e:'There is no denying that technology has transformed education.', m:'不可否認，科技已經改變教育。', t:'適合承認對方觀點後再反駁。'},
+      {n:'最高級強調', p:'Nothing is more [adj] than...', e:'Nothing is more valuable than a good reputation.', m:'冇嘢比好聲譽更有價值。', t:'強調「最…」，適合結論。'},
+      {n:'絕對式', p:'It goes without saying that...', e:'It goes without saying that safety must come first.', m:'毋庸置疑，安全必須擺第一。', t:'強烈共識式開頭。'}
+    ]
+  },
+  '分詞結構 Participle Phrases':{
+    d:'6 款分詞結構，令句子更緊湊高級',
+    items:[
+      {n:'Having + Vpp', p:'Having [Vpp], [S] [V]...', e:'Having completed the project ahead of schedule, the team celebrated their success.', m:'提早完成項目之後，團隊慶祝佢哋嘅成功。', t:'表「完成之後」，好適合敘事。'},
+      {n:'-ing 開頭', p:'[V-ing]..., [S] [V]...', e:'Realising the severity of the issue, the government launched a new initiative.', m:'意識到問題嘅嚴重性，政府推出新措施。', t:'表「因為/當」，主句主語要一致。'},
+      {n:'-ed 開頭', p:'[Ved]..., [S] [V]...', e:'Faced with rising costs, many families had to adjust their budgets.', m:'面對成本上升，好多家庭要調整預算。', t:'被動分詞開頭，適合寫困境。'},
+      {n:'分詞後置', p:'[S], [V-ing/Ved], [V]...', e:'The proposal, backed by strong evidence, was approved without delay.', m:'呢項建議有強力證據支持，即刻獲批。', t:'插喺主語後面，句子結構即時高級。'},
+      {n:'獨立主格', p:'[noun] + [V-ing], [S] [V]...', e:'All things considered, the plan is both practical and affordable.', m:'總括嚟講，呢個計劃既實際又負擔得起。', t:'「All things considered」係經典獨立主格，寫結論超好用。'},
+      {n:'條件分詞', p:'Given [X], [S] [V]...', e:'Given more time and resources, students could produce far better work.', m:'如果有更多時間同資源，學生可以交出好得多嘅作品。', t:'Given 可表「鑑於/假如」，好實用。'}
+    ]
+  },
+  '虛擬語氣 Subjunctive':{
+    d:'6 款虛擬語氣，寫建議同反事實超有力',
+    items:[
+      {n:'If...were', p:'If [S] were [X], [S] would [V]...', e:'If online learning were the only option, many students would struggle to concentrate.', m:'如果網上學習係唯一選擇，好多學生會難以集中。', t:'反事實假設，第二條件句。'},
+      {n:'Were it not for', p:'Were it not for [X], [S] would [V]...', e:'Were it not for scholarships, many talented students could not afford university.', m:'如果冇獎學金，好多有天分嘅學生會讀唔起大學。', t:'倒裝虛擬，強調某因素嘅重要性。'},
+      {n:'建議式', p:'It is essential that [S] (should) [V]...', e:'It is essential that schools address the issue of cyberbullying without delay.', m:'學校必須即刻處理網絡欺凌問題。', t:'It is + adj + that + (should) + V，寫建議必備。'},
+      {n:'It is high time', p:'It is high time that [S] [Vpast]...', e:'It is high time we tackled the problem of food waste seriously.', m:'我哋係時候認真處理廚餘問題。', t:'表「係時候…」，注意用過去式動詞。'},
+      {n:'I wish', p:'I wish [S] [Vpast]...', e:'Many parents wish their children spent less time in front of screens.', m:'好多家長希望子女少啲對住螢幕。', t:'表「但願」，適合寫期望。'},
+      {n:'將來虛擬', p:'If [S] were to [V]...', e:'If the government were to ban single-use plastics, the environmental impact would be enormous.', m:'如果政府禁即棄塑膠，環境影響會好大。', t:'「were to」表將來假設，比 if + would 正式。'}
+    ]
+  },
+  '比較對比 Comparison':{
+    d:'6 款比較結構，論證更有層次',
+    items:[
+      {n:'The more...the more', p:'The more [X], the more [Y]...', e:'The more students practise speaking, the more confident they become.', m:'學生練習講嘢愈多，就愈有信心。', t:'遞進比較，適合寫「練習/累積」類論點。'},
+      {n:'Whereas 對比', p:'[A]..., whereas [B]...', e:'City life offers convenience, whereas rural life offers peace and quiet.', m:'城市生活提供便利，而鄉郊生活提供寧靜。', t:'連接兩個相反觀點，一個句就完成對比。'},
+      {n:'No less...than', p:'[X] is no less [adj] than [Y]...', e:'Volunteering is no less rewarding than paid employment.', m:'義務工作嘅滿足感一啲都唔比有薪工作少。', t:'表「一啲都唔比…少」，肯定 X。'},
+      {n:'May be...yet', p:'[X] may be [adj], yet [Y]...', e:'The proposal may be costly, yet it is worth the investment in the long run.', m:'呢個方案可能好貴，但長遠嚟講值得投資。', t:'先承認缺點再反駁，成熟論證。'},
+      {n:'On the one hand...on the other', p:'On the one hand, [X]; on the other hand, [Y]...', e:'On the one hand, tourism boosts the economy; on the other hand, it strains local resources.', m:'一方面旅遊業促進經濟，另一方面佢加重本地資源負擔。', t:'平衡觀點，適合議論文。'},
+      {n:'Nothing compares to', p:'Nothing compares to [X]...', e:'Nothing compares to the satisfaction of helping others in need.', m:'冇嘢比得上幫助有需要嘅人帶嚟嘅滿足感。', t:'極致肯定，適合結論強調。'}
+    ]
+  },
+  '修辭手法 Rhetorical Devices':{
+    d:'6 款修辭，令文章有文采',
+    items:[
+      {n:'修辭問句', p:'Is it not [adj] that...?', e:'Is it not ironic that we destroy nature in the name of progress?', m:'我哋以進步之名破壞大自然，係咪好諷刺呢？', t:'反問收尾，引人深思。'},
+      {n:'排比三連', p:'[X], [Y] and [Z]...', e:'Education empowers individuals, strengthens communities and drives economic growth.', m:'教育賦能個人、強化社區、推動經濟增長。', t:'三連排比節奏感強，適合寫多角度論點。'},
+      {n:'隱喻', p:'[A] is the [metaphor] of [B]...', e:'Education is the key that unlocks countless doors.', m:'教育係打開無數道門嘅鑰匙。', t:'一個好隱喻令文章即刻有文采。'},
+      {n:'明喻', p:'like / as...', e:'Ideas spread like wildfire in the age of social media.', m:'喺社交媒體年代，諗法好似野火咁蔓延。', t:'明喻用 like/as，簡單易掌握。'},
+      {n:'擬人', p:'[Abstract noun] + [human verb]...', e:'The issue refuses to disappear despite repeated warnings.', m:'呢個問題無視一再警告，拒絕消失。', t:'將抽象概念當人寫，生動有力。'},
+      {n:'對偶', p:'[X], not [Y]...', e:'We need action, not empty promises.', m:'我哋需要行動，而唔係空口承諾。', t:'兩極對比，簡潔有力。'}
+    ]
+  },
+  '句子開頭多樣化 Sentence Openers':{
+    d:'6 款開頭方式，告別千篇一律',
+    items:[
+      {n:'介詞短語', p:'At the heart of [X] lies...', e:'At the heart of the debate lies a fundamental question about fairness.', m:'呢場辯論嘅核心係一個關乎公平嘅根本問題。', t:'介詞開頭，即刻有文學味。'},
+      {n:'副詞開頭', p:'[Adv], [S] [V]...', e:'Ironically, the very technology that connects us also isolates us.', m:'諷刺嘅係，令我哋連結嘅科技同時令我哋孤立。', t:'Ironically / Undoubtedly / Surprisingly 開頭。'},
+      {n:'分詞開頭', p:'[V-ing]..., [S] [V]...', e:'Looking at the bigger picture, this is a small price to pay.', m:'宏觀嚟睇，呢個係一個好小嘅代價。', t:'「Looking at / Considering / Bearing in mind」開頭。'},
+      {n:'同位語開頭', p:'A growing concern, [topic] has...', e:'A growing concern among parents, screen time has become a major issue.', m:'作為家長日益關注嘅問題，螢幕時間已成為重大議題。', t:'名詞短語+逗號開頭，正式感強。'},
+      {n:'從句開頭', p:'When it comes to [topic], ...', e:'When it comes to education, quality matters more than quantity.', m:'講到教育，質量比數量更重要。', t:'萬能引入句式，自然過渡。'},
+      {n:'轉折連接', p:'In the face of [X], ...', e:'In the face of rising costs, families are making increasingly difficult choices.', m:'面對成本上升，家庭正作出越來越困難嘅選擇。', t:'In the face of / In response to / In light of 開頭。'}
+    ]
   }
 };
 /* =====================================================================
