@@ -1,21 +1,24 @@
-# DSE Vocab V5.3（網站版）
+# DSE Vocab V5.6.1（網站版）
 
-V5.3 大版本更新：Paper 2 寫作大升級——全新「進階句式結構」模組（9 大分類、59 個高階句式），另保留 V5.2 全部功能（Paper 3 聆聽綜合、AI 作文評分、語音評分等）。
+V5.6.1 更新：詞庫擴充——加入 2004-2011 年香港高級程度會考（HKALE）Use of English Section C 閱讀卷困難字詞 213 個，保留 V5.5 全部功能（Paper 2 進階句式結構、Paper 3 聆聽綜合、AI 作文評分、語音評分等）。
 
-## V5.3 更新內容
+## V5.6.1 更新內容
 
-### 🧩 Paper 2 寫作：進階句式結構（全新模組）
+### 📚 詞庫擴充：2004-2011 HKALE Use of English 閱讀卷困難詞（213 個）
+從 7 份舊制高級程度會考閱讀試卷（2004 厄瓜多爾玫瑰 / 2005 玩具城盜版戰 / 2006 中國勞工荒 / 2007 體罰管教之爭 / 2008 戀愛的科學 / 2010 創意文化 / 2011 中國葡萄酒）精選 213 個高難度詞彙及短語加入詞庫：
+
+- **Part 5A 進階詞彙**：impoverished, extravagant, fungicide, unblemished, toil, hamper, miscarriage, nausea, fumigate, dexterous, fetid, murky, lure, acute, temperament, serotonin, dopamine, neurotrophin, obsessive, harness, resonate, multifaceted, ingrained, stifle, entrepreneurial, nimble, lethal, terroir, sommelier, skyrocket 等
+- **Part 5B 進階短語**：Catch-22, a veil of secrecy, pave the way, a slap on the wrist, a long haul, play hardball, bargaining power, resort to, a fit of rage, a disaster in the making, butterflies in the stomach, initial rush, economies of scale, vertical integration, at stake, an uphill battle, blind tasting 等
+- 全部附中文解釋、詞性、星級，並已與現有 10,042 詞去重，詞庫現達 **10,255 詞**
+
+### 📚 詞庫擴充：1994-2003 HKALE Use of English 閱讀卷困難詞（V5.5，300 個）
+從 9 份舊制高級程度會考閱讀試卷精選 300 個高難度詞彙及短語加入詞庫，詞庫達 10,042 詞。
+
+### 📚 詞庫擴充：Oxford Mock Test 4 & 5 困難詞（V5.4，203 個）
+從兩份 Oxford Advanced Exam Skills 閱讀卷精選 203 個高難度詞彙及短語加入詞庫。
+
+### 🧩 Paper 2 寫作：進階句式結構（V5.3，全新模組）
 寫作工具箱新增「進階句式」分頁，9 大分類、59 個高階句式，每個句式附：公式、示範例句、中文解釋、使用貼士，一鍵複製插入作文。
-
-- **Topic Sentence 主題句**（8 款）：觀點直述 / 讓步 / 轉折 / 反問 / 背景導入 / 數據開頭 / 立場宣示 / 對比
-- **Linking Words 進階連接詞**（7 類）：因果 / 讓步 / 對比 / 舉例 / 總結 / 強調 / 條件
-- **Inversion 倒裝句**（8 款）：Not only…but also / No sooner…than / Hardly…when / Under no circumstances / Only by… / Rarely / Never / Not until
-- **強調句 Emphatic Structures**（6 款）：It is…that / What…is / Do+動詞 / There is no denying / Nothing is more…than / It goes without saying
-- **分詞結構 Participle Phrases**（6 款）：Having+Vpp / -ing 開頭 / -ed 開頭 / 分詞後置 / 獨立主格 / Given
-- **虛擬語氣 Subjunctive**（6 款）：If…were / Were it not for / 建議式 / It is high time / I wish / were to
-- **比較對比 Comparison**（6 款）：The more…the more / Whereas / No less…than / May be…yet / On the one hand / Nothing compares to
-- **修辭手法 Rhetorical Devices**（6 款）：修辭問句 / 排比三連 / 隱喻 / 明喻 / 擬人 / 對偶
-- **句子開頭多樣化 Sentence Openers**（6 款）：介詞短語 / 副詞開頭 / 分詞開頭 / 同位語 / When it comes to / In the face of
 
 ### 🤖 AI 作文評分升級（V5.2）
 - 新增「5** 示範文＋結構分析」：完整示範文 + 五段式結構拆解 + 5** 關鍵要素
@@ -25,33 +28,9 @@ V5.3 大版本更新：Paper 2 寫作大升級——全新「進階句式結構�
 - 聆聽詞彙：揀分類聽 TTS 發音（英文 + 中文）
 - 聆聽理解：2 篇模擬廣播（Open Day / 環保週），聽完答題即時評分
 - Data File 綜合：模擬 Paper 3 整合題型（錄音 + 資料檔同步作答）
-- Paper 3 佔 DSE 英文科 30%，係最大比重
 
 ### 🎤 口語發音評分（V5.2）
-- 用咪高峰讀詞彙，瀏覽器語音識別即時比對，Levenshtein 距離計分（0-100）
-
-### 其他 V5.2 功能（保留）
-- 📌 DSE 真題高頻詞（60 個）
-- 🔗 同義詞網絡（20 組）
-- 🏆 遊戲化（Streak 成就徽章）
-- 🎯 錯題弱點雷達
-- 📈 學習曲線
-- 🔤 字體大小調整
-- 📱 PWA 安裝（加到主螢幕、離線使用）
-- 🧠 SM-2 自適應複習
-
-## 使用方式
-1. 上傳以下檔案到 GitHub Pages（alex0219-create/dse-vocab main 分支）：
-   - index.html
-   - dse_vocab_data.js
-   - manifest.json
-   - sw.js
-   - icon.svg
-2. 等 1-2 分鐘，手機開 https://alex0219-create.github.io/dse-vocab/（加 ?v=53 或無痕防快取）
-3. 想裝做 App：Chrome 選單 →「加到主螢幕」
-
-## 本地使用
-- index.html + dse_vocab_data.js 放埋同一資料夾，用瀏覽器打開 index.html 即可
-- 舊數據（V5.1.x / V5.2）自動遷移，唔會丟失
+（保留 V5.2 全部口語評分功能）
 
 ---
+DSE Vocab 詞彙學習系統 — 全離線 PWA，支援 SM-2 間隔重複、AI 作文評分、閱讀拆題、聆聽綜合、口語特訓。
