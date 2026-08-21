@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.8</title>
+<title>DSE Vocab V5.10.4</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -942,16 +942,19 @@ const WRITING_GENRES = ["Argumentative Writing","Persuasive Writing","Analytical
  * 寫作工具箱
  * ===================================================================== */
 const WritingToolkit = {
-  _fmt: null, _genre: null, _tab:'fmt', _cat:null,
-  enter(){ WritingToolkit._fmt=null; WritingToolkit._genre=null; WritingToolkit.render(); },
+  _fmt: null, _genre: null, _tab:'fmt', _cat:null, _att:null,
+  enter(){ WritingToolkit._fmt=null; WritingToolkit._genre=null; WritingToolkit._att=null; WritingToolkit.render(); },
   _tabs(){
     return `<div class="x-toolbar" style="margin-top:10px">
       <div class="x-tab ${WritingToolkit._tab==='fmt'?'on':''}" onclick="WritingToolkit._tab='fmt';WritingToolkit.render()"><span class="ic">📝</span>格式詞庫</div>
       <div class="x-tab ${WritingToolkit._tab==='struct'?'on':''}" onclick="WritingToolkit._tab='struct';WritingToolkit.render()"><span class="ic">🧩</span>進階句式</div>
+      <div class="x-tab ${WritingToolkit._tab==='att'?'on':''}" onclick="WritingToolkit._tab='att';WritingToolkit.render()"><span class="ic">🎭</span>語氣態度詞</div>
     </div>`;
   },
   render(){
     const v=Utils.$('#view-writing');
+    if(WritingToolkit._tab==='topic'){ WritingToolkit._topic?WritingToolkit._renderTopicDetail():WritingToolkit._renderTopicList(); return; }
+    if(WritingToolkit._tab==='att'){ WritingToolkit._att?WritingToolkit._renderAttDetail():WritingToolkit._renderAttList(); return; }
     if(WritingToolkit._tab==='struct'){ WritingToolkit._cat?WritingToolkit._renderStructDetail():WritingToolkit._renderStructList(); return; }
     if(WritingToolkit._fmt){
       WritingToolkit._renderDetail(); return;
@@ -1020,6 +1023,56 @@ const WritingToolkit = {
             <button class="btn sm ghost" style="margin-top:8px" onclick="WritingToolkit.copy(this,'${Utils.esc(s.e).replace(/'/g,"\'")}')">複製例句</button>
           </div>
         </div>`).join('')}
+    `;
+  },
+  /* ---------- 語氣態度詞 ---------- */
+  _renderAttList(){
+    const v=Utils.$('#view-writing');
+    v.innerHTML=`
+      ${WritingToolkit._tabs()}
+      <div class="section-title"><span class="dot"></span>語氣態度詞</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">💡 寫作要「有態度」！用語氣態度詞表達立場同情緒，係 Paper 2 攞高分嘅關鍵。揀一個情緒分類，睇吓有咩詞可以用。</div>
+      <div class="wt-grid">
+        ${ATTITUDE_WORDS.map((att,i)=>`<div class="wt-fmt" onclick="WritingToolkit._att=${i};WritingToolkit.render()"><div class="t">${Utils.esc(att.e)}</div><div class="p">${Utils.esc(att.tip)}</div></div>`).join('')}
+      </div>
+    `;
+  },
+  _renderAttDetail(){
+    const v=Utils.$('#view-writing');
+    const att=ATTITUDE_WORDS[WritingToolkit._att];
+    if(!att){ WritingToolkit._att=null; WritingToolkit._renderAttList(); return; }
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin:10px 0 6px" onclick="WritingToolkit._att=null;WritingToolkit.render()">← 返回情緒分類</button>
+      <div class="wt-detail-top" style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:13px 15px;margin-bottom:12px">
+        <h3 style="font-size:16px;font-weight:800;margin-bottom:4px">${Utils.esc(att.e)}</h3>
+        <div class="meta" style="font-size:12px;color:var(--sub)">${Utils.esc(att.tip)}</div>
+      </div>
+      ${att.groups.map(g=>`<div class="wt-group"><h4>${Utils.esc(g.g)}</h4>${g.items.map(p=>`<div class="wt-phrase"><div><div class="txt">${Utils.esc(p.t)}</div><div class="mean">${Utils.esc(p.m)}</div></div><button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.t).replace(/'/g,"\'")}')">複製</button></div>`).join('')}</div>`).join('')}
+    `;
+  },
+  /* ---------- 議題短語 ---------- */
+  _renderTopicList(){
+    const v=Utils.$('#view-writing');
+    v.innerHTML=`
+      ${WritingToolkit._tabs()}
+      <div class="section-title"><span class="dot"></span>議題短語</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">💡 高分作文要「啱話題」！每個熱門 DSE 議題都有必用短語，背熟直接用，Content + Language 雙雙加分。撳入去睇議題必備短語。</div>
+      <div class="wt-grid">
+        ${TOPIC_PHRASES.map((tp,i)=>`<div class="wt-fmt" onclick="WritingToolkit._topic=${i};WritingToolkit.render()"><div class="t">${Utils.esc(tp.e)}</div><div class="p">${Utils.esc(tp.tip)}</div></div>`).join('')}
+      </div>
+    `;
+  },
+  _renderTopicDetail(){
+    const v=Utils.$('#view-writing');
+    const tp=TOPIC_PHRASES[WritingToolkit._topic];
+    if(!tp){ WritingToolkit._topic=null; WritingToolkit._renderTopicList(); return; }
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin:10px 0 6px" onclick="WritingToolkit._topic=null;WritingToolkit.render()">← 返回議題列表</button>
+      <div class="wt-detail-top" style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:13px 15px;margin-bottom:12px">
+        <h3 style="font-size:16px;font-weight:800;margin-bottom:4px">${Utils.esc(tp.e)}</h3>
+        <div class="meta" style="font-size:12px;color:var(--sub)">${Utils.esc(tp.tip)}</div>
+      </div>
+      ${tp.groups.map(g=>`<div class="wt-group"><h4>${Utils.esc(g.g)}</h4>${g.items.map(p=>`<div class="wt-phrase"><div><div class="txt">${Utils.esc(p.t)}</div><div class="mean">${Utils.esc(p.m)}</div></div><button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.t).replace(/'/g,"\'")}')">複製</button></div>`).join('')}</div>`).join('')}
     `;
   }
 };
@@ -1367,6 +1420,119 @@ const Browse = {
   }
 };
 /* =====================================================================
+ * 寫作語氣態度詞庫（V5.10 新增，源自課堂 5 頁語氣/態度詞表）
+ * 按 正面/負面/中性 × 動詞/形容詞/短語 分類
+ * ===================================================================== */
+const ATTITUDE_WORDS = [{"e": "正面態度", "tip": "表達支持、讚賞、樂觀、熱情嘅詞語，適合用喺立場鮮明嘅段落。", "groups": [{"g": "動詞", "items": [{"t": "admire", "m": "欽佩；讚賞"}, {"t": "compliment", "m": "稱讚；恭維"}, {"t": "believe", "m": "相信"}, {"t": "hope", "m": "希望"}, {"t": "inform", "m": "通知"}, {"t": "prove", "m": "證明"}, {"t": "remind", "m": "提醒"}, {"t": "persuade", "m": "說服"}, {"t": "amuse", "m": "取悅"}]}, {"g": "形容詞", "items": [{"t": "happy", "m": "高興的"}, {"t": "interested", "m": "感興趣的"}, {"t": "loving", "m": "慈愛的"}, {"t": "friendly", "m": "友好的"}, {"t": "playful", "m": "頑皮的"}, {"t": "peaceful", "m": "平靜的"}, {"t": "romantic", "m": "浪漫的"}, {"t": "favourite", "m": "喜愛的"}, {"t": "understanding", "m": "理解的"}, {"t": "encouraging", "m": "鼓舞人心的"}, {"t": "sweet", "m": "甜美的"}, {"t": "lovable", "m": "可愛的"}, {"t": "thoughtful", "m": "深思的；體貼的"}, {"t": "joyful", "m": "高興的"}, {"t": "fulfilled", "m": "滿足的"}, {"t": "favorable", "m": "有利的"}, {"t": "favourable", "m": "有利的"}, {"t": "imaginative", "m": "富有想像力的"}, {"t": "thankful", "m": "感激的"}, {"t": "relaxed", "m": "放鬆的"}, {"t": "informative", "m": "資訊豐富的"}, {"t": "ecstatic", "m": "狂喜的"}, {"t": "commendatory", "m": "讚揚的"}, {"t": "composed", "m": "鎮靜的"}, {"t": "reassuring", "m": "令人安心的"}, {"t": "overjoyed", "m": "欣喜若狂的"}, {"t": "blissful", "m": "極樂的"}, {"t": "engrossed", "m": "全神貫注的"}, {"t": "riveted", "m": "被深深吸引的"}, {"t": "mesmerized", "m": "著迷的"}, {"t": "dazzled", "m": "目眩的；驚嘆的"}, {"t": "hypnotized", "m": "被迷住的"}, {"t": "gratified", "m": "欣慰的"}, {"t": "complimentary", "m": "讚美的"}, {"t": "laudatory", "m": "讚揚的"}, {"t": "ardent", "m": "熱烈的"}, {"t": "zealous", "m": "熱心的"}, {"t": "victorious", "m": "勝利的"}, {"t": "appreciative", "m": "欣賞的；感激的"}, {"t": "assured", "m": "有信心的"}, {"t": "reassured", "m": "放心的"}, {"t": "lively", "m": "生動的"}, {"t": "triumphant", "m": "勝利的"}, {"t": "informed", "m": "見多識廣的"}, {"t": "informational", "m": "信息傳播的"}, {"t": "conversational", "m": "對話式的"}, {"t": "persuasive", "m": "有說服力的"}]}, {"g": "短語", "items": [{"t": "agree with", "m": "同意"}, {"t": "give examples", "m": "舉例說明"}, {"t": "talk about", "m": "談論"}]}]}, {"e": "負面態度", "tip": "表達反對、批評、擔憂、不滿嘅詞語，適合指出問題或反駁對手。", "groups": [{"g": "動詞", "items": [{"t": "blame", "m": "責備"}, {"t": "complain", "m": "抱怨"}, {"t": "ignore", "m": "忽視"}, {"t": "alarm", "m": "使驚恐"}, {"t": "oppose", "m": "反對"}, {"t": "insult", "m": "侮辱"}, {"t": "defy", "m": "蔑視"}, {"t": "denounce", "m": "譴責；公開指責"}, {"t": "rebuke", "m": "斥責"}, {"t": "reprimand", "m": "訓斥"}, {"t": "humiliate", "m": "羞辱"}, {"t": "rebut", "m": "反駁"}, {"t": "doubt", "m": "懷疑"}, {"t": "overlook", "m": "忽視；忽略"}, {"t": "refuse", "m": "拒絕"}]}, {"g": "形容詞", "items": [{"t": "sad", "m": "悲哀的"}, {"t": "upset", "m": "心煩的"}, {"t": "disappointed", "m": "失望的"}, {"t": "scared", "m": "恐懼的"}, {"t": "ignorant", "m": "無知的"}, {"t": "critical", "m": "批評的"}, {"t": "miserable", "m": "悲慘的"}, {"t": "mad", "m": "生氣的；瘋狂的"}, {"t": "uneasy", "m": "不安的"}, {"t": "exhausted", "m": "筋疲力盡的"}, {"t": "shamed", "m": "羞愧的"}, {"t": "careless", "m": "粗心的"}, {"t": "shocked", "m": "震驚的"}, {"t": "discontented", "m": "不滿意的"}, {"t": "impatient", "m": "不耐煩的"}, {"t": "doubtful", "m": "懷疑的"}, {"t": "scornful", "m": "輕蔑的"}, {"t": "unsympathetic", "m": "不同情的"}, {"t": "regretful", "m": "懊悔的"}, {"t": "horrified", "m": "嚇壞的"}, {"t": "gloomy", "m": "陰暗的"}, {"t": "disapproving", "m": "不贊同的"}, {"t": "apologetic", "m": "懺悔的"}, {"t": "defensive", "m": "防禦的"}, {"t": "argumentative", "m": "愛爭論的"}, {"t": "mournful", "m": "悲傷的"}, {"t": "exasperated", "m": "惱火的"}, {"t": "muddled", "m": "糊塗的"}, {"t": "discouraged", "m": "氣餒的"}, {"t": "hostile", "m": "敵對的"}, {"t": "speechless", "m": "說不出話的"}, {"t": "paralyzed", "m": "癱瘓的；呆住的"}, {"t": "staggered", "m": "大吃一驚的"}, {"t": "dumbfounded", "m": "驚呆的"}, {"t": "distressed", "m": "悲痛的"}, {"t": "saddened", "m": "悲傷的"}, {"t": "enraged", "m": "暴怒的"}, {"t": "outraged", "m": "憤慨的"}, {"t": "frustrated", "m": "沮喪的"}, {"t": "agitated", "m": "焦躁不安的"}, {"t": "perplexed", "m": "困惑的"}, {"t": "disoriented", "m": "迷失方向的"}, {"t": "dazed", "m": "茫然的"}, {"t": "bewildered", "m": "困惑的"}, {"t": "unconvinced", "m": "不相信的"}, {"t": "antagonistic", "m": "敵對的"}, {"t": "condemnatory", "m": "譴責的"}, {"t": "disdainful", "m": "輕蔑的"}, {"t": "remorseful", "m": "懊悔的"}, {"t": "appalled", "m": "驚駭的"}, {"t": "panicked", "m": "恐慌的"}, {"t": "somber", "m": "陰沉的"}, {"t": "sombre", "m": "陰沉的"}, {"t": "strained", "m": "緊張的"}, {"t": "disillusioned", "m": "幻滅的"}, {"t": "dejected", "m": "沮喪的"}, {"t": "downcast", "m": "垂頭喪氣的"}, {"t": "unmoved", "m": "無動於衷的"}, {"t": "derisive", "m": "嘲笑的"}, {"t": "objectionable", "m": "令人不快的"}, {"t": "petrified", "m": "嚇呆的"}, {"t": "hesitant", "m": "猶豫的"}, {"t": "undecided", "m": "猶豫不決的"}, {"t": "astounded", "m": "大吃一驚的"}]}, {"g": "短語", "items": [{"t": "grumble about", "m": "抱怨"}, {"t": "taken aback", "m": "大吃一驚"}]}]}, {"e": "中性態度", "tip": "客觀陳述、分析、強調用嘅詞語，適合引言同論證段落。", "groups": [{"g": "動詞", "items": [{"t": "suggest", "m": "暗示"}, {"t": "reveal", "m": "透露；揭示"}, {"t": "argue", "m": "爭論；主張"}, {"t": "insist", "m": "堅持"}, {"t": "summarize", "m": "總結"}, {"t": "compare", "m": "比較"}, {"t": "define", "m": "定義"}, {"t": "introduce", "m": "介紹"}, {"t": "explain", "m": "解釋"}, {"t": "notify", "m": "通知"}, {"t": "enquire", "m": "詢問"}, {"t": "underline", "m": "強調；突出"}, {"t": "mention", "m": "提及"}, {"t": "inquire", "m": "詢問"}, {"t": "clarify", "m": "澄清"}, {"t": "emphasize", "m": "強調"}, {"t": "reiterate", "m": "重申"}, {"t": "narrate", "m": "敘述"}, {"t": "outline", "m": "概述"}, {"t": "disclose", "m": "揭露；透露"}, {"t": "unveil", "m": "揭曉；揭示"}, {"t": "restate", "m": "重申"}, {"t": "counter", "m": "反駁"}, {"t": "hesitate", "m": "猶豫"}]}, {"g": "形容詞", "items": [{"t": "mysterious", "m": "神秘的"}, {"t": "naive", "m": "天真的"}, {"t": "cautious", "m": "謹慎的"}, {"t": "reflective", "m": "沉思的"}, {"t": "solemn", "m": "嚴肅的"}, {"t": "fanciful", "m": "狂想的"}, {"t": "ironical", "m": "諷刺的"}, {"t": "uncertain", "m": "不確定的"}, {"t": "unsure", "m": "不確定的"}]}, {"g": "短語", "items": [{"t": "reflect upon", "m": "反省"}]}]}];
+/* =====================================================================
+ * 議題短語庫（V5.10.1 新增）
+ * DSE Paper 2 熱門議題必備短語
+ * ===================================================================== */
+const TOPIC_PHRASES = [
+  {
+    "e": "🏥 醫療倫理", "tip": "醫生行為、病人私隱、公眾信任等醫療界熱話必用短語",
+    "groups": [
+      {"g": "問題與現象", "items": [
+        {"t": "medical practitioner", "m": "醫務人員；醫生"},
+        {"t": "code of conduct", "m": "行為守則"},
+        {"t": "double-dipping and frivolous privileges", "m": "雙重取利與濫用特權"},
+        {"t": "access patient records without consent", "m": "未經同意查看病人記錄"},
+        {"t": "court online fame", "m": "追求網絡名聲"},
+        {"t": "promote social media clout", "m": "尋求網絡影響力"}
+      ]},
+      {"g": "後果與影響", "items": [
+        {"t": "jeopardise public trust in the medical profession", "m": "危害公眾對醫務專業的信任"},
+        {"t": "tarnish the reputation of healthcare workers", "m": "損害醫護人員的聲譽"},
+        {"t": "face disciplinary action", "m": "面臨紀律處分"},
+        {"t": "be struck off the medical register", "m": "被撤銷醫務註冊資格"}
+      ]},
+      {"g": "建議與改善", "items": [
+        {"t": "uphold the highest standards of medical practice", "m": "堅持醫療實踐的最高標準"},
+        {"t": "strengthen oversight of healthcare workers", "m": "加強對醫護人員的監管"},
+        {"t": "impose harsher penalties for data privacy violations", "m": "對侵犯私隱行為施加更嚴厲懲罰"},
+        {"t": "instil a strong sense of integrity", "m": "培養強烈的誠信意識"},
+        {"t": "safeguard patient data through robust access controls", "m": "透過嚴格的訪問控制保障病人數據"}
+      ]}
+    ]
+  },
+  {
+    "e": "🏫 校園欺凌", "tip": "校園欺凌成因、後果與防治措施必用短語",
+    "groups": [
+      {"g": "問題與現象", "items": [
+        {"t": "physical intimidation", "m": "肢體恐嚇"},
+        {"t": "verbal abuse", "m": "言語虐待"},
+        {"t": "bystander apathy", "m": "旁觀者冷漠"},
+        {"t": "a power imbalance between bullies and victims", "m": "施暴者與受害者之間權力不對等"},
+        {"t": "succumb to peer pressure", "m": "屈服於同儕壓力"},
+        {"t": "aggressive behaviour among teenagers", "m": "青少年的攻擊性行為"}
+      ]},
+      {"g": "後果與影響", "items": [
+        {"t": "inflict lasting psychological scars", "m": "造成深遠的心理創傷"},
+        {"t": "undermine a student's sense of safety at school", "m": "削弱學生在校的安全感"},
+        {"t": "lead to severe and sometimes fatal consequences", "m": "導致嚴重甚至致命的後果"}
+      ]},
+      {"g": "建議與改善", "items": [
+        {"t": "adopt a zero-tolerance policy towards bullying", "m": "對欺凌採取零容忍政策"},
+        {"t": "intervene at the earliest warning signs", "m": "在最早跡象出現時介入"},
+        {"t": "foster an inclusive and supportive campus culture", "m": "營造包容支持的校園文化"},
+        {"t": "equip teachers with conflict resolution skills", "m": "裝備教師衝突調解技巧"},
+        {"t": "establish anonymous reporting channels", "m": "建立匿名舉報渠道"},
+        {"t": "hold perpetrators accountable regardless of age", "m": "讓加害者承擔責任，不論年齡"},
+        {"t": "strengthen home-school cooperation on discipline", "m": "加強家校在紀律方面的合作"}
+      ]}
+    ]
+  },
+  {
+    "e": "🐾 動物權益", "tip": "虐待動物、少年罪犯、動物福利法例等議題必用短語",
+    "groups": [
+      {"g": "問題與現象", "items": [
+        {"t": "stray animal", "m": "流浪動物"},
+        {"t": "juvenile offender", "m": "少年罪犯"},
+        {"t": "a glaring legislative gap", "m": "明顯的立法漏洞"},
+        {"t": "film acts of violence and share them online", "m": "拍攝暴力行為並上傳網絡"},
+        {"t": "display a disturbing lack of empathy", "m": "表現出令人不安的缺乏同理心"},
+        {"t": "desensitise children to violence", "m": "使兒童對暴力麻木"},
+        {"t": "serve as a red flag for future violent behaviour", "m": "作為未來暴力行為的預警"},
+        {"t": "inflict gratuitous suffering", "m": "施加無謂的痛苦"}
+      ]},
+      {"g": "後果與影響", "items": [
+        {"t": "trigger widespread public condemnation", "m": "引發廣泛的公眾譴責"},
+        {"t": "shield offenders from legal consequences", "m": "使違法者免受法律制裁"}
+      ]},
+      {"g": "建議與改善", "items": [
+        {"t": "hold guardians accountable for their children's conduct", "m": "要求監護人為子女行為負責"},
+        {"t": "introduce comprehensive animal welfare legislation", "m": "引入全面的動物福利法例"},
+        {"t": "impose harsher penalties for acts of cruelty", "m": "對殘忍行為施加更嚴厲懲罰"},
+        {"t": "mandate psychological intervention for at-risk youth", "m": "強制對高危青少年進行心理干預"}
+      ]}
+    ]
+  },
+  {
+    "e": "🏆 大型賽事", "tip": "世界盃、奧運等大型體育盛事的利弊分析必用短語",
+    "groups": [
+      {"g": "正面影響", "items": [
+        {"t": "the most-watched sporting event on earth", "m": "全球最受矚目的體育盛事"},
+        {"t": "a tri-hosted tournament", "m": "三國聯合主辦的賽事"},
+        {"t": "galvanise a global audience", "m": "號召全世界觀眾"},
+        {"t": "generate a surge of national pride", "m": "激發一股民族自豪感"},
+        {"t": "transcend cultural and linguistic barriers", "m": "超越文化與語言的障礙"},
+        {"t": "boost tourism and local economies", "m": "促進旅遊業與地方經濟"}
+      ]},
+      {"g": "負面影響", "items": [
+        {"t": "dilute the quality of competition", "m": "稀釋比賽質量"},
+        {"t": "prioritise revenue over fan experience", "m": "將收入置於球迷體驗之上"},
+        {"t": "impose a heavy financial burden on host nations", "m": "對主辦國造成沉重的財政負擔"},
+        {"t": "price ordinary fans out of the tournament", "m": "票價令普通球迷負擔不起"}
+      ]},
+      {"g": "建議與改善", "items": [
+        {"t": "mark the end of an era", "m": "標誌一個時代的結束"},
+        {"t": "safeguard player welfare amid fixture congestion", "m": "在密集賽程下保障球員健康"}
+      ]}
+    ]
+  }
+];
+
+/* =====================================================================
  * DSE 作文評分 AI 系統（V5 新增）
  * 跟 HKEAA Paper 2 評分框架：Content 10 / Organisation 10 / Language 10
  * 雙模式：離線規則引擎（默認）+ 可選 LLM API 深度評分
@@ -1414,6 +1580,7 @@ const EssayGrader = {
       }).slice(0,12);
     }
     const advRatio=wordCount?Math.round(advancedHits.length/wordCount*1000)/10:0;
+    const attitudeHits=EssayGrader._scanAttitude(lower,words);
     const stop=new Set(['the','a','an','and','or','but','of','to','in','on','at','for','with','is','are','was','were','be','been','i','you','he','she','it','we','they','my','your','his','her','our','their','this','that','these','those','as','by','from','up','down','so','if','not','can','will','would','should','could','may','might','there','have','has','had','do','does','did']);
     const rep=Object.entries(freq).filter(([w,n])=>n>=5&&!stop.has(w)).map(([w,n])=>`${w}×${n}`);
     const repPenalty=Math.min(3, rep.length*0.8);
@@ -1455,8 +1622,8 @@ const EssayGrader = {
     lang=Math.min(10,Math.max(1,Math.round(lang*10)/10));
     const total=Math.round((content+org+lang)*10)/10;
     const level=EssayGrader.levelOf(total);
-    const feedback=EssayGrader._buildFeedback({wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,variety});
-    return {content:Math.round(content*10)/10, organisation:Math.round(org*10)/10, language:Math.round(lang*10)/10, total, level, mode:'local', stats:{wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt}, feedback};
+    const feedback=EssayGrader._buildFeedback({wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,variety,attitudeHits});
+    return {content:Math.round(content*10)/10, organisation:Math.round(org*10)/10, language:Math.round(lang*10)/10, total, level, mode:'local', stats:{wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,attitudeHits}, feedback};
   },
   levelOf(total){
     if(total>=27) return {lv:'5**', tag:'頂尖', color:'#F59E0B'};
@@ -1467,8 +1634,26 @@ const EssayGrader = {
     if(total>=11) return {lv:'2', tag:'需加強', color:'#F97316'};
     return {lv:'1', tag:'有待提升', color:'#EF4444'};
   },
+  /* 語氣態度詞掃描（V5.10）：回傳 {pos:[],neg:[],neu:[]}，每項含 {t,m} */
+  _scanAttitude(lower,words){
+    const hits={pos:[],neg:[],neu:[]};
+    if(!ATTITUDE_WORDS||!ATTITUDE_WORDS.length) return hits;
+    const seen=new Set();
+    ATTITUDE_WORDS.forEach((att,ai)=>{
+      const slot=ai===0?'pos':ai===1?'neg':'neu';
+      att.groups.forEach(g=>g.items.forEach(p=>{
+        const t=(p.t||'').toLowerCase();
+        if(!t||seen.has(t)) return;
+        seen.add(t);
+        const ph=t.split(/\s+/).length>1;
+        const found=ph?lower.includes(t):words.includes(t);
+        if(found) hits[slot].push({t:p.t,m:p.m});
+      }));
+    });
+    return hits;
+  },
   _buildFeedback(m){
-    const {wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,variety}=m;
+    const {wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,variety,attitudeHits}=m;
     const strengths=[], weaknesses=[], tips=[];
     if(wordCount>=450) strengths.push(`字數充足（${wordCount} 字），能完整展開論點`);
     else if(wordCount>=300) strengths.push(`字數達標（${wordCount} 字），論述具一定深度`);
@@ -1493,6 +1678,17 @@ const EssayGrader = {
       weaknesses.push('未見明顯高階詞彙，可到「進階詞彙A／進階短語B」分類學習替換常用詞');
     }
     if(rep.length) weaknesses.push(`常用詞重複（${rep.slice(0,4).join('、')}），可嘗試用同義詞替換`);
+    if(attitudeHits){
+      const attTotal=attitudeHits.pos.length+attitudeHits.neg.length;
+      const attWords=[...attitudeHits.pos.slice(0,3).map(x=>x.t),...attitudeHits.neg.slice(0,3).map(x=>x.t)];
+      if(attTotal>=4){
+        strengths.push(`語氣態度詞運用豐富（${attWords.slice(0,5).join('、')}…），立場鮮明有態度`);
+      }else if(attTotal>=1){
+        tips.push(`已用語氣態度詞（${attWords.slice(0,5).join('、')}），可再加 1-2 個強化立場（參考「寫作工具箱 → 語氣態度詞」）`);
+      }else{
+        weaknesses.push('未見明顯語氣／態度詞，文章立場平淡；可到「寫作工具箱 → 語氣態度詞」學習表達態度');
+      }
+    }
     if(grammarIssues.length){
       grammarIssues.slice(0,5).forEach(g=>weaknesses.push(`文法／拼寫：${g.msg}（見到「${g.found}」）`));
     }else if(wordCount>100) strengths.push('未偵測到明顯文法／拼寫錯誤');
@@ -1656,6 +1852,10 @@ To conclude, social media is neither entirely beneficial nor wholly harmful. If 
     const notes=[];
     notes.push(`高階詞 ${m.advRatio}%${m.advancedHits.length?`（${m.advancedHits.map(x=>x.phrase).join('、')}）`:''}`);
     if(m.grammarIssues.length) notes.push(`文法問題 ${m.grammarIssues.length} 處`);
+    if(m.attitudeHits){
+      const attAll=[...m.attitudeHits.pos,...m.attitudeHits.neg];
+      notes.push(`語氣態度詞 ${attAll.length} 個${attAll.length?`（${attAll.slice(0,4).map(x=>x.t).join('、')}…）`:''}`);
+    }
     return notes.join('；');
   },
   renderSettings(){
@@ -2033,6 +2233,7 @@ const Speaking={
   TOPICS:[
     {cat:'社交媒體',q:'Is social media more beneficial or harmful to teenagers?',pro:['Social media helps students connect with peers and share ideas','It provides instant access to news and learning resources','It develops digital literacy for future careers'],con:['It causes addiction and reduces face-to-face communication','Cyberbullying is a serious risk on social platforms','It distracts students from their studies'],ph:['a double-edged sword 雙刃劍','stay connected 保持聯繫','screen time 屏幕時間','digital footprint 數碼足跡','online privacy 網上私隱']},
     {cat:'人工智能',q:'Will AI improve or threaten education?',pro:['AI provides personalised learning for every student','It can grade work and give instant feedback','It prepares students for a technology-driven future'],con:['It may encourage laziness and over-reliance','It raises concerns about academic honesty','It cannot replace the human touch of teaching'],ph:['artificial intelligence 人工智能','personalised learning 個人化學習','critical thinking 批判思維','over-reliance 過度依賴','human touch 人情味']},
+    {cat:'AI 監管',q:'Should governments restrict teenagers\' use of AI?',pro:['A tiered approach can protect young students\' cognitive development','Norway\'s model bans AI in junior forms but allows supervised use later','Restricting smartphones and AI helps students consolidate foundational skills'],con:['Teenagers need AI skills for future careers','A blanket ban is hard to enforce in practice','Schools should teach responsible use instead of banning'],ph:['tiered approach 分層措施','under teacher supervision 在教師監督下','cognitive development 認知發展','paper-based textbooks 紙本教科書','stifle curiosity 扼殺好奇心']},
     {cat:'環保',q:'Should the government ban single-use plastics?',pro:['It reduces pollution on land and in the ocean','It encourages people to switch to reusable items','It saves wildlife from choking on plastic waste'],con:['It may increase the cost of everyday goods','It is inconvenient for consumers','Eco-friendly alternatives can be expensive and rare'],ph:['single-use plastics 即棄塑膠','carbon footprint 碳足跡','go green 實踐環保','sustainable living 可持續生活','waste reduction 減廢']},
     {cat:'健康',q:'Is a healthy lifestyle more important than academic success?',pro:['Health is the foundation of everything else in life','Exercise improves concentration and memory','Good habits formed in youth last a lifetime'],con:['Academic success opens doors to better careers','Students have limited time for both','Society often values grades over wellbeing'],ph:['work-life balance 工作生活平衡','physical wellbeing 身心健康','burn out 過勞','sleep deprivation 睡眠不足','stress management 壓力管理']},
     {cat:'科技',q:'Do smartphones make us more connected or more isolated?',pro:['We can contact anyone in the world instantly','Smartphones help families stay in touch','They give access to a global community'],con:['People spend less time talking face to face','Families sit together but look at their own screens','Constant notifications create social anxiety'],ph:['stay in touch 保持聯絡','face-to-face 面對面','social isolation 社交隔離','digital detox 數碼排毒','screen addiction 屏幕成癮']},
@@ -2152,6 +2353,7 @@ const Speaking={
 const Debate={
   MOTIONS:[
     {topic:'AI 教育',motion:'This House believes that AI should be fully integrated into school education.',pro:['AI personalises learning and adapts to each student\'s pace','It reduces teachers\' administrative workload','It equips students with future-ready digital skills'],con:['It widens the digital divide between rich and poor schools','Over-reliance on AI weakens independent thinking','Students\' data privacy is at risk'],ph:['digital divide 數碼鴻溝','independent thinking 獨立思考','future-ready 面向未來','data privacy 數據私隱','educational equity 教育公平']},
+    {topic:'AI 禁令',motion:'This House believes that governments should ban AI for students under 16.',pro:['Norway\'s tiered model bans AI for younger students while allowing supervised use in senior years','It protects cognitive development before students consolidate foundational skills','It limits smartphone use and promotes paper-based learning'],con:['A blanket ban ignores the benefits of personalised learning','Teenagers will find ways to use AI anyway, making the ban ineffective','Schools should teach responsible AI use rather than prohibit it'],ph:['tiered model 分層模式','consolidate foundational skills 鞏固基礎技能','paper-based textbooks 紙本教科書','under supervision 在監督下','stifle curiosity 扼殺好奇心']},
     {topic:'手機禁令',motion:'This House believes that schools should ban smartphones entirely.',pro:['It eliminates classroom distractions and improves focus','It reduces cyberbullying during school hours','It encourages students to socialise in person'],con:['Phones are useful tools for research and learning','Parents need to contact children for safety','Banning teaches nothing about responsible use'],ph:['classroom distraction 課堂干擾','responsible use 負責任使用','emergency contact 緊急聯絡','self-discipline 自律','digital citizenship 數碼公民']},
     {topic:'垃圾收費',motion:'This House believes that the government should enforce waste charging.',pro:['It directly reduces waste through financial incentives','It funds better recycling infrastructure','It raises public awareness of consumption habits'],con:['It increases the financial burden on households','Enforcement is complicated and costly','Waste may be dumped illegally to avoid charges'],ph:['waste charging 垃圾收費','financial incentive 經濟誘因','recycling infrastructure 回收基建','illegal dumping 非法傾倒','environmental awareness 環保意識']},
     {topic:'網購',motion:'This House believes that online shopping will replace physical stores.',pro:['E-commerce offers convenience and lower prices','AI and logistics make delivery faster every year','Physical stores are closing worldwide'],con:['Shopping is a social and sensory experience','Physical stores provide instant fulfilment and service','Local shops are vital to community character'],ph:['e-commerce 電子商貿','brick-and-mortar 實體店','convenience 便利','supply chain 供應鏈','customer experience 顧客體驗']},
