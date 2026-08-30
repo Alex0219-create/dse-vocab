@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.12.3</title>
+<title>DSE Vocab V5.12.4</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -380,8 +380,9 @@ textarea.field{min-height:150px;line-height:1.7}
 .phon-mini{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--border-2);background:var(--card);font-size:12px;cursor:pointer;margin-left:5px;vertical-align:-3px;line-height:1;padding:0;transition:background .15s}
 .phon-mini:active{background:#10B981;border-color:#10B981}
 .tomo-mini{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--border-2);background:var(--card);font-size:12px;cursor:pointer;margin-left:5px;vertical-align:-3px;line-height:1;padding:0;transition:background .15s,opacity .15s;opacity:.55}
-.tomo-mini.on{background:#F59E0B;border-color:#F59E0B;opacity:1;box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+.tomo-mini.on{background:#F59E0B;border-color:#F59E0B;opacity:1;box-shadow:0 0 0 3px rgba(245,158,11,.18);color:#fff}
 .tomo-mini:active{background:#F59E0B;border-color:#F59E0B}
+.tomo-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:6px 10px;margin:2px 2px 8px;font-size:12px;color:#B45309;font-weight:700}
 </style>
 </head>
 <body>
@@ -1859,9 +1860,11 @@ const Browse = {
   renderList(){
     const v=Utils.$('#view-browse');
     const cats=['全部','★5','未掌握',...[...new Set(Data.raw.map(w=>w.category))]];
+    const tomoCount=Store.state.tomo.size;
     v.innerHTML=`
       <div class="search-bar"><input class="field" id="browseSearch" placeholder="🔍 搜尋詞彙／中文意思…" value="${Utils.esc(Browse.q)}" oninput="Browse.search(this.value)"></div>
       <div class="cat-chips">${cats.map(c=>`<button class="cat-chip ${Browse.cat===c?'active':''}" onclick="Browse.setCat('${c.replace(/'/g,"\\'")}')">${c}</button>`).join('')}</div>
+      ${tomoCount?`<div class="tomo-bar"><span>⏰ 明日優先複習：${tomoCount} 詞</span><button class="btn sm ghost" onclick="App.clearTomo()">清除全部</button></div>`:''}
       <div style="font-size:11px;color:var(--faint);margin:2px 2px 10px">共 ${Browse.filtered.length} 詞 · 長按可收藏</div>
       ${Browse.filtered.map(w=>{const k=Store.key(w);const tm=Store.state.tomo.has(k);return `<div class="list-item" id="li-${w.id}" data-word="${Utils.esc(w.phrase)}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
         <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}</div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
@@ -2906,6 +2909,12 @@ const App = {
     Store.persist();
     if(UI.current==='browse') Browse.renderList();
     App.openDetail(w.id);
+  },
+  clearTomo(){
+    Store.state.tomo.clear();
+    Store.persist();
+    Utils.toast('已清除全部明日優先');
+    if(UI.current==='browse') Browse.renderList();
   },
   setGoal(){
     const input=prompt('每日學習目標（詞數）：', Store.state.goal);
