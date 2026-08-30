@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.12.4</title>
+<title>DSE Vocab V5.12.5</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -68,7 +68,7 @@ textarea{resize:vertical}
 /* ===== 應用外殼 ===== */
 .app{max-width:540px;margin:0 auto;height:100%;display:flex;flex-direction:column;position:relative;background:var(--bg)}
 /* ===== 頂欄 ===== */
-.header{height:var(--header-h);display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);position:relative;z-index:30;flex-shrink:0}
+.header{height:var(--header-h);display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:color-mix(in srgb,var(--bg) 92%,transparent);position:relative;z-index:30;flex-shrink:0}
 .header h1{font-size:19px;font-weight:800;letter-spacing:.3px;display:flex;align-items:center;gap:8px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .header .sub{font-size:11px;color:var(--faint);font-weight:600}
 .hd-right{display:flex;align-items:center;gap:8px}
@@ -106,7 +106,7 @@ textarea{resize:vertical}
 .field:focus{border-color:var(--brand-1);box-shadow:0 0 0 3.5px rgba(99,102,241,.14)}
 textarea.field{min-height:150px;line-height:1.7}
 /* 彈窗 */
-.overlay{position:fixed;inset:0;background:rgba(15,17,30,.55);backdrop-filter:blur(4px);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.overlay{position:fixed;inset:0;background:rgba(15,17,30,.6);z-index:100;display:none;align-items:flex-end;justify-content:center}
 .overlay.show{display:flex;animation:ovIn .25s ease}
 @keyframes ovIn{from{opacity:0}to{opacity:1}}
 .sheet{width:100%;max-width:540px;background:var(--card);border-radius:26px 26px 0 0;padding:10px 20px calc(20px + var(--safe-b));max-height:86vh;overflow-y:auto;animation:sheetUp .3s cubic-bezier(.22,.9,.36,1)}
@@ -1840,38 +1840,69 @@ const Quiz = {
  * 詞庫
  * ===================================================================== */
 const Browse = {
-  filtered:[], cat:'全部', q:'',
-  enter(){ Browse.filtered=Data.raw; Browse.renderList(); },
+  filtered:[], cat:'全部', q:'', _page:1, _pageSize:60, _lock:false,
+  enter(){ Browse.filtered=Data.raw; Browse._page=1; Browse.renderList(); },
   setCat(c){
     Browse.cat=c;
     const all=Data.raw;
     Browse.filtered = c==='全部'?all:(c==='★5'?all.filter(w=>w.stars>=5):(c==='未掌握'?all.filter(w=>!Store.state.known.has(Store.key(w))):all.filter(w=>w.category===c)));
+    Browse._page=1;
     Browse.renderList();
   },
   search(q){
     Browse.q=q;
-    const base=Data.search(q);
-    if(Browse.cat==='全部') Browse.filtered=base;
-    else if(Browse.cat==='★5') Browse.filtered=base.filter(w=>w.stars>=5);
-    else if(Browse.cat==='未掌握') Browse.filtered=base.filter(w=>!Store.state.known.has(Store.key(w)));
-    else Browse.filtered=base.filter(w=>w.category===Browse.cat);
-    Browse.renderList();
+    clearTimeout(Browse._t);
+    Browse._t=setTimeout(()=>{
+      const base=Data.search(q);
+      if(Browse.cat==='全部') Browse.filtered=base;
+      else if(Browse.cat==='★5') Browse.filtered=base.filter(w=>w.stars>=5);
+      else if(Browse.cat==='未掌握') Browse.filtered=base.filter(w=>!Store.state.known.has(Store.key(w)));
+      else Browse.filtered=base.filter(w=>w.category===Browse.cat);
+      Browse._page=1;
+      Browse.renderList();
+    }, 200);
+  },
+  _row(w){
+    const k=Store.key(w);const tm=Store.state.tomo.has(k);
+    return `<div class="list-item" id="li-${w.id}" data-word="${Utils.esc(w.phrase)}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
+      <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}</div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
+      <div class="li-fav">${Store.state.fav.has(k)?'★':''}</div>
+    </div>`;
   },
   renderList(){
     const v=Utils.$('#view-browse');
+    const st=v.scrollTop;
     const cats=['全部','★5','未掌握',...[...new Set(Data.raw.map(w=>w.category))]];
     const tomoCount=Store.state.tomo.size;
+    const list=Browse.filtered.slice(0, Browse._page*Browse._pageSize);
     v.innerHTML=`
       <div class="search-bar"><input class="field" id="browseSearch" placeholder="🔍 搜尋詞彙／中文意思…" value="${Utils.esc(Browse.q)}" oninput="Browse.search(this.value)"></div>
       <div class="cat-chips">${cats.map(c=>`<button class="cat-chip ${Browse.cat===c?'active':''}" onclick="Browse.setCat('${c.replace(/'/g,"\\'")}')">${c}</button>`).join('')}</div>
       ${tomoCount?`<div class="tomo-bar"><span>⏰ 明日優先複習：${tomoCount} 詞</span><button class="btn sm ghost" onclick="App.clearTomo()">清除全部</button></div>`:''}
       <div style="font-size:11px;color:var(--faint);margin:2px 2px 10px">共 ${Browse.filtered.length} 詞 · 長按可收藏</div>
-      ${Browse.filtered.map(w=>{const k=Store.key(w);const tm=Store.state.tomo.has(k);return `<div class="list-item" id="li-${w.id}" data-word="${Utils.esc(w.phrase)}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
-        <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}</div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
-        <div class="li-fav">${Store.state.fav.has(k)?'★':''}</div>
-      </div>`;}).join('')||`<div class="empty"><div class="e-icon">🔍</div>搵唔到相關詞彙</div>`}
+      <div id="browseList">${list.map(w=>Browse._row(w)).join('')||`<div class="empty"><div class="e-icon">🔍</div>搵唔到相關詞彙</div>`}</div>
+      ${Browse.filtered.length>list.length?`<div class="browse-more" onclick="Browse.loadMore()">▼ 顯示更多</div>`:''}
     `;
+    v.scrollTop=st;
     Dict.observeList();
+    if(!Browse._lock){ Browse._lock=true; v.addEventListener('scroll', Browse._onScroll, {passive:true}); }
+  },
+  _onScroll(){
+    const v=Utils.$('#view-browse');
+    if(v.scrollTop+v.clientHeight>=v.scrollHeight-400) Browse.loadMore();
+  },
+  loadMore(){
+    const v=Utils.$('#view-browse');
+    const box=Utils.$('#browseList'); if(!box) return;
+    const total=Browse.filtered.length;
+    const shown=box.children.length;
+    if(shown>=total) return;
+    const more=Browse.filtered.slice(shown, shown+Browse._pageSize);
+    Browse._page++;
+    box.insertAdjacentHTML('beforeend', more.map(w=>Browse._row(w)).join(''));
+    Dict.observeList();
+    const moreBtn=v.querySelector('.browse-more');
+    if(shown+more.length>=total&&moreBtn) moreBtn.remove();
   }
 };
 /* =====================================================================
