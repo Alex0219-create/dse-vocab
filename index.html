@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.12.1</title>
+<title>DSE Vocab V5.12.2</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -379,6 +379,9 @@ textarea.field{min-height:150px;line-height:1.7}
 .li-phon{font-size:12px;color:var(--grad-start,#7C3AED);font-weight:600;margin-left:4px;letter-spacing:.2px}
 .phon-mini{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--border-2);background:var(--card);font-size:12px;cursor:pointer;margin-left:5px;vertical-align:-3px;line-height:1;padding:0;transition:background .15s}
 .phon-mini:active{background:#10B981;border-color:#10B981}
+.tomo-mini{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--border-2);background:var(--card);font-size:12px;cursor:pointer;margin-left:5px;vertical-align:-3px;line-height:1;padding:0;transition:background .15s,opacity .15s;opacity:.55}
+.tomo-mini.on{background:#F59E0B;border-color:#F59E0B;opacity:1;box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+.tomo-mini:active{background:#F59E0B;border-color:#F59E0B}
 </style>
 </head>
 <body>
@@ -614,7 +617,7 @@ const Store = {
   state: null, _subs: [],
   key(w){ return w.id; },
   defaultState(){ return {
-    v:3, known:new Set(), wrong:new Set(), fav:new Set(),
+    v:3, known:new Set(), wrong:new Set(), fav:new Set(), tomo:new Set(),
     sched:{}, history:{}, goal:20, mode:'all', dark:false,
     quizCount:0, onboarded:false, dseDate:'', lvTest:null, essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false },
     essayCount:0, streak:0, lastActive:'', achievements:[], fontSize:16, quizBest:0, customWords:[], webdav:{url:'',token:''}
@@ -624,7 +627,7 @@ const Store = {
     let saved=null; try{ saved=raw?JSON.parse(raw):null; }catch(e){}
     const d=this.defaultState();
     const st={ ...d, ...(saved||{}),
-      known:new Set(saved?.known||[]), wrong:new Set(saved?.wrong||[]), fav:new Set(saved?.fav||[]),
+      known:new Set(saved?.known||[]), wrong:new Set(saved?.wrong||[]), fav:new Set(saved?.fav||[]), tomo:new Set(saved?.tomo||[]),
       sched:saved?.sched||{}, history:saved?.history||{}, essay:{ ...d.essay, ...(saved?.essay||{}) }, webdav:{ ...d.webdav, ...(saved?.webdav||{}) }
     };
     this.state=st;
@@ -647,7 +650,7 @@ const Store = {
   },
   persist(){
     const s=this.state;
-    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], sched:s.sched, history:s.history, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, essayCount:s.essayCount||0, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0, customWords:s.customWords||[], webdav:s.webdav||{url:'',token:''} };
+    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], tomo:[...s.tomo], sched:s.sched, history:s.history, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, essayCount:s.essayCount||0, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0, customWords:s.customWords||[], webdav:s.webdav||{url:'',token:''} };
     Storage.set('dse_state', JSON.stringify(snap));
     Storage.idbSet('backup', { s: JSON.stringify(snap), t: Date.now() });
   },
@@ -657,7 +660,7 @@ const Store = {
   importSnapshot(snap){
     const d=this.defaultState();
     this.state={ ...d, ...snap,
-      known:new Set(snap.known||[]), wrong:new Set(snap.wrong||[]), fav:new Set(snap.fav||[]),
+      known:new Set(snap.known||[]), wrong:new Set(snap.wrong||[]), fav:new Set(snap.fav||[]), tomo:new Set(snap.tomo||[]),
       sched:snap.sched||{}, history:snap.history||{}, essay:{ ...d.essay, ...(snap.essay||{}) }, essayCount:snap.essayCount||0, streak:snap.streak||0, lastActive:snap.lastActive||'', achievements:new Set(snap.achievements||[]), fontSize:snap.fontSize||16, quizBest:snap.quizBest||0, customWords:snap.customWords||[], webdav:{ ...d.webdav, ...(snap.webdav||{}) } };
     this.persist();
   }
@@ -906,11 +909,12 @@ const SM2 = {
     const now=Date.now();
     const all=cat==='all'?Data.raw:Data.raw.filter(w=>w.category===cat);
     const pool=star>1?all.filter(w=>w.stars>=star):all;
-    const due=pool.filter(w=>{ const x=s.sched[Store.key(w)]; return x&&x.due<=now; });
-    const fresh=pool.filter(w=>{ const k=Store.key(w); return !s.sched[k]&&!s.known.has(k); });
-    const review=pool.filter(w=>s.wrong.has(Store.key(w))&&!due.includes(w)&&!fresh.includes(w));
-    const rest=pool.filter(w=>!due.includes(w)&&!fresh.includes(w)&&!review.includes(w));
-    const q=[...due.sort((a,b)=>s.sched[Store.key(a)].due-s.sched[Store.key(b)].due), ...Utils.shuffle(fresh), ...Utils.shuffle(review), ...Utils.shuffle(rest)];
+    const tomo=pool.filter(w=>s.tomo.has(Store.key(w)));
+    const due=pool.filter(w=>{ const x=s.sched[Store.key(w)]; return x&&x.due<=now&&!s.tomo.has(Store.key(w)); });
+    const fresh=pool.filter(w=>{ const k=Store.key(w); return !s.sched[k]&&!s.known.has(k)&&!s.tomo.has(k); });
+    const review=pool.filter(w=>s.wrong.has(Store.key(w))&&!due.includes(w)&&!fresh.includes(w)&&!tomo.includes(w));
+    const rest=pool.filter(w=>!due.includes(w)&&!fresh.includes(w)&&!review.includes(w)&&!tomo.includes(w));
+    const q=[...tomo, ...due.sort((a,b)=>s.sched[Store.key(a)].due-s.sched[Store.key(b)].due), ...Utils.shuffle(fresh), ...Utils.shuffle(review), ...Utils.shuffle(rest)];
     return q;
   }
 };
@@ -1064,7 +1068,7 @@ const Flash = {
       </div>
       <div class="flash-card">
         <div class="fc-inner ${Flash.flipped?'flipped':''}" id="fcCard" onclick="Flash.flip()">
-          <span class="fc-cat">${Utils.esc(w.category)}</span>
+          <span class="fc-cat">${Utils.esc(w.category)}${Store.state.tomo.has(Store.key(w))?' <span style="color:#F59E0B;font-weight:700">⏰ 明日優先</span>':''}</span>
           <div class="fc-phrase">${Utils.esc(w.phrase)} ${Utils.posTag(w)}</div>
           ${Dict.btnHtml(w,'fc-phon')}
           ${Flash.flipped?`<div class="fc-mean">${Utils.esc(w.meaning)}</div>${w.example?`<div class="fc-ex">${Utils.esc(w.example)}</div>`:''}`:`<div class="fc-hint">點擊揭曉 👆</div>`}
@@ -1085,6 +1089,7 @@ const Flash = {
     const k=Store.key(w);
     if(ok){ Store.state.known.add(k); Store.state.wrong.delete(k); }
     else{ Store.state.wrong.add(k); Store.state.known.delete(k); }
+    Store.state.tomo.delete(k);
     SM2.review(w, ok?5:0);
     const today=Utils.today();
     Store.state.history[today]=(Store.state.history[today]||0)+1;
@@ -1857,10 +1862,10 @@ const Browse = {
       <div class="search-bar"><input class="field" id="browseSearch" placeholder="🔍 搜尋詞彙／中文意思…" value="${Utils.esc(Browse.q)}" oninput="Browse.search(this.value)"></div>
       <div class="cat-chips">${cats.map(c=>`<button class="cat-chip ${Browse.cat===c?'active':''}" onclick="Browse.setCat('${c.replace(/'/g,"\\'")}')">${c}</button>`).join('')}</div>
       <div style="font-size:11px;color:var(--faint);margin:2px 2px 10px">共 ${Browse.filtered.length} 詞 · 長按可收藏</div>
-      ${Browse.filtered.map(w=>`<div class="list-item" id="li-${w.id}" data-word="${Utils.esc(w.phrase)}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
-        <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}</div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
-        <div class="li-fav">${Store.state.fav.has(Store.key(w))?'★':''}</div>
-      </div>`).join('')||`<div class="empty"><div class="e-icon">🔍</div>搵唔到相關詞彙</div>`}
+      ${Browse.filtered.map(w=>{const k=Store.key(w);const tm=Store.state.tomo.has(k);return `<div class="list-item" id="li-${w.id}" data-word="${Utils.esc(w.phrase)}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
+        <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}</div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
+        <div class="li-fav">${Store.state.fav.has(k)?'★':''}</div>
+      </div>`;}).join('')||`<div class="empty"><div class="e-icon">🔍</div>搵唔到相關詞彙</div>`}
     `;
     Dict.observeList();
   }
@@ -2851,6 +2856,7 @@ const App = {
         <div class="d-actions">
           <button class="btn sm ghost" onclick="App.toggleFav()">${Store.state.fav.has(Store.key(w))?'★ 已收藏':'☆ 收藏'}</button>
           <button class="btn sm ${Store.state.known.has(Store.key(w))?'ghost':'soft'}" onclick="App.toggleKnown()">${Store.state.known.has(Store.key(w))?'↩️ 取消掌握':'✅ 標記掌握'}</button>
+          <button class="btn sm ${Store.state.tomo.has(Store.key(w))?'':'ghost'}" onclick="App.toggleTomoDetail()">${Store.state.tomo.has(Store.key(w))?'⏰ 已標記明日優先':'⏰ 明日優先複習'}</button>
         </div>
       </div>`;
     Dict.renderPhon('d-phon', w);
@@ -2883,6 +2889,23 @@ const App = {
     Store.persist();
     if(UI.current==='browse') Browse.renderList();
   },
+  toggleTomo(id){
+    const w=Data.byId.get(id); if(!w) return;
+    const k=Store.key(w);
+    if(Store.state.tomo.has(k)){ Store.state.tomo.delete(k); Utils.toast('已取消明日優先'); }
+    else{ Store.state.tomo.add(k); Utils.toast('已加入明日優先複習 ⏰'); }
+    Store.persist();
+    if(UI.current==='browse') Browse.renderList();
+  },
+  toggleTomoDetail(){
+    const w=App._cur; if(!w) return;
+    const k=Store.key(w);
+    if(Store.state.tomo.has(k)){ Store.state.tomo.delete(k); Utils.toast('已取消明日優先'); }
+    else{ Store.state.tomo.add(k); Utils.toast('已加入明日優先複習 ⏰'); }
+    Store.persist();
+    if(UI.current==='browse') Browse.renderList();
+    App.openDetail(w.id);
+  },
   setGoal(){
     const input=prompt('每日學習目標（詞數）：', Store.state.goal);
     const n=parseInt(input,10);
@@ -2913,7 +2936,7 @@ const App = {
   },
   exportData(){
     const s=Store.state;
-    const blob=new Blob([JSON.stringify({app:'dse_vocab',v:3,t:Date.now(),known:[...s.known],wrong:[...s.wrong],fav:[...s.fav],sched:s.sched,history:s.history,goal:s.goal,mode:s.mode,quizCount:s.quizCount},null,2)],{type:'application/json'});
+    const blob=new Blob([JSON.stringify({app:'dse_vocab',v:3,t:Date.now(),known:[...s.known],wrong:[...s.wrong],fav:[...s.fav],tomo:[...s.tomo],sched:s.sched,history:s.history,goal:s.goal,mode:s.mode,quizCount:s.quizCount},null,2)],{type:'application/json'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob); a.download='dse_vocab_backup_'+Utils.today()+'.json'; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),3000);
@@ -2940,7 +2963,7 @@ const App = {
     const wd=Store.state.webdav||{};
     if(!wd.url){ Utils.toast('請先 ☁️ WebDAV 設置'); return; }
     const s=Store.state;
-    const payload=JSON.stringify({app:'dse_vocab',v:3,t:Date.now(),known:[...s.known],wrong:[...s.wrong],fav:[...s.fav],sched:s.sched,history:s.history,goal:s.goal,mode:s.mode,quizCount:s.quizCount,essayCount:s.essayCount||0,streak:s.streak||0,lastActive:s.lastActive||'',customWords:s.customWords||[]});
+    const payload=JSON.stringify({app:'dse_vocab',v:3,t:Date.now(),known:[...s.known],wrong:[...s.wrong],fav:[...s.fav],tomo:[...s.tomo],sched:s.sched,history:s.history,goal:s.goal,mode:s.mode,quizCount:s.quizCount,essayCount:s.essayCount||0,streak:s.streak||0,lastActive:s.lastActive||'',customWords:s.customWords||[]});
     try{
       const headers={'Content-Type':'application/json'};
       if(wd.token) headers['Authorization']=wd.token;
