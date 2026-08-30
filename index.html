@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.12.2</title>
+<title>DSE Vocab V5.12.3</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -668,6 +668,7 @@ const Store = {
 /* ===== 詞庫載入 ===== */
 const Data = {
   raw:[], byId:new Map(), index:new Map(), __src:'',
+  get(id){ const w=Data.byId.get(id); return w||Data.byId.get(Number(id)); },
   async load(){
     const inline=window.__DSE_DATA;
     let words=[];
@@ -747,8 +748,8 @@ const Data = {
       else if((w.meaning||'').includes(q)) hits.add(w.id);
     });
     const tokens=q.split(/[^a-z0-9']+/).filter(Boolean);
-    if(tokens.length>1){ const t0=tokens[0]; (Data.index.get(t0)||[]).forEach(id=>{ const w=Data.byId.get(id); if(w&&tokens.every(t=>(w.phrase||'').toLowerCase().includes(t))) hits.add(id); }); }
-    return [...hits].map(id=>Data.byId.get(id));
+    if(tokens.length>1){ const t0=tokens[0]; (Data.index.get(t0)||[]).forEach(id=>{ const w=Data.get(id); if(w&&tokens.every(t=>(w.phrase||'').toLowerCase().includes(t))) hits.add(id); }); }
+    return [...hits].map(id=>Data.get(id));
   }
 };
 /* ===== 卡片樣式共用 ===== */
@@ -2840,7 +2841,7 @@ const App = {
     if(routers[view]) routers[view]();
   },
   openDetail(id){
-    const w=Data.byId.get(id); if(!w) return;
+    const w=Data.get(id); if(!w) return;
     App._cur=w;
     const body=Utils.$('#sheetBody');
     body.innerHTML=`
@@ -2882,7 +2883,7 @@ const App = {
     App.openDetail(w.id);
   },
   toggleFavFromList(id){
-    const w=Data.byId.get(id); if(!w) return;
+    const w=Data.get(id); if(!w) return;
     const k=Store.key(w);
     if(Store.state.fav.has(k)){ Store.state.fav.delete(k); Utils.toast('已取消收藏'); }
     else{ Store.state.fav.add(k); Utils.toast('已加入收藏 ⭐'); }
@@ -2890,7 +2891,7 @@ const App = {
     if(UI.current==='browse') Browse.renderList();
   },
   toggleTomo(id){
-    const w=Data.byId.get(id); if(!w) return;
+    const w=Data.get(id); if(!w) return;
     const k=Store.key(w);
     if(Store.state.tomo.has(k)){ Store.state.tomo.delete(k); Utils.toast('已取消明日優先'); }
     else{ Store.state.tomo.add(k); Utils.toast('已加入明日優先複習 ⏰'); }
@@ -3403,7 +3404,7 @@ const Listening={
     `;
   },
   word(id){
-    const w=Data.byId.get(id); if(!w) return;
+    const w=Data.get(id); if(!w) return;
     Listening.stop();
     Listening.speak(w.phrase,'en-US',0.8);
     setTimeout(()=>Listening.speak(w.meaning,'zh-HK',0.9), 700);
