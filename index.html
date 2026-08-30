@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.11.5</title>
+<title>DSE Vocab V5.11.8</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -27,6 +27,20 @@
   --radius:20px; --radius-sm:14px; --radius-xs:10px;
   --nav-h:66px; --header-h:58px;
   --safe-b:env(safe-area-inset-bottom,0px);
+  /* V5.11.8 WebDAV 雙向雲端同步 / 設置持久化 */
+  .exam-overlay{position:fixed;inset:0;z-index:9999;background:var(--card);display:flex;flex-direction:column;padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(10px,env(safe-area-inset-bottom))}
+  .exam-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+  .exam-timer{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800;font-size:19px;padding:5px 12px;border-radius:10px;background:var(--bg-soft);color:var(--brand-1);min-width:76px;text-align:center}
+  .exam-timer.warn{color:#fff;background:#ef4444;animation:pulse 1s infinite}
+  .exam-count{font-size:13px;font-weight:700;color:var(--sub)}
+  .exam-area{flex:1;display:flex;flex-direction:column;padding:14px 14px 8px;min-height:0}
+  .exam-topic{font-size:13px;color:var(--sub);line-height:1.5;background:var(--bg-soft);border-radius:10px;padding:9px 12px;margin-bottom:10px;flex-shrink:0}
+  .exam-ta{flex:1;width:100%;border:1.5px solid var(--border);border-radius:14px;background:var(--bg);color:var(--txt);padding:14px;font-size:15px;line-height:1.9;resize:none;outline:none;font-family:inherit;min-height:0}
+  .exam-ta:focus{border-color:var(--brand-1)}
+  .exam-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;flex-shrink:0}
+  .exam-progress{flex:1;height:8px;border-radius:6px;background:var(--bg-soft);overflow:hidden}
+  .exam-progress .exam-fill{height:100%;border-radius:6px;background:var(--grad);transition:width .3s}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}
 }
 html[data-theme="dark"]{
   --brand-1:#818CF8; --brand-2:#A78BFA; --brand-3:#C084FC;
@@ -591,7 +605,7 @@ const Store = {
     v:3, known:new Set(), wrong:new Set(), fav:new Set(),
     sched:{}, history:{}, goal:20, mode:'all', dark:false,
     quizCount:0, onboarded:false, dseDate:'', lvTest:null, essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false },
-    streak:0, lastActive:'', achievements:[], fontSize:16, quizBest:0
+    essayCount:0, streak:0, lastActive:'', achievements:[], fontSize:16, quizBest:0, customWords:[], webdav:{url:'',token:''}
   }; },
   init(){
     const raw=Storage.get('dse_state');
@@ -599,7 +613,7 @@ const Store = {
     const d=this.defaultState();
     const st={ ...d, ...(saved||{}),
       known:new Set(saved?.known||[]), wrong:new Set(saved?.wrong||[]), fav:new Set(saved?.fav||[]),
-      sched:saved?.sched||{}, history:saved?.history||{}, essay:{ ...d.essay, ...(saved?.essay||{}) }
+      sched:saved?.sched||{}, history:saved?.history||{}, essay:{ ...d.essay, ...(saved?.essay||{}) }, webdav:{ ...d.webdav, ...(saved?.webdav||{}) }
     };
     this.state=st;
     // 舊版 Level 測試數據遷移：舊制（score<=10 且無 pct）轉百分制
@@ -621,7 +635,7 @@ const Store = {
   },
   persist(){
     const s=this.state;
-    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], sched:s.sched, history:s.history, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0 };
+    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], sched:s.sched, history:s.history, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, essayCount:s.essayCount||0, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0, customWords:s.customWords||[], webdav:s.webdav||{url:'',token:''} };
     Storage.set('dse_state', JSON.stringify(snap));
     Storage.idbSet('backup', { s: JSON.stringify(snap), t: Date.now() });
   },
@@ -632,7 +646,7 @@ const Store = {
     const d=this.defaultState();
     this.state={ ...d, ...snap,
       known:new Set(snap.known||[]), wrong:new Set(snap.wrong||[]), fav:new Set(snap.fav||[]),
-      sched:snap.sched||{}, history:snap.history||{}, essay:{ ...d.essay, ...(snap.essay||{}) }, streak:snap.streak||0, lastActive:snap.lastActive||'', achievements:new Set(snap.achievements||[]), fontSize:snap.fontSize||16, quizBest:snap.quizBest||0 };
+      sched:snap.sched||{}, history:snap.history||{}, essay:{ ...d.essay, ...(snap.essay||{}) }, essayCount:snap.essayCount||0, streak:snap.streak||0, lastActive:snap.lastActive||'', achievements:new Set(snap.achievements||[]), fontSize:snap.fontSize||16, quizBest:snap.quizBest||0, customWords:snap.customWords||[], webdav:{ ...d.webdav, ...(snap.webdav||{}) } };
     this.persist();
   }
 };
@@ -669,7 +683,33 @@ const Data = {
     if(!words||!words.length) return 0;
     Data.raw=words; Data.byId=new Map(words.map(w=>[w.id,w]));
     Data._buildIndex();
+    Data._mergeCustom();
     return words.length;
+  },
+  _mergeCustom(){
+    const cus=(Store.state.customWords||[]);
+    if(!cus.length) return;
+    const base=9000000;
+    const added=cus.map((c,i)=>({ id:'c'+(base+i), phrase:String(c.phrase||'').trim(), meaning:String(c.meaning||'（自訂詞）').trim(), stars:(c.stars>=1&&c.stars<=5)?c.stars:3, category:c.category||'自訂', custom:true }));
+    if(!added.length) return;
+    Data.raw=[...added, ...Data.raw];
+    Data.byId=new Map(Data.raw.map(w=>[w.id,w]));
+    Data._buildIndex();
+  },
+  lvTag(w){
+    if(w&&w.custom) return { t:'自訂', c:'#8B5CF6' };
+    const s=(w&&w.stars)||3;
+    if(s<=2) return { t:'Lv3/4 必備', c:'#3B82F6' };
+    if(s<=4) return { t:'Lv5 升級', c:'#F59E0B' };
+    return { t:'Lv5** 升級', c:'#A855F7' };
+  },
+  topicOf(w, _cache){
+    if(w&&w._topics) return w._topics;
+    const txt=(((w&&w.phrase)||'')+' '+((w&&w.meaning)||'')).toLowerCase();
+    const hit=[];
+    TOPIC_RULES.forEach(t=>{ if(t.en.some(k=>txt.includes(k))||t.zh.some(k=>txt.includes(k))) hit.push(t.key); });
+    if(w) w._topics=hit;
+    return hit;
   },
   _buildIndex(){
     const idx=new Map();
@@ -1508,6 +1548,8 @@ const Stats = {
         <div><div class="sh-num">${known}</div><div class="sh-lbl">已掌握詞</div></div>
         <div><div class="sh-num">${wrong}</div><div class="sh-lbl">常錯詞</div></div>
         <div><div class="sh-num">${fav}</div><div class="sh-lbl">已收藏</div></div>
+        <div><div class="sh-num">${s.essayCount||0}</div><div class="sh-lbl">📝 已批改作文</div></div>
+        <div><div class="sh-num">${s.streak||0}</div><div class="sh-lbl">🔥 連續打卡</div></div>
       </div>
       <div class="chart-card"><h4>📈 近 14 日學習紀錄</h4>${histHtml}</div>
       <div class="chart-card"><h4>📉 學習曲線（近 30 日）</h4>${curveHtml}</div>
@@ -1518,7 +1560,12 @@ const Stats = {
         <div style="display:flex;flex-direction:column;gap:9px">
           <button class="btn ghost sm" onclick="App.exportData()">📤 匯出備份</button>
           <label class="btn ghost sm" style="cursor:pointer">📥 匯入備份<input type="file" accept=".json" style="display:none" onchange="App.importData(this)"></label>
-          <button class="btn ghost sm" onclick="App.exportWebDAV()">☁️ WebDAV 雲端同步</button>
+          <button class="btn ghost sm" onclick="App.webdavSetup()">☁️ WebDAV 設置</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn ghost sm" style="flex:1" onclick="App.exportWebDAV()">☁️ 上傳備份</button>
+            <button class="btn ghost sm" style="flex:1" onclick="App.importWebDAV()">☁️ 下載導入</button>
+          </div>
+          <div style="font-size:11px;color:var(--sub);line-height:1.5" id="webdavStatus">${Store.state.webdav&&Store.state.webdav.url?('🟢 已設置：'+Utils.esc(Store.state.webdav.url)+(Store.state.webdav.lastSync?'<br>上次同步：'+new Date(Store.state.webdav.lastSync).toLocaleString():'<br>尚未同步過')):'⚪ 未設置 WebDAV（可選）'}</div>
           <button class="btn danger sm" onclick="App.resetData()">🗑️ 重置所有數據</button>
         </div>
       </div>
@@ -1812,8 +1859,203 @@ const TOPIC_PHRASES = [
  * 跟 HKEAA Paper 2 評分框架：Content 10 / Organisation 10 / Language 10
  * 雙模式：離線規則引擎（默認）+ 可選 LLM API 深度評分
  * ===================================================================== */
+/* =====================================================================
+ * V5.11.6 詞彙升級建議（平淡詞 → 高階替換）
+ * ===================================================================== */
+const UPGRADE_MAP=[
+  {base:'important', type:'adj', up:['crucial','pivotal','vital','paramount','significant']},
+  {base:'good', type:'adj', up:['beneficial','advantageous','commendable','favourable']},
+  {base:'bad', type:'adj', up:['detrimental','adverse','unfavourable','deplorable']},
+  {base:'big', type:'adj', up:['substantial','considerable','immense','significant']},
+  {base:'small', type:'adj', up:['negligible','trivial','minor','insignificant']},
+  {base:'many', type:'adj', up:['numerous','countless','myriad','a multitude of']},
+  {base:'easy', type:'adj', up:['straightforward','effortless','uncomplicated']},
+  {base:'hard', type:'adj', up:['arduous','demanding','challenging','strenuous']},
+  {base:'fast', type:'adj', up:['rapid','swift','expeditious']},
+  {base:'slow', type:'adj', up:['sluggish','gradual','unhurried']},
+  {base:'rich', type:'adj', up:['affluent','prosperous','well-to-do']},
+  {base:'poor', type:'adj', up:['impoverished','underprivileged','deprived']},
+  {base:'happy', type:'adj', up:['delighted','thrilled','overjoyed','content']},
+  {base:'sad', type:'adj', up:['sorrowful','disheartened','dejected']},
+  {base:'afraid', type:'adj', up:['apprehensive','fearful','intimidated']},
+  {base:'angry', type:'adj', up:['furious','indignant','outraged']},
+  {base:'interesting', type:'adj', up:['intriguing','captivating','compelling']},
+  {base:'useful', type:'adj', up:['valuable','invaluable','instrumental']},
+  {base:'think', type:'v', up:['contend','assert','maintain','deem']},
+  {base:'get', type:'v', up:['obtain','acquire','attain','secure']},
+  {base:'show', type:'v', up:['demonstrate','illustrate','exhibit','reveal']},
+  {base:'make', type:'v', up:['facilitate','generate','foster','engender']},
+  {base:'use', type:'v', up:['utilise','employ','harness','leverage']},
+  {base:'help', type:'v', up:['assist','facilitate','contribute to','alleviate']},
+  {base:'change', type:'v', up:['transform','modify','alter','revolutionise']},
+  {base:'increase', type:'v', up:['escalate','surge','proliferate','amplify']},
+  {base:'decrease', type:'v', up:['diminish','dwindle','plummet','decline']},
+  {base:'improve', type:'v', up:['enhance','refine','upgrade','optimise']},
+  {base:'cause', type:'v', up:['trigger','induce','precipitate','give rise to']},
+  {base:'solve', type:'v', up:['resolve','rectify','remedy','tackle']},
+  {base:'stop', type:'v', up:['cease','halt','terminate','put an end to']},
+  {base:'start', type:'v', up:['commence','initiate','launch','embark on']},
+  {base:'want', type:'v', up:['desire','aspire to','yearn for']},
+  {base:'need', type:'v', up:['require','necessitate','call for']},
+  {base:'like', type:'v', up:['appreciate','relish','cherish']},
+  {base:'give', type:'v', up:['provide','offer','donate','bestow']},
+  {base:'build', type:'v', up:['construct','establish','cultivate','foster']},
+  {base:'learn', type:'v', up:['acquire knowledge of','master','grasp']},
+  {base:'always', type:'adv', up:['invariably','consistently','perpetually']},
+  {base:'often', type:'adv', up:['frequently','commonly','repeatedly']},
+  {base:'sometimes', type:'adv', up:['occasionally','sporadically','from time to time']},
+  {base:'very', type:'adv', up:['extremely','exceedingly','remarkably','profoundly']},
+  {base:'really', type:'adv', up:['genuinely','truly','undoubtedly']},
+  {base:'problem', type:'n', up:['dilemma','predicament','obstacle','challenge']},
+  {base:'thing', type:'n', up:['aspect','element','factor','issue']},
+  {base:'people', type:'n', up:['individuals','citizens','the general public']},
+  {base:'way', type:'n', up:['approach','method','means','strategy']},
+  {base:'idea', type:'n', up:['notion','concept','perspective']},
+  {base:'example', type:'n', up:['illustration','instance','case in point']},
+  {base:'result', type:'n', up:['outcome','consequence','ramification']}
+];
+
+/* =====================================================================
+ * V5.11.8 第三批：WebDAV 雙向雲端同步（設置持久化 / 上傳 / 下載導入 / 同步時間）
+ * ===================================================================== */
+const TOPIC_RULES = [
+  { key:'科技與AI', en:['technology','technolog','ai','artificial intelligence','digital','online','app','software','robot','computer','internet','cyber','data','smartphone','gadget','algorithm','virtual','automation','innovation','machine','electronic'], zh:['科技','人工智能','網絡','互聯網','數碼','電子','智能','軟件','應用程式','機械人','程式','算法','自動化','數據'] },
+  { key:'環境與氣候', en:['environment','climate','pollution','carbon','plastic','recycle','sustainab','green','energy','waste','global warming','emission','wildlife','ecosystem','nature','forest','ocean','biodiversity'], zh:['環境','氣候','污染','碳排放','塑膠','回收','可持續','綠色','能源','廢物','暖化','排放','生態','大自然','海洋'] },
+  { key:'健康與醫療', en:['health','medical','disease','mental','obesity','diet','exercise','stress','sleep','vaccine','hospital','patient','therapy','addiction','wellness','cancer','pandemic','virus'], zh:['健康','醫療','疾病','心理','肥胖','飲食','運動','壓力','睡眠','疫苗','醫院','病人','治療','上癮','疫情','病毒','康復'] },
+  { key:'教育與學習', en:['education','school','student','teacher','learning','exam','curriculum','homework','university','literacy','tuition','classroom','study','knowledge','skill','training'], zh:['教育','學校','學生','老師','學習','考試','課程','功課','大學','識字','補習','課堂','知識','技能','培訓'] },
+  { key:'社交媒體與網絡', en:['social media','facebook','instagram','internet','online','cyber','privacy','screen time','influencer','hashtag','viral','smartphone','digital','content','post','share'], zh:['社交媒體','社交平台','網絡','互聯網','私隱','上網','屏幕','網紅','短片','直播','發帖','沉迷','手機'] },
+  { key:'經濟與商業', en:['economy','economic','business','money','consumer','market','trade','profit','poverty','wealth','employment','income','industry','finance','adverti','brand','retail','commerce'], zh:['經濟','商業','金錢','消費者','市場','貿易','利潤','貧窮','財富','就業','收入','行業','金融','廣告','品牌','零售','消費'] },
+  { key:'社會與文化', en:['society','social','culture','community','tradition','diversity','gender','equality','ageing','population','citizen','public','heritage','identity','custom'], zh:['社會','文化','社區','傳統','多元','性別','平等','老化','人口','公民','公眾','遺產','身份','習俗'] },
+  { key:'罪案與司法', en:['crime','law','legal','justice','police','offence','fraud','scam','penalty','punish','juvenile','court','illegal','rights','victim','cybercrime'], zh:['罪案','犯罪','法律','司法','警察','罪行','詐騙','罰則','懲罰','青少年犯罪','法庭','非法','權利','受害者'] },
+  { key:'家庭與人際', en:['family','parent','child','teenager','relationship','friend','marriage','divorce','elderly','generation','peer','love','communication','conflict','support'], zh:['家庭','父母','子女','青少年','關係','朋友','婚姻','離婚','長者','世代','同儕','溝通','衝突','支持'] },
+  { key:'媒體與傳播', en:['media','news','press','journalism','television','broadcast','report','fake news','headline','editorial','comment','advertise','publicity'], zh:['媒體','新聞','傳媒','報紙','電視','廣播','報導','假新聞','標題','社論','廣告','宣傳'] },
+  { key:'體育與休閒', en:['sport','game','exercise','leisure','entertainment','hobby','travel','tourism','holiday','concert','movie','music','competition','tournament','athlete','festival'], zh:['體育','運動','休閒','娛樂','興趣','旅行','旅遊','假期','演唱會','電影','音樂','比賽','運動員','節日'] },
+  { key:'全球化與城市', en:['global','globalisation','urban','city','migration','immigrant','international','developing','foreign','overseas','transport','infrastructure','tourism','multinational'], zh:['全球化','城市','都市','移民','國際','發展中','外國','海外','交通','基建','旅遊業'] }
+];
+const Collo = {
+  _idx:null,
+  build(){
+    const map=new Map();
+    const add=(phrase,src,m)=>{
+      if(!phrase) return;
+      const ph=String(phrase).toLowerCase().trim();
+      if(ph.length>2){
+        let a=map.get(ph); if(!a){ a=[]; map.set(ph,a); } a.push({ p:phrase, s:src, m:m||'' });
+      }
+      const tokens=ph.split(/[^a-z']+/).filter(t=>t.length>2);
+      tokens.forEach(t=>{ let a=map.get(t); if(!a){ a=[]; map.set(t,a); } a.push({ p:phrase, s:src, m:m||'' }); });
+    };
+    (WRITING_PICKS||[]).forEach(g=>(g.items||[]).forEach(it=>{ add(it.t,'寫作片語',it.m); (it.ex||[]).forEach(e=>add(e,'寫作例句',it.m)); }));
+    (TOPIC_PHRASES||[]).forEach(t=>(t.groups||[]).forEach(g=>(g.items||[]).forEach(it=>{ add(it.t,'議題短語',it.m); (it.ex||[]).forEach(e=>add(e,'議題例句',it.m)); })));
+    (ATTITUDE_WORDS||[]).forEach(t=>(t.groups||[]).forEach(g=>(g.items||[]).forEach(it=>add(it.t,'態度詞',it.m))));
+    Object.values(WRITING_MAP||{}).forEach(f=>(f.phrases||[]).forEach(p=>{ add(p.text,'格式詞庫',p.meaning); (p.ex||[]).forEach(e=>add(e,'格式例句',p.meaning)); }));
+    Object.values(SENTENCE_STRUCTURES||{}).forEach(c=>(c.items||[]).forEach(s=>add(s.e||s.p,'進階句式','')));
+    Collo._idx=map;
+  },
+  variants(p){
+    const v=new Set([p]);
+    if(!p) return [...v];
+    if(p.endsWith('ies')) v.add(p.slice(0,-3)+'y');
+    if(p.endsWith('es')) v.add(p.slice(0,-2));
+    if(p.endsWith('s')&&p.length>3) v.add(p.slice(0,-1));
+    if(p.endsWith('ing')&&p.length>5) v.add(p.slice(0,-3));
+    if(p.endsWith('ed')&&p.length>4) v.add(p.slice(0,-2));
+    if(p.endsWith('d')&&p.length>3&&!p.endsWith('ed')) v.add(p.slice(0,-1));
+    if(p.endsWith('e')&&p.length>3) v.add(p.slice(0,-1));
+    v.add(p+'s'); v.add(p+'es'); v.add(p+'al'); v.add(p+'ing'); v.add(p+'ed');
+    return [...v];
+  },
+  for(w,limit){
+    if(!Collo._idx) Collo.build();
+    const p=String(w&&w.phrase||'').toLowerCase().trim();
+    if(!p) return [];
+    const hits=[], seen=new Set();
+    const collect=k=>{ (Collo._idx.get(k)||[]).forEach(x=>{ const kk=x.p+'|'+x.s; if(!seen.has(kk)){ seen.add(kk); hits.push(x); } }); };
+    collect(p);
+    const compact=p.replace(/[^a-z']/g,'');
+    if(compact!==p) collect(compact);
+    const toks=p.split(/[^a-z']+/).filter(t=>t.length>2);
+    toks.forEach(t=>Collo.variants(t).forEach(collect));
+    hits.sort((a,b)=>{
+      const da=a.p.toLowerCase().includes(p)?1:0, db=b.p.toLowerCase().includes(p)?1:0;
+      if(da!==db) return db-da;
+      return a.p.length-b.p.length;
+    });
+    return hits.slice(0,limit||5);
+  }
+};
+const CustomWords = {
+  show(){
+    const v=Utils.$('#view-sub');
+    const cus=Store.state.customWords||[];
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin:10px 0 6px" onclick="App.go('more')">← 返回</button>
+      <div class="section-title"><span class="dot"></span>自訂詞庫（${cus.length} 詞）</div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="st-t">📥 匯入詞彙</div>
+        <div style="font-size:11.5px;color:var(--sub);line-height:1.7;margin:6px 0">支援 CSV 或 TXT，每行一個詞：<br><b>CSV</b>：<code>phrase,meaning,stars(可選),category(可選)</code><br><b>TXT</b>：<code>phrase | meaning</code>（亦可用逗號／Tab 分隔）</div>
+        <textarea id="cwInput" placeholder="例：&#10;mitigate,減輕；緩和,4,議題詞&#10;alleviate | 緩解；減輕&#10;sustainable development,可持續發展" style="width:100%;min-height:110px;box-sizing:border-box;background:var(--bg-soft);border:1px solid var(--border);border-radius:12px;padding:10px;font-size:13px;color:var(--text);resize:vertical"></textarea>
+        <button class="btn soft" style="width:100%;margin-top:8px" onclick="CustomWords.import()">匯入詞彙</button>
+      </div>
+      <div class="section-title"><span class="dot"></span>已匯入詞彙</div>
+      <div id="cwList">${cus.length?cus.map((c,i)=>`
+        <div class="list-item"><div class="li-main"><div class="li-ph">${Utils.esc(c.phrase)} <span style="color:#8B5CF6;font-size:10px;font-weight:700">自訂</span></div><div class="li-mean">${Utils.esc(c.meaning)}</div></div><div class="li-fav" style="color:var(--err);cursor:pointer" onclick="CustomWords.remove(${i})">✕</div></div>
+      `).join(''):'<div class="empty"><div class="e-icon">📭</div>未匯入自訂詞彙</div>'}</div>
+      ${cus.length?`<button class="btn ghost" style="width:100%;margin-bottom:20px" onclick="CustomWords.clear()">🗑 清空全部自訂詞</button>`:''}
+    `;
+  },
+  import(){
+    const txt=Utils.$('#cwInput').value||'';
+    const lines=txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    if(!lines.length){ Utils.toast('未輸入任何詞彙'); return; }
+    const cus=Store.state.customWords||[];
+    const seen=new Set(cus.map(c=>String(c.phrase).trim().toLowerCase()));
+    let added=0, dup=0;
+    lines.forEach(ln=>{
+      let phrase='', meaning='', stars=3, category='自訂';
+      const csv=ln.match(/^\s*"((?:[^"]|"")*)"\s*,\s*"((?:[^"]|"")*)"\s*(?:,\s*(\d+))?\s*(?:,\s*"((?:[^"]|"")*)")?\s*$/);
+      if(csv){ phrase=csv[1].replace(/""/g,'"'); meaning=csv[2].replace(/""/g,'"'); stars=csv[3]?(+csv[3]):3; category=csv[4]||'自訂'; }
+      else{
+        const parts=ln.split(/[|,\t]/).map(s=>s.trim());
+        phrase=parts[0]||'';
+        if(parts.length>=2) meaning=parts[1];
+        if(parts.length>=3 && /^\d+$/.test(parts[2])) stars=+parts[2];
+        if(parts.length>=4 && parts[3]) category=parts[3];
+      }
+      phrase=phrase.trim(); if(!phrase) return;
+      const key=phrase.toLowerCase();
+      if(seen.has(key)){ dup++; return; }
+      seen.add(key);
+      cus.push({ phrase, meaning:meaning.trim()||'（自訂詞）', stars:(stars>=1&&stars<=5)?stars:3, category:category||'自訂' });
+      added++;
+    });
+    Store.state.customWords=cus; Store.persist();
+    Data._mergeCustom();
+    Utils.toast(`已匯入 ${added} 詞${dup?'，跳過重複 '+dup:' '}`);
+    CustomWords.show();
+  },
+  remove(i){
+    const cus=(Store.state.customWords||[]).slice();
+    cus.splice(i,1);
+    Store.state.customWords=cus; Store.persist();
+    Data._mergeCustom();
+    Utils.toast('已刪除該自訂詞');
+    CustomWords.show();
+  },
+  clear(){
+    if(!confirm('確定清空全部自訂詞？')) return;
+    Store.state.customWords=[]; Store.persist();
+    Data._mergeCustom();
+    Utils.toast('已清空自訂詞');
+    CustomWords.show();
+  }
+};
+window.Collo=Collo; window.CustomWords=CustomWords; window.TOPIC_RULES=TOPIC_RULES;
+
 const EssayGrader = {
   topic:'', text:'', result:null, loading:false,
+  /* V5.11.8 WebDAV 雙向雲端同步 / 設置持久化 */
+  exam:{active:false, minutes:120, left:0, timer:null, goal:500},
   prompts:[
     'Some people believe that social media has more negative effects than positive effects on young people. Do you agree?',
     'Your school is considering banning smartphones on campus. Write an article expressing your views.',
@@ -1856,6 +2098,7 @@ const EssayGrader = {
     }
     const advRatio=wordCount?Math.round(advancedHits.length/wordCount*1000)/10:0;
     const attitudeHits=EssayGrader._scanAttitude(lower,words);
+    const upgrades=EssayGrader._scanUpgrades(words);
     const stop=new Set(['the','a','an','and','or','but','of','to','in','on','at','for','with','is','are','was','were','be','been','i','you','he','she','it','we','they','my','your','his','her','our','their','this','that','these','those','as','by','from','up','down','so','if','not','can','will','would','should','could','may','might','there','have','has','had','do','does','did']);
     const rep=Object.entries(freq).filter(([w,n])=>n>=5&&!stop.has(w)).map(([w,n])=>`${w}×${n}`);
     const repPenalty=Math.min(3, rep.length*0.8);
@@ -1898,7 +2141,7 @@ const EssayGrader = {
     const total=Math.round((content+org+lang)*10)/10;
     const level=EssayGrader.levelOf(total);
     const feedback=EssayGrader._buildFeedback({wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,variety,attitudeHits});
-    return {content:Math.round(content*10)/10, organisation:Math.round(org*10)/10, language:Math.round(lang*10)/10, total, level, mode:'local', stats:{wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,attitudeHits}, feedback};
+    return {content:Math.round(content*10)/10, organisation:Math.round(org*10)/10, language:Math.round(lang*10)/10, total, level, mode:'local', stats:{wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,attitudeHits,upgrades}, feedback};
   },
   levelOf(total){
     if(total>=27) return {lv:'5**', tag:'頂尖', color:'#F59E0B'};
@@ -1927,8 +2170,24 @@ const EssayGrader = {
     });
     return hits;
   },
+  /* V5.11.6 平淡詞掃描（回傳可升級清單，每項 {t, n, up, type}） */
+  _scanUpgrades(words){
+    const freq={}; words.forEach(w=>freq[w]=(freq[w]||0)+1);
+    const res=[];
+    const already=new Set(words);
+    UPGRADE_MAP.forEach(ent=>{
+      const base=ent.base;
+      const forms=[base,base+'s',base+'es',base+'ed',base+'d',base+'ing',base+'ied',base+'ies',base+'er',base+'est',base+'r',base+'st'];
+      let n=0; forms.forEach(f=>{ if(freq[f]) n+=freq[f]; });
+      if(n<=0) return;
+      const usable=ent.up.filter(u=>u.split(/\s+/).length>1||!already.has(u));
+      if(!usable.length) return;
+      res.push({t:base, n, up:usable.slice(0,3), type:ent.type});
+    });
+    return res.sort((a,b)=>b.n-a.n).slice(0,8);
+  },
   _buildFeedback(m){
-    const {wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,variety,attitudeHits}=m;
+    const {wordCount,sentCount,paraCount,avgLen,connCount,connUniq,advancedHits,advRatio,rep,grammarIssues,longCnt,shortCnt,variety,attitudeHits,upgrades}=m;
     const strengths=[], weaknesses=[], tips=[];
     if(wordCount>=450) strengths.push(`字數充足（${wordCount} 字），能完整展開論點`);
     else if(wordCount>=300) strengths.push(`字數達標（${wordCount} 字），論述具一定深度`);
@@ -1967,6 +2226,9 @@ const EssayGrader = {
     if(grammarIssues.length){
       grammarIssues.slice(0,5).forEach(g=>weaknesses.push(`文法／拼寫：${g.msg}（見到「${g.found}」）`));
     }else if(wordCount>100) strengths.push('未偵測到明顯文法／拼寫錯誤');
+    if(upgrades&&upgrades.length){
+      tips.push(`「詞彙升級」可用：${upgrades.slice(0,3).map(u=>`${u.t} → ${u.up[0]}`).join('、')}（詳見下方⬆️升級建議）`);
+    }
     tips.push('寫完後重讀一遍，檢查主謂一致、時態統一同標點符號');
     return {strengths:strengths.slice(0,6), weaknesses:weaknesses.slice(0,6), tips:tips.slice(0,5)};
   },
@@ -1993,6 +2255,7 @@ const EssayGrader = {
         <button class="btn sm ${!cfg.useApi?'soft':''}" onclick="EssayGrader.render()">✍️ 離線評分</button>
         <button class="btn sm ${cfg.useApi?'soft':''}" onclick="EssayGrader._useApi(true)">🤖 AI 深度評分</button>
         <button class="btn sm ghost" onclick="EssayGrader.renderSettings()">⚙️ 設置</button>
+        <button class="btn sm ghost" onclick="EssayGrader.examStart()">🎯 模擬考場</button>
       </div>
       ${cfg.useApi?`<div class="chip brand" style="margin:2px 0 10px">🤖 AI 模式：${cfg.provider==='openai'?'OpenAI':'DeepSeek'}（${cfg.model}）</div>`:`<div class="chip" style="margin:2px 0 10px">✍️ 離線模式：唔使網絡，跟 HKEAA 標準分析</div>`}
       <div class="section-title" style="margin-top:4px"><span class="dot"></span>作文題目</div>
@@ -2047,6 +2310,79 @@ To conclude, social media is neither entirely beneficial nor wholly harmful. If 
     `;
   },
   _useApi(on){ Store.state.essay.useApi=on; Store.persist(); EssayGrader.render(); },
+  /* ---------- V5.11.6 模擬考場 ---------- */
+  examStart(){
+    const mins=prompt('考場時限（分鐘）：DSE Paper 2 建議 120', '120');
+    const m=parseInt(mins,10);
+    if(!m||m<5||m>240){ Utils.toast('時限需為 5-240 分鐘'); return; }
+    EssayGrader.exam={active:true, minutes:m, left:m*60, timer:null, goal:500};
+    if(!EssayGrader.topic) EssayGrader.topic=EssayGrader.prompts[0];
+    const body=document.body;
+    const ov=document.createElement('div');
+    ov.className='exam-overlay'; ov.id='examOverlay';
+    ov.innerHTML=`
+      <div class="exam-bar">
+        <button class="btn danger sm" onclick="EssayGrader.examCancel()">✕ 退出</button>
+        <div class="exam-timer" id="examTimer">${EssayGrader._fmt(EssayGrader.exam.left)}</div>
+        <div style="flex:1"></div>
+        <div class="exam-count" id="examCount">0 字</div>
+        <button class="btn sm" onclick="EssayGrader.examSubmit(true)">📮 交卷</button>
+      </div>
+      <div class="exam-area">
+        <div class="exam-topic">📌 ${Utils.esc(EssayGrader.topic)}</div>
+        <textarea class="exam-ta" id="examTa" placeholder="喺度寫作文（DSE Paper 2 建議約 500 字）…" autofocus>${Utils.esc(EssayGrader.text)}</textarea>
+      </div>
+      <div class="exam-foot">
+        <div style="font-size:12px;color:var(--faint);flex-shrink:0">目標 ${EssayGrader.exam.goal} 字</div>
+        <div class="exam-progress"><div class="exam-fill" id="examFill" style="width:0%"></div></div>
+        <div style="font-size:12px;color:var(--faint);flex-shrink:0" id="examPct">0%</div>
+      </div>
+    `;
+    body.appendChild(ov);
+    if(document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen().catch(()=>{}); }
+    const ta=Utils.$('#examTa');
+    ta.focus();
+    ta.addEventListener('input',()=>{ EssayGrader.text=ta.value; EssayGrader._examTickUI(); });
+    EssayGrader.exam.timer=setInterval(()=>{
+      EssayGrader.exam.left--;
+      if(EssayGrader.exam.left<=0){ EssayGrader.examSubmit(true); return; }
+      EssayGrader._examTickUI();
+    },1000);
+    EssayGrader._examTickUI();
+  },
+  _examTickUI(){
+    const e=EssayGrader.exam; if(!e||!e.active) return;
+    const tEl=Utils.$('#examTimer'); if(tEl){ tEl.textContent=EssayGrader._fmt(e.left); tEl.classList.toggle('warn', e.left<=300); }
+    const ta=Utils.$('#examTa'); if(!ta) return;
+    const n=Utils.wordCount(ta.value);
+    const cEl=Utils.$('#examCount'); if(cEl) cEl.textContent=n+' 字';
+    const pct=Math.min(100, Math.round(n/e.goal*100));
+    const fEl=Utils.$('#examFill'); if(fEl) fEl.style.width=pct+'%';
+    const pEl=Utils.$('#examPct'); if(pEl) pEl.textContent=pct+'%';
+  },
+  _fmt(sec){ const m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); },
+  examCancel(){
+    if(!confirm('確定退出考場？未交卷內容仍會保留喺輸入框。')) return;
+    if(EssayGrader.exam.timer) clearInterval(EssayGrader.exam.timer);
+    if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    const ov=Utils.$('#examOverlay'); if(ov) ov.remove();
+    EssayGrader.exam={active:false, minutes:120, left:0, timer:null, goal:500};
+    Utils.toast('已退出考場');
+  },
+  examSubmit(auto){
+    const ta=Utils.$('#examTa');
+    if(ta) EssayGrader.text=ta.value;
+    const n=Utils.wordCount(EssayGrader.text);
+    if(n<30){ Utils.toast('作文太短（至少 30 字），寫多少少先交卷啦'); return; }
+    if(!auto && !confirm('確定交卷？交卷後會即時評分。')) return;
+    if(EssayGrader.exam.timer) clearInterval(EssayGrader.exam.timer);
+    if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    const ov=Utils.$('#examOverlay'); if(ov) ov.remove();
+    EssayGrader.exam={active:false, minutes:120, left:0, timer:null, goal:500};
+    EssayGrader.render();
+    Utils.toast('📮 已交卷，評分緊…');
+    EssayGrader.grade();
+  },
   async grade(){
     const text=Utils.$('#essayText').value.trim();
     EssayGrader.text=text;
@@ -2068,7 +2404,10 @@ To conclude, social media is neither entirely beneficial nor wholly harmful. If 
     }
     EssayGrader.loading=false;
     EssayGrader.render();
-    if(EssayGrader.result){ const v=Utils.$('#view-essay'); v.scrollTop=v.scrollHeight; }
+    if(EssayGrader.result){
+      Store.state.essayCount=(Store.state.essayCount||0)+1; Store.persist();
+      const v=Utils.$('#view-essay'); v.scrollTop=v.scrollHeight;
+    }
   },
   _renderLoading(){
     Utils.$('#view-essay').insertAdjacentHTML('beforeend',`<div class="grade-loading"><div class="spinner"></div><div>AI 分析緊作文…</div></div>`);
@@ -2107,6 +2446,18 @@ To conclude, social media is neither entirely beneficial nor wholly harmful. If 
       <div class="grade-section"><h4><span class="gs-ic">✅</span>做得好的地方</h4><ul>${strengths.map(s=>`<li class="good">${Utils.esc(s)}</li>`).join('')||'<li>文章完成度高</li>'}</ul></div>
       <div class="grade-section"><h4><span class="gs-ic">⚠️</span>需要改善</h4><ul>${weaknesses.map(s=>`<li class="bad">${Utils.esc(s)}</li>`).join('')||'<li>整體表現理想，繼續保持</li>'}</ul></div>
       ${tips.length?`<div class="grade-section"><h4><span class="gs-ic">💡</span>提升建議</h4><ul>${tips.map(s=>`<li>${Utils.esc(s)}</li>`).join('')}</ul></div>`:''}
+      ${r.mode==='local'&&r.stats&&r.stats.upgrades&&r.stats.upgrades.length?(()=>{
+        const typeName={adj:'形容詞',v:'動詞',adv:'副詞',n:'名詞'};
+        return `<div class="grade-section"><h4><span class="gs-ic">⬆️</span>詞彙升級建議（V5.11.6）</h4>
+          <div style="font-size:12px;color:var(--sub);margin-bottom:8px">將平淡詞換成高分詞，即時提升 Language 分：</div>
+          <div style="display:flex;flex-direction:column;gap:8px">${r.stats.upgrades.map(u=>`
+            <div style="background:var(--bg-soft);border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-weight:800;color:var(--err);font-size:13px;text-decoration:line-through">${u.t}</span><span style="color:var(--faint);font-size:11px">×${u.n} · ${typeName[u.type]||''}</span>
+              <span style="color:var(--faint)">→</span>
+              <span style="font-weight:800;color:var(--ok);font-size:13px">${u.up.join('、')}</span>
+            </div>`).join('')}
+          </div>
+        </div>`;})():''}
       <button class="btn ghost" style="width:100%;margin-bottom:20px" onclick="EssayGrader.result=null;EssayGrader.render()">評下一份</button>
     </div>`;
   },
@@ -2448,19 +2799,46 @@ const App = {
     reader.onload=()=>{ try{ Store.importSnapshot(JSON.parse(reader.result)); Utils.toast('匯入成功 ✅'); App.go('home'); }catch(e){ Utils.toast('匯入失敗：檔案格式錯誤'); } };
     reader.readAsText(f); input.value='';
   },
+  webdavSetup(){
+    const cur=Store.state.webdav||{url:'',token:''};
+    const url=prompt('WebDAV 檔案完整 URL（例如 https://dav.example.com/dse_vocab_backup.json）\n留空並確定 = 清除設置', cur.url||'');
+    if(url===null) return;
+    if(url&&!/^https?:\/\//i.test(url)){ Utils.toast('URL 格式錯誤，需以 http(s):// 開頭'); return; }
+    const token=prompt('Authorization Token（冇就留空）', cur.token||'');
+    if(token===null) return;
+    Store.state.webdav={ url:url.trim(), token:(token||'').trim(), lastSync:cur.lastSync||0 };
+    Store.persist(); Stats.render();
+    Utils.toast(Store.state.webdav.url?'WebDAV 設置已保存 ✅':'已清除 WebDAV 設置');
+  },
   async exportWebDAV(){
-    const url=prompt('WebDAV 檔案完整 URL（例如 https://dav.example.com/dse_vocab_backup.json）：');
-    if(!url||!/^https?:\/\//i.test(url)) return;
-    const token=prompt('可選：Authorization Token（冇就直接確定留空）','');
+    const wd=Store.state.webdav||{};
+    if(!wd.url){ Utils.toast('請先 ☁️ WebDAV 設置'); return; }
     const s=Store.state;
-    const payload=JSON.stringify({app:'dse_vocab',v:3,t:Date.now(),known:[...s.known],wrong:[...s.wrong],fav:[...s.fav],sched:s.sched,history:s.history,goal:s.goal,mode:s.mode,quizCount:s.quizCount});
+    const payload=JSON.stringify({app:'dse_vocab',v:3,t:Date.now(),known:[...s.known],wrong:[...s.wrong],fav:[...s.fav],sched:s.sched,history:s.history,goal:s.goal,mode:s.mode,quizCount:s.quizCount,essayCount:s.essayCount||0,streak:s.streak||0,lastActive:s.lastActive||'',customWords:s.customWords||[]});
     try{
       const headers={'Content-Type':'application/json'};
-      if(token&&token.trim()) headers['Authorization']=token.trim();
-      const res=await fetch(url,{method:'PUT',headers,body:payload});
+      if(wd.token) headers['Authorization']=wd.token;
+      const res=await fetch(wd.url,{method:'PUT',headers,body:payload});
       if(!res.ok) throw new Error('HTTP '+res.status);
-      Utils.toast('WebDAV 同步成功 ✅');
-    }catch(e){ Utils.toast('WebDAV 同步失敗：'+e.message); }
+      Store.state.webdav.lastSync=Date.now(); Store.persist(); Stats.render();
+      Utils.toast('☁️ 上傳成功 ✅');
+    }catch(e){ Utils.toast('☁️ 上傳失敗：'+e.message); }
+  },
+  async importWebDAV(){
+    const wd=Store.state.webdav||{};
+    if(!wd.url){ Utils.toast('請先 ☁️ WebDAV 設置'); return; }
+    try{
+      const headers={};
+      if(wd.token) headers['Authorization']=wd.token;
+      const res=await fetch(wd.url,{method:'GET',headers});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const snap=await res.json();
+      if(!snap||snap.app!=='dse_vocab'||!snap.known){ throw new Error('檔案格式不符（非 DSE Vocab 備份）'); }
+      Store.importSnapshot(snap);
+      Store.state.webdav.lastSync=Date.now(); Store.persist();
+      Stats.render(); App.go('home');
+      Utils.toast('☁️ 下載並導入成功 ✅');
+    }catch(e){ Utils.toast('☁️ 下載失敗：'+e.message); }
   },
   resetData(){
     if(confirm('確定要重置所有學習數據？此操作無法還原。')){ Store.reset(); Utils.toast('已重置'); App.go('home'); }
