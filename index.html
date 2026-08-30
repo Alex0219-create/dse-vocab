@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.11.8</title>
+<title>DSE Vocab V5.11.9</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -27,7 +27,7 @@
   --radius:20px; --radius-sm:14px; --radius-xs:10px;
   --nav-h:66px; --header-h:58px;
   --safe-b:env(safe-area-inset-bottom,0px);
-  /* V5.11.8 WebDAV 雙向雲端同步 / 設置持久化 */
+  /* V5.11.9 UK 讀音（音標 + UK 發音） */
   .exam-overlay{position:fixed;inset:0;z-index:9999;background:var(--card);display:flex;flex-direction:column;padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(10px,env(safe-area-inset-bottom))}
   .exam-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
   .exam-timer{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800;font-size:19px;padding:5px 12px;border-radius:10px;background:var(--bg-soft);color:var(--brand-1);min-width:76px;text-align:center}
@@ -367,6 +367,15 @@ textarea.field{min-height:150px;line-height:1.7}
 .kw-detail .kd-d{font-size:12.3px;line-height:1.65;color:var(--sub)}
 [data-theme=dark] .topic-card,[data-theme=dark] .arg-box,[data-theme=dark] .timer-wrap,[data-theme=dark] .step-item,[data-theme=dark] .kw-detail,[data-theme=dark] .x-tab{box-shadow:none}
 .pos-tag{display:inline-block;font-size:10px;font-weight:700;color:#7C3AED;background:#F3E8FF;border-radius:6px;padding:1px 5px;margin-left:4px;vertical-align:1px;line-height:1.6;white-space:nowrap}
+/* ===== UK 音標 ===== */
+.fc-phon{margin-top:7px;display:flex;align-items:center;gap:6px;justify-content:center;min-height:26px}
+.fc-phon .phon{font-family:'Segoe UI',system-ui,sans-serif;font-size:15px;color:var(--grad-start,#7C3AED);font-weight:600;letter-spacing:.3px}
+.fc-phon .phon-muted{font-size:11px;color:var(--sub);opacity:.65}
+.phon-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border-2);background:var(--card);color:#10B981;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800;cursor:pointer;line-height:1.5;vertical-align:1px}
+.phon-btn:hover{background:#10B981;color:#fff;border-color:transparent}
+.d-phon{margin-top:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:28px}
+.d-phon .phon{font-family:'Segoe UI',system-ui,sans-serif;font-size:16px;color:var(--grad-start,#7C3AED);font-weight:600;letter-spacing:.3px}
+.d-phon .phon-muted{font-size:11.5px;color:var(--sub);opacity:.7}
 </style>
 </head>
 <body>
@@ -750,6 +759,87 @@ const UI = {
   },
   card(cls, html){ return `<div class="card ${cls||''}">${html}</div>`; }
 };
+/* ===== UK 讀音（音標 + 發音） ===== */
+const Dict = {
+  _cache:null, _queue:{},
+  getCache(){
+    if(this._cache) return this._cache;
+    try{ this._cache=JSON.parse(localStorage.getItem('dse_phon_v1')||'{}'); }catch(e){ this._cache={}; }
+    return this._cache;
+  },
+  saveCache(){
+    const c=this._cache||{};
+    const keys=Object.keys(c);
+    if(keys.length>3000){
+      keys.sort((a,b)=>(c[b].t||0)-(c[a].t||0));
+      keys.slice(0,keys.length-2000).forEach(k=>delete c[k]);
+    }
+    try{ localStorage.setItem('dse_phon_v1', JSON.stringify(c)); }catch(e){}
+  },
+  isPhrase(p){ return /\s/.test(p); },
+  async phon(w){
+    const raw=String(w.phrase||w);
+    const k=raw.toLowerCase().trim();
+    const c=this.getCache();
+    if(c[k]&&c[k].d){ c[k].t=Date.now(); return c[k].d; }
+    if(this._queue[k]) return this._queue[k];
+    this._queue[k]=(async()=>{
+      const fail={text:'',audio:''};
+      try{
+        const r=await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(k),{signal:AbortSignal.timeout(6000)});
+        if(!r.ok) throw 0;
+        const arr=await r.json();
+        if(!Array.isArray(arr)||!arr.length) throw 0;
+        const e=arr[0], ph=e.phonetics||[];
+        let text=e.phonetic||'', audio='';
+        for(const p of ph){ if(p.audio&&/[-_](uk|gb)/i.test(p.audio)){ audio=p.audio; if(p.text) text=p.text; break; } }
+        if(!audio){ for(const p of ph){ if(p.audio){ audio=p.audio; if(p.text) text=p.text; break; } } }
+        const d={text,audio};
+        c[k]={d,t:Date.now()}; this.saveCache();
+        return d;
+      }catch(e){ c[k]={d:fail,t:Date.now()}; this.saveCache(); return fail; }
+    })();
+    try{ return await this._queue[k]; }finally{ delete this._queue[k]; }
+  },
+  speakUK(text){
+    try{
+      if(!('speechSynthesis' in window)){ Utils.toast('瀏覽器唔支援語音'); return; }
+      speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(text);
+      u.lang='en-GB'; u.rate=0.8;
+      const vs=speechSynthesis.getVoices();
+      const v=vs.find(x=>/en[-_]GB/i.test(x.lang))||vs.find(x=>/^en/i.test(x.lang));
+      if(v) u.voice=v;
+      speechSynthesis.speak(u);
+    }catch(e){}
+  },
+  playAudio(url){
+    try{ const a=new Audio(url); a.play(); }catch(e){}
+  },
+  btnHtml(w, cls){
+    const t=String(w.phrase||'');
+    const js="event.stopPropagation();Dict.playUK('"+t.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"')";
+    return '<div class="'+cls+'" id="phon-'+cls+'"><span class="phon-muted">載入 UK 讀音…</span><button class="phon-btn" onclick="'+js+'">🔊 UK</button></div>';
+  },
+  playUK(text){
+    const d=this.getCache()[String(text).toLowerCase().trim()];
+    if(d&&d.d&&d.d.audio) this.playAudio(d.d.audio);
+    else this.speakUK(text);
+  },
+  async renderPhon(cls, w){
+    const el=document.getElementById('phon-'+cls);
+    if(!el) return;
+    const d=await this.phon(w);
+    if(!el) return;
+    if(d.text){
+      el.innerHTML='<span class="phon">'+Utils.esc(d.text)+'</span><button class="phon-btn" onclick="event.stopPropagation();Dict.playUK(\''+String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">🔊 UK</button>';
+    }else if(d.audio){
+      el.innerHTML='<button class="phon-btn" onclick="event.stopPropagation();Dict.playAudio(\''+d.audio.replace(/'/g,"\\'")+'\')">🔊 UK 發音</button>';
+    }else{
+      el.innerHTML='<span class="phon-muted">無音標，可點 🔊 UK 聽發音</span><button class="phon-btn" onclick="event.stopPropagation();Dict.playUK(\''+String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">🔊 UK</button>';
+    }
+  }
+};
 /* ===== SM-2 演算法 ===== */
 const SM2 = {
   /* 自適應節奏：錯詞比例高 -> 放慢複習節奏，先打穩基礎 */
@@ -945,6 +1035,7 @@ const Flash = {
         <div class="fc-inner ${Flash.flipped?'flipped':''}" id="fcCard" onclick="Flash.flip()">
           <span class="fc-cat">${Utils.esc(w.category)}</span>
           <div class="fc-phrase">${Utils.esc(w.phrase)} ${Utils.posTag(w)}</div>
+          ${Dict.btnHtml(w,'fc-phon')}
           ${Flash.flipped?`<div class="fc-mean">${Utils.esc(w.meaning)}</div>${w.example?`<div class="fc-ex">${Utils.esc(w.example)}</div>`:''}`:`<div class="fc-hint">點擊揭曉 👆</div>`}
         </div>
         ${Flash.flipped?`
@@ -954,6 +1045,7 @@ const Flash = {
         </div>`:''}
       </div>
     `;
+    if(!Flash._cur._phonRendered){ Flash._cur._phonRendered=true; Dict.renderPhon('fc-phon', Flash._cur); }
   },
   flip(){ Flash.flipped=!Flash.flipped; Flash.render(); },
   setStar(on){ Flash.star=on?2:1; Flash._load(); },
@@ -2054,7 +2146,7 @@ window.Collo=Collo; window.CustomWords=CustomWords; window.TOPIC_RULES=TOPIC_RUL
 
 const EssayGrader = {
   topic:'', text:'', result:null, loading:false,
-  /* V5.11.8 WebDAV 雙向雲端同步 / 設置持久化 */
+  /* V5.11.9 UK 讀音（音標 + UK 發音） */
   exam:{active:false, minutes:120, left:0, timer:null, goal:500},
   prompts:[
     'Some people believe that social media has more negative effects than positive effects on young people. Do you agree?',
@@ -2718,6 +2810,7 @@ const App = {
       <div class="detail">
         <div class="d-cat">${Utils.esc(w.category)}</div>
         <div class="d-ph">${Utils.esc(w.phrase)}</div>
+        ${Dict.btnHtml(w,'d-phon')}
         <div class="d-stars">${'★'.repeat(Math.min(w.stars,5))}${w.stars>5?'（高階）':''}</div>
         <div class="d-mean">${Utils.esc(w.meaning)}</div>
         ${Utils.isExamWord(w)?'<div class="d-ex" style="color:#F59E0B;font-weight:700">📌 DSE 真題高頻詞</div>':''}
@@ -2728,6 +2821,7 @@ const App = {
           <button class="btn sm ${Store.state.known.has(Store.key(w))?'ghost':'soft'}" onclick="App.toggleKnown()">${Store.state.known.has(Store.key(w))?'↩️ 取消掌握':'✅ 標記掌握'}</button>
         </div>
       </div>`;
+    Dict.renderPhon('d-phon', w);
     Utils.$('#overlay').classList.add('show');
   },
   closeSheet(){ Utils.$('#overlay').classList.remove('show'); },
