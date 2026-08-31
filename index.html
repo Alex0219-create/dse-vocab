@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.13.0</title>
+<title>DSE Vocab V5.13.1</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -400,6 +400,46 @@ textarea.field{min-height:150px;line-height:1.7}
 .tomo-mini.on{background:#F59E0B;border-color:#F59E0B;opacity:1;box-shadow:0 0 0 3px rgba(245,158,11,.18);color:#fff}
 .tomo-mini:active{background:#F59E0B;border-color:#F59E0B}
 .tomo-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:6px 10px;margin:2px 2px 8px;font-size:12px;color:#B45309;font-weight:700}
+/* 混合複習（聽寫） */
+.spell-hero{background:linear-gradient(135deg,#0ea5e9,#6366f1);border-radius:20px;padding:22px 18px;margin-bottom:14px;color:#fff;text-align:center}
+.spell-ic{font-size:34px}
+.spell-t{font-size:20px;font-weight:800;margin-top:6px}
+.spell-d{font-size:12px;opacity:.9;margin-top:4px;line-height:1.5}
+.spell-modes{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.spell-mode{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;cursor:pointer;transition:transform .12s,box-shadow .12s}
+.spell-mode:active{transform:scale(.98)}
+.sm-ic{width:44px;height:44px;border-radius:12px;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto}
+.spell-mode .sm-t{font-size:15px;font-weight:800}
+.spell-mode .sm-d{font-size:11.5px;color:var(--sub);margin-top:2px}
+.spell-tip{font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6}
+.spell-top{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.spell-top .btn{flex:0 0 auto}
+.sp-progress{flex:1;height:8px;background:var(--bg-soft);border-radius:99px;overflow:hidden}
+.sp-fill{height:100%;background:var(--grad);border-radius:99px;transition:width .3s}
+.sp-count{font-size:12px;font-weight:800;color:var(--sub);flex:0 0 auto}
+.spell-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px 16px;margin-bottom:12px;box-shadow:var(--shadow-sm)}
+.sp-cat{font-size:11px;color:var(--sub);font-weight:700;margin-bottom:12px}
+.sp-voice{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0 14px}
+.sp-voice-btn{width:84px;height:84px;border-radius:50%;background:var(--grad);color:#fff;font-size:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(99,102,241,.35);transition:transform .12s}
+.sp-voice-btn:active{transform:scale(.92)}
+.sp-voice-hint{font-size:11px;color:var(--sub)}
+.sp-mean{font-size:16px;font-weight:700;color:var(--ink);text-align:center;margin:4px 0 10px;line-height:1.5}
+.spell-input{font-size:17px;text-align:center;letter-spacing:.5px;font-weight:700;margin:6px 0 12px;width:100%;box-sizing:border-box}
+.sp-result{border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:14px;font-weight:800;text-align:center;line-height:1.5}
+.sp-result.ok{background:rgba(16,185,129,.12);color:#059669;border:1px solid rgba(16,185,129,.35)}
+.sp-result.no{background:rgba(239,68,68,.10);color:#dc2626;border:1px solid rgba(239,68,68,.30)}
+.sr-sub{display:block;font-size:11.5px;font-weight:600;margin-top:3px;color:var(--sub)}
+.sp-result b{color:inherit}
+.sp-actions{display:flex;gap:8px}
+.sp-actions .btn{flex:1}
+.sp-stats{text-align:center;font-size:12px;color:var(--sub);font-weight:700}
+.spell-done{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px 18px;margin-top:20px;text-align:center;box-shadow:var(--shadow-sm)}
+.sd-ic{font-size:48px}
+.sd-t{font-size:19px;font-weight:800;margin-top:8px}
+.sd-score{font-size:38px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-top:6px}
+.sd-detail{font-size:12px;color:var(--sub);margin-top:6px}
+.sd-msg{font-size:12px;color:var(--ink);margin-top:8px;line-height:1.6}
+.sd-actions{display:flex;flex-direction:column;gap:8px;margin-top:18px}
 </style>
 </head>
 <body>
@@ -418,6 +458,8 @@ textarea.field{min-height:150px;line-height:1.7}
     <section class="view" id="view-flash" role="tabpanel">
       <div class="flash-wrap" id="flashWrap"></div>
     </section>
+    <!-- 混合複習（聽寫） -->
+    <section class="view" id="view-spell" role="tabpanel"></section>
     <!-- 測驗 -->
     <section class="view" id="view-quiz" role="tabpanel"></section>
     <!-- 詞庫 -->
@@ -476,6 +518,23 @@ const Utils = {
   $: s => document.querySelector(s),
   $$: s => [...document.querySelectorAll(s)],
   esc: s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
+  /* 拼寫歸一化：小寫 + 去標點 + 壓縮空格（用於聽寫比對） */
+  normWord(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); },
+  /* Levenshtein 距離（拼寫相近度） */
+  levDist(a,b){
+    const m=a.length, n=b.length;
+    if(!m) return n; if(!n) return m;
+    let prev=new Array(n+1).fill(0).map((_,i)=>i);
+    for(let i=1;i<=m;i++){
+      const cur=[i];
+      for(let j=1;j<=n;j++){
+        const cost=a[i-1]===b[j-1]?0:1;
+        cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+cost);
+      }
+      prev=cur;
+    }
+    return prev[n];
+  },
   shuffle(a){ const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; },
   today(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); },
   posTag(w){ if(!w||!w.pos) return ''; const m={n:'n.',v:'v.',adj:'adj.',adv:'adv.',phr:'phr.'}[w.pos]; return m?`<span class="pos-tag">(${m})</span>`:''; },
@@ -1158,6 +1217,7 @@ const Home = {
         <div class="qb" onclick="App.go('listening')"><span class="ic">🎧</span><span class="t">聆聽綜合</span><span class="d">Paper 3 聽力訓練</span></div>
         <div class="qb" onclick="App.go('writing')"><span class="ic">✍️</span><span class="t">寫作工具箱</span><span class="d">急救句式 × 寫作框架</span></div>
         <div class="qb" onclick="App.go('flash')"><span class="ic">🃏</span><span class="t">閃卡複習</span><span class="d">SM-2 智能複習</span></div>
+        <div class="qb" onclick="App.go('spell')"><span class="badge">NEW</span><span class="ic">✍️</span><span class="t">混合複習</span><span class="d">聽寫 × 意思拼寫</span></div>
         <div class="qb" onclick="App.go('quiz')"><span class="ic">📝</span><span class="t">詞彙測驗</span><span class="d">即時測驗練手感</span></div>
         <div class="qb" onclick="App.go('browse')"><span class="ic">🔍</span><span class="t">詞庫總覽</span><span class="d">${total} 詞隨時查</span></div>
         <div class="qb" onclick="App.go('stats')"><span class="ic">📊</span><span class="t">學習數據</span><span class="d">掌握分析 × 打卡</span></div>
@@ -1826,6 +1886,130 @@ const Stats = {
         </div>
       </div>
       <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6">💾 數據自動儲存於本機瀏覽器，建議定期匯出備份。</div>
+    `;
+  }
+};
+
+/* =====================================================================
+ * 混合複習系統（聽寫 / 意思+讀音）
+ * ===================================================================== */
+const Spell = {
+  mode:null, queue:[], idx:0, ok:0, fail:0, _cur:null, _answered:false, _hint:false,
+  enter(){
+    const v=Utils.$('#view-spell');
+    v.innerHTML=`
+      <div class="spell-hero">
+        <div class="spell-ic">✍️</div>
+        <div class="spell-t">混合複習</div>
+        <div class="spell-d">揀一種模式，用 SM-2 智能排程溫詞彙拼寫</div>
+      </div>
+      <div class="spell-modes">
+        <div class="spell-mode" onclick="Spell.start('dict')">
+          <div class="sm-ic">🎧</div>
+          <div class="sm-t">聽寫模式</div>
+          <div class="sm-d">聽 UK 發音 → 拼寫單字</div>
+        </div>
+        <div class="spell-mode" onclick="Spell.start('mean')">
+          <div class="sm-ic">💡</div>
+          <div class="sm-t">意思 + 讀音</div>
+          <div class="sm-d">睇中文意思 + 聽讀音 → 拼寫</div>
+        </div>
+      </div>
+      <div class="spell-tip">💡 兩種模式共用 SM-2 排程：拼啱會拉長複習間隔，拼錯會縮短，同閃卡／測驗數據互通。</div>
+    `;
+  },
+  start(mode){
+    Spell.mode=mode; Spell.idx=0; Spell.ok=0; Spell.fail=0; Spell._answered=false; Spell._hint=false;
+    Spell.queue=SM2.duePool('all',1);
+    if(!Spell.queue.length){ Utils.toast('未有可複習詞彙，先學新詞或去閃卡溫一轉'); Spell.enter(); return; }
+    Spell._cur=Spell.queue[0];
+    Spell.render();
+    setTimeout(()=>{ if(Spell.mode==='dict') Spell.play(); }, 350);
+  },
+  play(){
+    const w=Spell._cur; if(!w) return;
+    Dict.playUK(w.phrase);
+  },
+  _norm(s){ return Utils.normWord(s); },
+  render(){
+    const v=Utils.$('#view-spell');
+    const w=Spell._cur;
+    if(!w){ Spell.done(); return; }
+    const pct=Spell.queue.length?Math.round(Spell.idx/Spell.queue.length*100):0;
+    const answered=Spell._answered;
+    const ans=Spell._norm(w.phrase);
+    const inp=Spell._norm(Spell._input||'');
+    const exact=answered&&inp===ans;
+    const near=answered&&!exact&&inp&&Utils.levDist(inp,ans)<=Math.max(1,Math.round(ans.length*0.25));
+    const resultHtml=!answered?'':(exact
+      ? `<div class="sp-result ok">✅ 拼啱咗！<span class="sr-sub">已記住：${Utils.esc(w.phrase)}</span></div>`
+      : `<div class="sp-result no">${near?'🔶 好接近！':'❌ 拼錯'}<span class="sr-sub">正確拼寫：<b>${Utils.esc(w.phrase)}</b>（${Utils.esc(w.meaning)}）</span></div>`);
+    v.innerHTML=`
+      <div class="spell-top">
+        <button class="btn ghost sm" onclick="App.go('home')">← 退出</button>
+        <div class="sp-progress"><div class="sp-fill" style="width:${pct}%"></div></div>
+        <span class="sp-count">${Spell.idx+1}/${Spell.queue.length}</span>
+      </div>
+      <div class="spell-card">
+        <div class="sp-cat">${Utils.esc(w.category)} · ${'★'.repeat(Math.min(w.stars,5))} ${w.pos?'('+Utils.esc(w.pos)+')':''}</div>
+        ${Spell.mode==='dict'
+          ? `<div class="sp-voice" onclick="Spell.play()"><div class="sp-voice-btn">🔊</div><div class="sp-voice-hint">點擊重聽</div>${Spell._hint?`<div class="sp-mean">${Utils.esc(w.meaning)}</div>`:''}</div>
+             ${!Spell._hint&&!answered?`<button class="btn ghost sm" onclick="Spell._hint=true;Spell.render()">💡 睇意思提示</button>`:''}`
+          : `<div class="sp-mean">${Utils.esc(w.meaning)}</div>
+             <button class="btn ghost sm" onclick="Spell.play()">🔊 聽讀音</button>`}
+        <input class="field spell-input" id="spellInput" placeholder="輸入英文拼寫…" value="${Utils.esc(Spell._input||'')}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" oninput="Spell._input=this.value" onkeydown="if(event.key==='Enter')Spell.check()">
+        ${resultHtml}
+        <div class="sp-actions">
+          ${answered
+            ? `<button class="btn soft" onclick="Spell.next()">${Spell.idx+1>=Spell.queue.length?'完成 🎉':'下一題 →'}</button>`
+            : `<button class="btn soft" onclick="Spell.check()">✓ 檢查</button>
+               <button class="btn ghost" onclick="Spell.skip()">跳過</button>`}
+        </div>
+      </div>
+      <div class="sp-stats">✅ 啱 ${Spell.ok} · ❌ 錯 ${Spell.fail}</div>
+    `;
+    if(!answered){ const el=Utils.$('#spellInput'); if(el){ el.focus(); el.select(); } }
+  },
+  check(){
+    if(Spell._answered||!Spell._cur) return;
+    const input=(Spell._input||'').trim();
+    if(!input){ Utils.toast('請先輸入拼寫'); return; }
+    const w=Spell._cur;
+    const ok=Spell._norm(input)===Spell._norm(w.phrase);
+    Spell._answered=true;
+    if(ok){ Spell.ok++; SM2.review(w,5); Store.state.known.add(Store.key(w)); Store.state.wrong.delete(Store.key(w)); }
+    else{ Spell.fail++; SM2.review(w,0); Store.state.wrong.add(Store.key(w)); Store.state.known.delete(Store.key(w)); }
+    Store.persist();
+    Spell.render();
+  },
+  skip(){
+    Spell._answered=true; Spell.fail++;
+    Spell.render();
+  },
+  next(){
+    Spell.idx++; Spell._answered=false; Spell._hint=false; Spell._input='';
+    Spell._cur=Spell.queue[Spell.idx]||null;
+    if(!Spell._cur){ Spell.done(); return; }
+    Spell.render();
+    if(Spell.mode==='dict') setTimeout(()=>Spell.play(), 250);
+  },
+  done(){
+    const total=Spell.ok+Spell.fail;
+    const acc=total?Math.round(Spell.ok/total*100):0;
+    const msg=acc>=90?'超班！記憶好穩固 🏆':acc>=70?'唔錯，繼續鞏固 💪':acc>=50?'有進步空間，錯詞已加入複習循環 🔄':'錯詞偏多，建議先用閃卡熟習再聽寫 📚';
+    Utils.$('#view-spell').innerHTML=`
+      <div class="spell-done">
+        <div class="sd-ic">${acc>=90?'🏆':acc>=70?'🎉':acc>=50?'💪':'📚'}</div>
+        <div class="sd-t">今輪完成！</div>
+        <div class="sd-score"><b>${acc}%</b> 正確率</div>
+        <div class="sd-detail">✅ 啱 ${Spell.ok} · ❌ 錯 ${Spell.fail} · 共 ${total} 詞</div>
+        <div class="sd-msg">${msg}</div>
+        <div class="sd-actions">
+          <button class="btn soft" onclick="Spell.start(Spell.mode)">🔁 再溫一輪</button>
+          <button class="btn ghost" onclick="Spell.enter()">⬅️ 換模式</button>
+          <button class="btn ghost" onclick="App.go('home')">🏠 首頁</button>
+        </div>
+      </div>
     `;
   }
 };
@@ -2998,7 +3182,7 @@ const App = {
   go(view){
     clearInterval(Quiz._timer);
     UI.go(view);
-    const routers={ home:()=>Home.render(), flash:()=>Flash.enter(), quiz:()=>Quiz.enter(), browse:()=>Browse.enter(), writing:()=>WritingToolkit.enter(), essay:()=>EssayGrader.enter(), speaking:()=>Speaking.enter(), debate:()=>Debate.enter(), reading:()=>ReadingTool.enter(), listening:()=>Listening.enter(), more:()=>More.render(), stats:()=>Stats.render() };
+    const routers={ home:()=>Home.render(), flash:()=>Flash.enter(), spell:()=>Spell.enter(), quiz:()=>Quiz.enter(), browse:()=>Browse.enter(), writing:()=>WritingToolkit.enter(), essay:()=>EssayGrader.enter(), speaking:()=>Speaking.enter(), debate:()=>Debate.enter(), reading:()=>ReadingTool.enter(), listening:()=>Listening.enter(), more:()=>More.render(), stats:()=>Stats.render() };
     if(routers[view]) routers[view]();
   },
   openDetail(id){
