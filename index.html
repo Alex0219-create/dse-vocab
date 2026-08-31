@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.12.5</title>
+<title>DSE Vocab V5.13.0</title>
 <style>
 /* =====================================================================
    DSE Vocab V5.0 — 全新設計系統
@@ -299,6 +299,23 @@ textarea.field{min-height:150px;line-height:1.7}
 .stats-hero .sh-num{font-size:30px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .stats-hero .sh-lbl{font-size:11px;color:var(--sub);margin-top:2px}
 .chart-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:15px 16px;margin-bottom:12px;box-shadow:var(--shadow-sm)}
+.curve-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:15px 16px;margin-bottom:12px;box-shadow:var(--shadow-sm)}
+.curve-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;margin-bottom:10px}
+.curve-avg{font-size:11px;color:var(--accent,#6366f1);font-weight:800}
+.curve-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.curve-card .curve-metrics{grid-template-columns:repeat(3,1fr)}
+.curve-metrics > div{background:var(--bg-soft);border-radius:10px;padding:8px;text-align:center}
+.curve-metrics b{display:block;font-size:18px;font-weight:800}
+.curve-metrics span{font-size:10px;color:var(--sub)}
+.curve-sub{font-size:11px;color:var(--sub);margin:10px 0 4px}
+.curve-tip{font-size:11px;color:var(--sub);margin-top:8px;line-height:1.5}
+.curve-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:10px;font-size:11px;color:var(--sub)}
+.cs-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:1px}
+.cs-it b{color:var(--txt)}
+.curve-empty{color:var(--faint)}
+.m-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;border:1px solid transparent;margin-left:4px;vertical-align:1px;line-height:1.5}
+.d-curve{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 2px;padding:7px 10px;background:var(--bg-soft);border-radius:10px}
+.d-curve .m-badge{margin-left:0}
 .chart-card h4{font-size:13px;font-weight:800;margin-bottom:11px;display:flex;align-items:center;gap:7px}
 .hist-row{display:flex;align-items:flex-end;gap:5px;height:110px}
 .hist-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
@@ -921,6 +938,113 @@ const SM2 = {
   }
 };
 /* =====================================================================
+ * 記憶曲線系統（Ebbinghaus 遺忘曲線 + SM-2 數據可視化）
+ * ===================================================================== */
+const Curve = {
+  /* 單詞記憶強度 R = exp(-t/S)：S 用 SM-2 間隔天數近似，t 為距上次複習天數 */
+  retention(w){
+    const s=Store.state, k=Store.key(w);
+    const x=s.sched[k];
+    if(!x) return s.known.has(k)?45:0;
+    const stability=Math.max(1, x.int||1);
+    const lastReview=(x.due||Date.now()) - (x.int||1)*86400000;
+    const t=Math.max(0,(Date.now()-lastReview)/86400000);
+    return Math.round(Math.exp(-t/stability)*100);
+  },
+  status(w){
+    const s=Store.state, k=Store.key(w);
+    const x=s.sched[k];
+    if(!x) return s.known.has(k)?{t:'已標記',c:'#64748b'}:{t:'新詞',c:'#94a3b8'};
+    if(x.due<=Date.now()) return {t:'待複習',c:'#f97316'};
+    const r=this.retention(w);
+    if(x.rep>=5&&r>80) return {t:'熟練',c:'#22c55e'};
+    if(x.rep>=2&&r>60) return {t:'穩定',c:'#3b82f6'};
+    return {t:'學習中',c:'#eab308'};
+  },
+  _col(t){ return ({'新詞':'#94a3b8','學習中':'#eab308','穩定':'#3b82f6','熟練':'#22c55e','待複習':'#f97316','已標記':'#64748b'})[t]||'#94a3b8'; },
+  overview(){
+    const s=Store.state, now=Date.now();
+    const learned=Data.raw.filter(w=>s.sched[Store.key(w)]||s.known.has(Store.key(w)));
+    const rets=learned.map(w=>this.retention(w));
+    const avg=rets.length?Math.round(rets.reduce((a,b)=>a+b,0)/rets.length):0;
+    const due={d0:0,d3:0,d7:0,d30:0};
+    Data.raw.forEach(w=>{
+      const x=s.sched[Store.key(w)];
+      if(!x||!x.due) return;
+      const dd=(x.due-now)/86400000;
+      if(dd<=0) due.d0++;
+      else if(dd<=3) due.d3++;
+      else if(dd<=7) due.d7++;
+      else if(dd<=30) due.d30++;
+    });
+    return {learned:learned.length, avg, ...due};
+  },
+  /* 未來 30 日若不複習，平均記憶強度預測 */
+  forecast(){
+    const s=Store.state;
+    const learned=Data.raw.filter(w=>s.sched[Store.key(w)]||s.known.has(Store.key(w)));
+    const pts=[];
+    if(!learned.length) return Array.from({length:31},()=>0);
+    for(let d=0; d<=30; d++){
+      let sum=0;
+      learned.forEach(w=>{
+        const k=Store.key(w), x=s.sched[k];
+        const r0=this.retention(w)/100;
+        const S=x?Math.max(1,x.int||1):1;
+        sum+=r0*Math.exp(-d/S);
+      });
+      pts.push(Math.round(sum/learned.length*100));
+    }
+    return pts;
+  },
+  svg(pts){
+    const W=320,H=110,pad=8;
+    const yMin=Math.max(0,Math.floor((Math.min(...pts)-5)/10)*10);
+    const x=i=>pad+i*(W-pad*2)/30;
+    const y=v=>H-pad-(v-yMin)/(100-yMin)*(H-pad*2);
+    const coords=pts.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px">
+      <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6366f1" stop-opacity=".28"/><stop offset="100%" stop-color="#6366f1" stop-opacity=".02"/></linearGradient></defs>
+      <path d="M${coords} L${x(30).toFixed(1)},${y(yMin)} L${x(0).toFixed(1)},${y(yMin)} Z" fill="url(#cg)"/>
+      <polyline points="${coords}" fill="none" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <line x1="${pad}" y1="${y(100)}" x2="${W-pad}" y2="${y(100)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="${pad}" y="${y(100)-3}" font-size="8" fill="var(--faint)">100%</text>
+      ${[0,10,20,30].map(d=>`<text x="${x(d)}" y="${H-2}" font-size="8" fill="var(--faint)" text-anchor="${d===0?'start':d===30?'end':'middle'}">${d}日</text>`).join('')}
+    </svg>`;
+  },
+  mini(){
+    const o=this.overview(), pts=this.forecast();
+    return `<div class="curve-card">
+      <div class="curve-head"><span>🧠 記憶曲線</span><span class="curve-avg">平均記憶強度 ${o.avg}%</span></div>
+      <div class="curve-metrics">
+        <div><b>${o.d0}</b><span>今日到期</span></div>
+        <div><b>${o.d3}</b><span>3日內</span></div>
+        <div><b>${o.d7}</b><span>7日內</span></div>
+      </div>
+      <div style="margin-top:8px">${this.svg(pts)}</div>
+      <div class="curve-tip">⚠️ 唔複習，30日後平均記憶強度將跌至 <b>${pts[30]}%</b>；每日溫少少可大幅減緩遺忘</div>
+    </div>`;
+  },
+  full(){
+    const o=this.overview(), pts=this.forecast();
+    const st={};
+    Data.raw.forEach(w=>{ const t=this.status(w).t; st[t]=(st[t]||0)+1; });
+    const legend=Object.keys(st).length?Object.entries(st).map(([k,v])=>`<span class="cs-it"><span class="cs-dot" style="background:${this._col(k)}"></span>${k} <b>${v}</b></span>`).join(''):'<span class="curve-empty">未有學習數據</span>';
+    return `<div class="chart-card">
+      <h4>🧠 記憶曲線系統</h4>
+      <div class="curve-metrics">
+        <div><b>${o.learned}</b><span>已學詞</span></div>
+        <div><b>${o.avg}%</b><span>平均記憶強度</span></div>
+        <div><b>${o.d0}</b><span>今日到期</span></div>
+        <div><b>${o.d30}</b><span>30日內</span></div>
+      </div>
+      <div class="curve-sub">📉 若不複習，未來 30 日平均記憶強度預測</div>
+      ${this.svg(pts)}
+      <div class="curve-legend">${legend}</div>
+    </div>`;
+  }
+};
+/* =====================================================================
  * 任務系統（每日任務）
  * ===================================================================== */
 const Mission = {
@@ -1000,6 +1124,7 @@ const Home = {
       </div>
       ${ach.length?`<div class="ach-row" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px">${ach.map(a=>`<div style="flex:0 0 auto;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;text-align:center;min-width:64px"><div style="font-size:18px">${a.ic}</div><div style="font-size:10px;font-weight:700;margin-top:2px">${a.t}</div></div>`).join('')}</div>`:''}
       ${Mission.render()}
+      ${Curve.mini()}
       ${s.lvTest?(()=>{const pp=Utils.priorityPlan(s.lvTest.lv);return `
       <div class="dse-card" style="margin-bottom:12px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)">
         <div class="dse-left"><div class="dse-lv" style="font-size:30px">${Utils.lvLabel(s.lvTest.lv)}</div><div class="dse-lbl" style="color:rgba(255,255,255,.85)">DSE Level</div></div>
@@ -1683,6 +1808,7 @@ const Stats = {
       </div>
       <div class="chart-card"><h4>📈 近 14 日學習紀錄</h4>${histHtml}</div>
       <div class="chart-card"><h4>📉 學習曲線（近 30 日）</h4>${curveHtml}</div>
+      ${Curve.full()}
       <div class="chart-card"><h4>🧭 錯題弱點雷達</h4>${wkHtml}</div>
       <div class="chart-card"><h4>📚 各分類掌握度</h4><div style="display:flex;flex-direction:column;gap:10px">${catRows}</div></div>
       <div class="card" style="margin-bottom:12px">
@@ -1864,8 +1990,9 @@ const Browse = {
   },
   _row(w){
     const k=Store.key(w);const tm=Store.state.tomo.has(k);
+    const cs=Curve.status(w);
     return `<div class="list-item" id="li-${w.id}" data-word="${Utils.esc(w.phrase)}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
-      <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}</div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
+      <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}<span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33">${cs.t}</span></div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
       <div class="li-fav">${Store.state.fav.has(k)?'★':''}</div>
     </div>`;
   },
@@ -2886,6 +3013,7 @@ const App = {
         <div class="d-stars">${'★'.repeat(Math.min(w.stars,5))}${w.stars>5?'（高階）':''}</div>
         <div class="d-mean">${Utils.esc(w.meaning)}</div>
         ${Utils.isExamWord(w)?'<div class="d-ex" style="color:#F59E0B;font-weight:700">📌 DSE 真題高頻詞</div>':''}
+        ${(()=>{const cs=Curve.status(w);const r=Curve.retention(w);const x=Store.state.sched[Store.key(w)];return `<div class="d-curve"><span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33;font-size:10px">${cs.t}</span><span style="font-size:11px;color:var(--sub)">記憶強度 <b style="color:var(--txt)">${r}%</b>${x?` · 間隔 ${x.int} 天 · 複習 ${x.rep} 次`:' · 尚未複習'}</span></div>`;})()}
         ${w.example?`<div class="d-ex">📝 ${Utils.esc(w.example)}</div>`:''}
         ${Utils.synonymsHtml(w)}
         <div class="d-actions">
