@@ -11,7 +11,7 @@
 <title>DSE Vocab V5.14.2</title>
 <style>
 /* =====================================================================
-   DSE Vocab V5.0 — 全新設計系統
+   DSE Vocab V5.14.2 — 全新設計系統
    ===================================================================== */
 :root{
   --brand-1:#6366F1; --brand-2:#8B5CF6; --brand-3:#A855F7;
@@ -445,7 +445,7 @@ textarea.field{min-height:150px;line-height:1.7}
 <body>
 <div class="app">
   <header class="header">
-    <h1>📘 DSE Vocab <span class="sub">V5.0</span></h1>
+    <h1>📘 DSE Vocab <span class="sub">V5.14.2</span></h1>
     <div class="hd-right">
       <button class="icon-btn" id="themeBtn" onclick="App.toggleTheme()">🌙</button>
       <button class="icon-btn" onclick="App.go('stats')">📊</button>
@@ -503,7 +503,7 @@ textarea.field{min-height:150px;line-height:1.7}
   <div class="guide-card" id="guideCard">
     <button class="guide-skip" id="guideSkip" onclick="event.stopPropagation();App.closeGuide()">✕</button>
     <div class="g-ic">🎓</div>
-    <h2>歡迎使用 DSE Vocab V5.0</h2>
+    <h2>歡迎使用 DSE Vocab V5.14.2</h2>
     <p>全新設計介面 × 底層重構 × 新增 AI 作文評分系統<br>同你並肩衝刺 DSE 英文科！</p>
     <button class="guide-start" onclick="App.closeGuide()">立即開始 🚀</button>
   </div>
@@ -512,7 +512,7 @@ textarea.field{min-height:150px;line-height:1.7}
 <script>
 'use strict';
 /* =====================================================================
- * DSE Vocab V5.0 — 底層架構
+ * DSE Vocab V5.14.2 — 底層架構
  * ===================================================================== */
 const Utils = {
   $: s => document.querySelector(s),
@@ -563,7 +563,7 @@ const Utils = {
   },
   gapToTop(){
     const s=Store.state;
-    if(!s.known.size) return 0;
+    if(!Data.raw.length) return 0;
     const wgt=1+(s.wrong.size/Data.raw.length)*0.3;
     const score=Math.min(100, Math.round(s.known.size/Data.raw.length*100*wgt*100)/100);
     return Math.max(0, Math.round(100-score));
@@ -583,14 +583,22 @@ const Utils = {
   /* 平均句長 */
   avgSentenceLen(text){ const n=this.wordCount(text), s=this.sentenceCount(text); return n&&s?Math.round(n/s*10)/10:0; },
   /* 連續打卡更新 */
+  yesterday(){ const d=new Date(); d.setDate(d.getDate()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); },
+  hasActivity(d){ const s=Store.state; return !!(s.history && (s.history[d]||0)>0); },
+  /* 連續打卡：只有當日真係有學習／測驗紀錄先計一日，淨係開 app 唔算 */
   touchStreak(){
     const s=Store.state;
-    const t=Utils.today();
-    if(s.lastActive===t) return;
-    const y=new Date(); y.setDate(y.getDate()-1);
-    const yk=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
-    s.streak = s.lastActive===yk ? (s.streak||0)+1 : 1;
-    s.lastActive=t;
+    const t=Utils.today(), yk=Utils.yesterday();
+    // 舊數據遷移：舊版只用 lastActive，只喺嗰日真有學習紀錄時先繼承做 streakDay
+    if(!s.streakDay && s.lastActive && Utils.hasActivity(s.lastActive)) s.streakDay=s.lastActive;
+    if(!Utils.hasActivity(t)){
+      // 今日未學習：只做斷鏈檢查，斷咗就歸零，唔好畀假 streak
+      if(s.streakDay && s.streakDay!==t && s.streakDay!==yk){ s.streakDay=''; s.streak=0; Store.persist(); }
+      return;
+    }
+    if(s.streakDay===t) return;
+    s.streak = s.streakDay===yk ? (s.streak||0)+1 : 1;
+    s.streakDay=t; s.lastActive=t;
     Store.persist();
   },
   /* 成就計算 */
@@ -697,7 +705,7 @@ const Store = {
     v:3, known:new Set(), wrong:new Set(), fav:new Set(), tomo:new Set(),
     sched:{}, history:{}, goal:20, mode:'all', dark:false,
     quizCount:0, onboarded:false, dseDate:'', lvTest:null, essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false },
-    essayCount:0, streak:0, lastActive:'', achievements:[], fontSize:16, quizBest:0, customWords:[], webdav:{url:'',token:''}
+    essayCount:0, streak:0, streakDay:'', lastActive:'', achievements:[], fontSize:16, quizBest:0, customWords:[], webdav:{url:'',token:''}
   }; },
   init(){
     const raw=Storage.get('dse_state');
@@ -715,6 +723,7 @@ const Store = {
     }
     // V5.2 新字段遷移
     if(typeof st.streak!=='number') st.streak=0;
+    if(typeof st.streakDay!=='string') st.streakDay='';
     if(typeof st.lastActive!=='string') st.lastActive='';
     st.achievements=new Set(st.achievements||[]);
     if(typeof st.fontSize!=='number') st.fontSize=16;
@@ -1057,6 +1066,7 @@ const Curve = {
     return pts;
   },
   svg(pts){
+    if(!pts||!pts.length) return '';
     const W=320,H=110,pad=8;
     const yMin=Math.max(0,Math.floor((Math.min(...pts)-5)/10)*10);
     const x=i=>pad+i*(W-pad*2)/30;
@@ -1080,8 +1090,10 @@ const Curve = {
         <div><b>${o.d3}</b><span>3日內</span></div>
         <div><b>${o.d7}</b><span>7日內</span></div>
       </div>
-      <div style="margin-top:8px">${this.svg(pts)}</div>
-      <div class="curve-tip">⚠️ 唔複習，30日後平均記憶強度將跌至 <b>${pts[30]}%</b>；每日溫少少可大幅減緩遺忘</div>
+      ${o.learned>0
+        ? `<div style="margin-top:8px">${this.svg(pts)}</div>
+      <div class="curve-tip">⚠️ 唔複習，30日後平均記憶強度將由 ${o.avg}% 跌至 <b>${pts[30]}%</b>；每日溫少少可大幅減緩遺忘</div>`
+        : `<div class="curve-empty" style="margin-top:10px;font-size:11.5px;line-height:1.6">仲未有學習紀錄，記憶曲線暫時畫唔到。<br>去「🃏 閃卡複習」學第一個詞，曲線就會自動出現。</div>`}
     </div>`;
   },
   full(){
@@ -1151,14 +1163,15 @@ const Home = {
     const total=Data.raw.length;
     const known=s.known.size;
     const pct=total?Math.round(known/total*100):0;
-    const todayP=this.progress;
+    const todayP=Mission.progress();
     const goal=s.goal;
     const gPct=goal?Math.min(100,Math.round(todayP/goal*100)):0;
     const d=this.wotd();
     const days=Utils.dseDays();
     const master=Utils.masteryScore();
     const gap=Utils.gapToTop();
-    const stars=[5,4,3].map(st=>{ const c=Data.raw.filter(w=>w.stars>=st).length; return `<div class="rp-cell"><div class="rp-lv">★${st}</div><div class="rp-num">${c}</div><div class="rp-lbl">詞</div></div>`; }).join('');
+    const starCnt={}; Data.raw.forEach(w=>{ const st=Math.min(5,Math.max(1,parseInt(w.stars,10)||3)); starCnt[st]=(starCnt[st]||0)+1; });
+    const stars=[5,4,3,2,1].map(st=>{ const c=starCnt[st]||0; return `<div class="rp-cell"><div class="rp-lv">★${st}</div><div class="rp-num">${c}</div><div class="rp-lbl">詞</div></div>`; }).join('');
     const catInfo=[['情境詞彙',s.mode==='all'||s.mode==='情境'?'active':''],['寫作慣用語',s.mode==='寫作'?'active':''],['議題詞彙',s.mode==='議題'?'active':''],['21世紀潮語',s.mode==='潮語'?'active':''],['進階詞彙A',s.mode==='進階A'?'active':''],['進階短語B',s.mode==='進階B'?'active':'']];
     Utils.touchStreak();
     const ach=Utils.unlockCheck();
@@ -1177,7 +1190,7 @@ const Home = {
       <div class="streak-card" style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="font-size:28px">${s.streak>0?'🔥':'🌱'}</div>
-          <div><div style="font-size:17px;font-weight:800">連續 ${s.streak} 日</div><div style="font-size:11px;opacity:.85">${todayP>=goal?'今日已達標 ✅':'今日仲差 '+(goal-todayP)+' 詞'}</div></div>
+          <div><div style="font-size:17px;font-weight:800">連續 ${s.streak||0} 日</div><div style="font-size:11px;opacity:.85">${todayP>0?(todayP>=goal?'今日已達標 ✅':'今日仲差 '+(goal-todayP)+' 詞'):'今日仲未開始，去學第一個詞 💪'}</div></div>
         </div>
         <div style="text-align:right"><div style="font-size:15px;font-weight:800">${ach.length} 個成就</div><div style="font-size:11px;opacity:.85">🏆 已解鎖</div></div>
       </div>
@@ -1223,7 +1236,8 @@ const Home = {
         <div class="qb" onclick="App.go('stats')"><span class="ic">📊</span><span class="t">學習數據</span><span class="d">掌握分析 × 打卡</span></div>
       </div>
       <div class="section-title"><span class="dot"></span>詞庫分佈</div>
-      <div class="dse-report-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">${stars}</div>
+      <div class="dse-report-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(54px,1fr));gap:8px;margin-bottom:6px">${stars}</div>
+      <div style="font-size:10.5px;color:var(--faint);margin-bottom:12px;padding-left:2px">合計 ${total} 詞（各星級係實際詞數，唔會重複計）</div>
       <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:8px">💡 長按詞彙列表可快速收藏；詳情彈窗可標記掌握／收藏，詞庫會自動更新。</div>
       <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6">📤 數據頁底部可匯出／匯入備份，支援 WebDAV 雲端同步。</div>
     `;
@@ -3036,7 +3050,7 @@ const More = {
         <div class="setting-row"><div class="st-info"><div class="st-t">AI 評分設置</div><div class="st-d">API Key ／模型</div></div><button class="btn sm ghost" onclick="EssayGrader.renderSettings();App.go('essay')">設置</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">數據備份</div><div class="st-d">匯出／匯入／WebDAV</div></div><button class="btn sm ghost" onclick="App.go('stats')">管理</button></div>
       </div>
-      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.7;margin-bottom:12px">📌 V5.0 全新架構：AI 作文評分、全新 UI、效能優化。<br>口語特訓、辯論、閱讀拆題等進階工具將喺 V5.1 回歸，敬請期待。</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.7;margin-bottom:12px">📌 V5.14.2：AI 作文評分、全新 UI、效能優化。<br>記憶曲線、進階工具會持續更新，敬請期待。</div>
     `;
   },
   showReview(){
