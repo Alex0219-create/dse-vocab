@@ -751,7 +751,7 @@ const Store = {
   },
   persist(){
     const s=this.state;
-    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], tomo:[...s.tomo], sched:s.sched, history:s.history, day:s.day||{d:'',learn:0,review:0,quiz:0}, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, essayCount:s.essayCount||0, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0, customWords:s.customWords||[], webdav:s.webdav||{url:'',token:''} };
+    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], tomo:[...s.tomo], sched:s.sched, history:s.history, day:s.day||{d:'',learn:0,review:0,quiz:0}, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, essayCount:s.essayCount||0, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0, customWords:s.customWords||[], favWrite:s.favWrite||[], favWrite:s.favWrite||[], webdav:s.webdav||{url:'',token:''} };
     Storage.set('dse_state', JSON.stringify(snap));
     Storage.idbSet('backup', { s: JSON.stringify(snap), t: Date.now() });
   },
@@ -784,10 +784,10 @@ const Enh = {
     }catch(e){}
     return false;
   },
-  on(){ return !!(this.D && this.D.n===Data.raw.length); },
+  on(){ return !!(this.D && this.D.n===Data.baseCount); },
   _i(w){ return (w && typeof w.id==='number') ? w.id : -1; },
-  pri(w){ const i=this._i(w); return (this.on()&&i>=0)?(this.D.pri[i]||0):50; },
-  tier(w){ const i=this._i(w); return (this.on()&&i>=0)?(this.D.tier[i]||'B'):''; },
+  pri(w){ if(Sup.on()&&w&&w.supp) return Sup.pri(w); const i=this._i(w); return (this.on()&&i>=0)?(this.D.pri[i]||0):50; },
+  tier(w){ if(Sup.on()&&w&&w.supp) return Sup.tier(w); const i=this._i(w); return (this.on()&&i>=0)?(this.D.tier[i]||'B'):''; },
   themes(w){
     if(!this.on()) return [];
     const i=this._i(w); if(i<0) return [];
@@ -799,7 +799,11 @@ const Enh = {
   isGeo(w){ const i=this._i(w); return !!(this.on()&&i>=0&&this.D.geo[i]==='1'); },
   isProp(w){ const i=this._i(w); return !!(this.on()&&i>=0&&this.D.prop[i]==='1'); },
   isCore(w){ const i=this._i(w); return !!(this.on()&&i>=0&&this.D.core[i]==='1'); },
-  isDup(w){ return !!(this.on()&&this.D.dup&&this.D.dup[this._i(w)]!=null); },
+  isDup(w){ if(!w||w.supp) return false; return !!(this.on()&&this.D.dup&&this.D.dup[this._i(w)]!=null); },
+  /* 同義替換群組（寫作唔重複用詞） */
+  syn(w){ return (Sup.on()&&w)?Sup.group(w):null; },
+  /* 用法陷阱（原詞庫已有嘅詞都可以有提示，例如 compromise 雙義） */
+  note(w){ return (Sup.on()&&w)?(Sup.note(w)||Sup.trap(w)):null; },
   dse(w){ const i=this._i(w); return (this.on()&&i>=0)?(this.D.dse[i]||0):0; },
   ale(w){ const i=this._i(w); return (this.on()&&i>=0)?(this.D.ale[i]||0):0; },
   nD(){ return this.on()?(this.D.nD||0):0; },
@@ -841,8 +845,94 @@ const Enh = {
     return this._tc[t]||0;
   },
 };
+/* =====================================================================
+ * 寫作補充層（讀取 dse_vocab_supplement.js；唔到手唔影響原本功能）
+ * 內容：缺詞、同義替換群組、論證句式
+ * ===================================================================== */
+const Sup = {
+  D:null, byId:new Map(), synOf:new Map(), synList:[],
+  async load(){
+    if(window.__DSE_SUPPLEMENT){ this.D=window.__DSE_SUPPLEMENT; }
+    else{
+      try{
+        const r=await fetch('dse_vocab_supplement.js',{cache:'no-cache'});
+        if(r.ok){
+          const t=await r.text();
+          const m=t.match(/window\.__DSE_SUPPLEMENT\s*=\s*(\{[\s\S]*\});?\s*$/);
+          if(m) this.D=JSON.parse(m[1]);
+        }
+      }catch(e){}
+    }
+    if(!this.D) return false;
+    this._build();
+    return true;
+  },
+  on(){ return !!(this.D && this.D.words); },
+  /* 把補充詞掛上 id 併入詞庫；會喺 Data.load 之後呼叫 */
+  merge(baseN){
+    if(!this.on()) return 0;
+    const idx=new Map();
+    Data.raw.forEach(w=>idx.set(String(w.phrase).trim().toLowerCase(), w));
+    const added=[];
+    this.D.words.forEach((x,i)=>{
+      if(idx.has(String(x.p).trim().toLowerCase())) return;   // 原詞庫已有就唔重複加
+      const w={ id:baseN+added.length, phrase:x.p, meaning:x.m, stars:x.s,
+                category:'Part 6 寫作補充', pos:x.pos||'', supp:true, syn:x.syn||null, eg:x.e||'' };
+      added.push(w);
+      idx.set(String(x.p).trim().toLowerCase(), w);
+      this.byId.set(w.id, {pri:x.pri||70, tier:x.t||'A', syn:x.syn||null, eg:x.e||'', trap:x.w||null});
+    });
+    if(!added.length) return 0;
+    Data.raw=[...Data.raw, ...added];
+    Data.byId=new Map(Data.raw.map(w=>[w.id,w]));
+    Data._buildIndex();
+    this._build();
+    return added.length;
+  },
+  /* 建立同義群組索引：由詞面配對（原詞庫嘅詞自動入組） */
+  _build(){
+    this.synOf=new Map(); this.synList=[];
+    if(!this.on()) return;
+    const byPhrase=new Map();
+    Data.raw.forEach(w=>{
+      const k=String(w.phrase).trim().toLowerCase();
+      if(!byPhrase.has(k)) byPhrase.set(k,[]);
+      byPhrase.get(k).push(w);
+    });
+    (this.D.syn||[]).forEach(g=>{
+      const members=[];
+      (g.w||[]).forEach(p=>{
+        const hit=byPhrase.get(String(p).trim().toLowerCase());
+        if(hit) hit.forEach(w=>members.push(w));
+      });
+      // 去重
+      const seen=new Set(); const uniq=[];
+      members.forEach(w=>{ if(!seen.has(w.id)){ seen.add(w.id); uniq.push(w); } });
+      if(uniq.length<2) return;
+      const grp={k:g.k, n:g.n, members:uniq};
+      this.synList.push(grp);
+      uniq.forEach(w=>{ if(!this.synOf.has(w.id)) this.synOf.set(w.id, grp); });
+    });
+  },
+  group(w){ return (w&&this.synOf)?(this.synOf.get(w.id)||null):null; },
+  /* 用法陷阱／課堂補充：按詞面配對，原詞庫嘅詞都可以有提示（唔改原詞庫） */
+  _notes:null,
+  note(w){
+    if(!this.on()||!w) return null;
+    if(!this._notes){
+      this._notes=new Map();
+      (this.D.notes||[]).forEach(n=>this._notes.set(String(n.p).trim().toLowerCase(), n.w));
+    }
+    return this._notes.get(String(w.phrase).trim().toLowerCase())||null;
+  },
+  /* 補充詞自帶嘅陷阱提示 */
+  trap(w){ const x=this.byId.get(w&&w.id); return (x&&x.trap)?x.trap:null; },
+  pri(w){ const x=this.byId.get(w&&w.id); return x?(x.pri||70):0; },
+  tier(w){ const x=this.byId.get(w&&w.id); return x?(x.tier||'A'):''; },
+  isPat(w){ return !!(w && (w.pos==='pat' || (this.byId.get(w.id)&&w.pos==='pat'))); }
+};
 const Data = {
-  raw:[], byId:new Map(), index:new Map(), __src:'',
+  raw:[], byId:new Map(), index:new Map(), __src:'', baseCount:0,
   get(id){ const w=Data.byId.get(id); return w||Data.byId.get(Number(id)); },
   async load(){
     const inline=window.__DSE_DATA;
@@ -873,9 +963,11 @@ const Data = {
     }
     if(!words||!words.length) return 0;
     Data.raw=words; Data.byId=new Map(words.map(w=>[w.id,w]));
+    Data.baseCount=words.length;      // 原始詞庫數量（增強層對齊用）
     Data._buildIndex();
     Data._mergeCustom();
     try{ await Enh.load(); }catch(e){}
+    try{ if(await Sup.load()) Sup.merge(Data.baseCount); }catch(e){}
     return words.length;
   },
   _mergeCustom(){
@@ -1382,10 +1474,14 @@ const Home = {
         <div class="dse-mid">
           <div class="dse-count" style="color:#fff">S 級必考 ${sk} / ${S} 詞</div>
           <div class="dse-bar"><div class="dse-fill" style="width:${S?Math.round(sk/S*100):0}%;background:#fff"></div></div>
-          <div class="dse-txt" style="color:rgba(255,255,255,.85)">S 級 ${S} · A 級 ${A} · B 級 ${B} · 真題高頻 ${Enh.path().filter(w=>Enh.isFreq(w)).length}</div>
+          <div class="dse-txt" style="color:rgba(255,255,255,.85)">S 級 ${S} · A 級 ${A} · B 級 ${B} · 真題高頻 ${Enh.path().filter(w=>Enh.isFreq(w)).length}${Sup.on()?` · 寫作補充 ${Data.raw.filter(w=>w.supp).length}`:''}</div>
         </div>
         <div class="dse-right"><button class="btn sm" style="background:#fff;color:#6366f1" onclick="App.startPath()">開始</button></div>
       </div>`;})():''}
+      ${Sup.on()&&Data.raw.some(w=>w.supp)?`<div class="card" style="margin-bottom:10px;padding:10px 12px">
+        <div style="font-size:12px;color:var(--sub);margin-bottom:4px">✍️ 寫作補充層（Paper 2 講義：缺詞 + 論證句式）</div>
+        <div style="font-size:12px;color:var(--faint)">共 ${Data.raw.filter(w=>w.supp).length} 條 · 同義替換群組 ${Sup.synList.length} 組</div>
+      </div>`:''}
       <div class="section-title"><span class="dot"></span>詞庫分佈</div>
       <div class="dse-report-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(54px,1fr));gap:8px;margin-bottom:6px">${stars}</div>
       <div style="font-size:10.5px;color:var(--faint);margin-bottom:12px;padding-left:2px">合計 ${total} 詞（各星級係實際詞數，唔會重複計）</div>
@@ -1469,20 +1565,271 @@ const WRITING_GENRES = ["Argumentative Writing","Persuasive Writing","Analytical
 /* =====================================================================
  * 寫作工具箱
  * ===================================================================== */
+/* =====================================================================
+ * 5** 連接詞庫：basic → 進階 → 5** 三級升級鏈 + 位置規則 + 常見錯誤
+ * 每條：t=連接詞 / m=意思 / reg=語體 / pos=擺位 / up=升級鏈 / ex=例句 / w=陷阱
+ * ===================================================================== */
+const LINK_WORDS = [
+  { c:"🔄 轉折／讓步", tip:"讓步再反駁，係議論文 Language 分最直接嘅位", items:[
+    { t:"Be that as it may", m:"即使如此；話雖如此", reg:"formal", pos:"句首（另起一句承接上文讓步）", up:"but → however → nevertheless → Be that as it may", ex:"Online learning is undeniably convenient. Be that as it may, it cannot fully replace face-to-face interaction.", w:"後面要跟完整句子（有主詞有動詞），唔好直接接名詞" },
+    { t:"Notwithstanding", m:"儘管；雖然", reg:"formal", pos:"句首 + 名詞，或放句尾", up:"despite → in spite of → notwithstanding", ex:"Notwithstanding the potential benefits, the policy has drawn fierce criticism.", w:"係介詞，後接名詞／名詞組，唔係接句子" },
+    { t:"Much as", m:"雖然；儘管（後接完整子句）", reg:"formal", pos:"句首（後接 S + V 完整子句）", up:"although → even though → much as", ex:"Much as I admire her courage, I cannot support her decision.", w:"後面一定要有完整子句：Much as + S + V" },
+    { t:"Albeit", m:"雖然；縱使", reg:"formal", pos:"句中，名詞／形容詞後", up:"but → although → albeit", ex:"The proposal is ambitious, albeit somewhat unrealistic.", w:"後接形容詞或介詞短語，唔係接完整句子" },
+    { t:"Admittedly", m:"無可否認；誠然", reg:"formal", pos:"句首（先認反方，再轉折）", up:"certainly → admittedly → granted", ex:"Admittedly, the scheme is costly, but the long-term benefits far outweigh the expense.", w:"一定要配 but / yet / still 轉折，否則語意未完" },
+    { t:"That said", m:"話雖如此", reg:"semi-formal", pos:"句首（另起一句做轉折）", up:"but → however → that said", ex:"Fast fashion is affordable. That said, its environmental cost is enormous.", w:"口語味較重，議論文可用，正式書信慎用" },
+    { t:"Conversely", m:"相反地；反過來", reg:"formal", pos:"句首（用分號接上一句更靚）", up:"but → on the other hand → conversely", ex:"Punishment may deter crime; conversely, it may breed deep resentment.", w:"用於「兩邊互換都成立」嘅對照，唔係普通轉折" },
+    { t:"For all that", m:"儘管咁；雖然如此", reg:"semi-formal", pos:"句尾（放喺整句最尾）", up:"however → even so → for all that", ex:"The device is cheap and fast. It remains unreliable for all that.", w:"擺句尾，唔好放句首" }
+  ]},
+  { c:"➕ 遞進／補充", tip:"堆疊論點時唔好再用 and / also", items:[
+    { t:"Furthermore", m:"此外；而且", reg:"formal", pos:"句首（後加逗號，接完整句子）", up:"also → besides → moreover → furthermore", ex:"The policy is expensive. Furthermore, it fails to address the root cause.", w:"後面要有完整句子，句尾用逗號" },
+    { t:"What is more", m:"更重要嘅係", reg:"semi-formal", pos:"句首（帶出更重嘅論點）", up:"also → in addition → what is more", ex:"The scheme saves public money. What is more, it improves community health.", w:"帶有「呢點更重要」嘅語氣，普通補充唔好用" },
+    { t:"Coupled with", m:"加上；配合", reg:"formal", pos:"句首／句中，後接名詞", up:"and → together with → coupled with", ex:"Coupled with soaring rents, the closure of the branch was almost inevitable.", w:"後接名詞組，唔係接句子" },
+    { t:"Not to mention", m:"更不用說；遑論", reg:"semi-formal", pos:"句中，後接名詞", up:"and → as well as → not to mention", ex:"The policy harms small businesses, not to mention ordinary consumers.", w:"後接名詞，用喺「程度更深」嘅例子" },
+    { t:"In the same vein", m:"同樣地；類似地", reg:"formal", pos:"句首（延伸同一方向嘅論點）", up:"similarly → likewise → in the same vein", ex:"In the same vein, schools should review their homework policy.", w:"用於「同一方向」嘅補充，唔係對比" },
+    { t:"Along similar lines", m:"按同樣思路", reg:"formal", pos:"句首（帶出同類例子或措施）", up:"similarly → in the same vein → along similar lines", ex:"Along similar lines, the government has tightened rules on online advertising.", w:"同上，用於延伸同一類論點" }
+  ]},
+  { c:"⚡ 因果／推論", tip:"推論鏈要清晰，Organisation 分嘅核心", items:[
+    { t:"Consequently", m:"因此；結果係", reg:"formal", pos:"句首（或用分號接上一句）", up:"so → therefore → thus → consequently", ex:"Trust in the profession has been eroded; consequently, patients are more reluctant to seek help.", w:"強調「結果」，唔係「原因」" },
+    { t:"Hence", m:"因此；由此", reg:"formal", pos:"句首（可後接名詞組）", up:"so → therefore → hence", ex:"Public anger has mounted, hence the sudden policy reversal.", w:"hence 後可直接接名詞：hence + N" },
+    { t:"In light of this", m:"有鑑於此", reg:"formal", pos:"句首（承接上文事實，推出建議）", up:"so → because of this → in light of this", ex:"In light of this, the authority should tighten oversight of trainee doctors.", w:"用於承接「上文提到嘅事實」推出建議" },
+    { t:"With this in mind", m:"考慮到呢點", reg:"semi-formal", pos:"句首（帶出建議或行動）", up:"so → therefore → with this in mind", ex:"With this in mind, schools ought to introduce media literacy lessons.", w:"同上，語氣冇 in light of 咁重" },
+    { t:"Accordingly", m:"於是；相應地", reg:"formal", pos:"句首／句中", up:"so → therefore → accordingly", ex:"The risks were judged unacceptable, and the event was accordingly cancelled.", w:"正式文書味重，一篇用一次已夠" },
+    { t:"For this reason", m:"基於呢個原因", reg:"formal", pos:"句首（後接完整句子）", up:"so → therefore → for this reason", ex:"For this reason, I believe a phased implementation is the wiser course.", w:"後面要接完整句子" }
+  ]},
+  { c:"📌 舉例／闡釋", tip:"舉例要「具體」而唔係「敷衍」", items:[
+    { t:"A case in point", m:"恰當嘅例子；明證", reg:"formal", pos:"句首（常配 is）", up:"for example → for instance → a case in point", ex:"The rise of K-pop is a case in point: it has reshaped global popular culture.", w:"要配 be 動詞：X is a case in point" },
+    { t:"By way of illustration", m:"舉例說明", reg:"formal", pos:"句首／句中", up:"for example → to illustrate → by way of illustration", ex:"By way of illustration, consider the fate of small bookshops in the digital age.", w:"後接完整句子或 consider + N" },
+    { t:"Take ... as an example", m:"以…為例", reg:"semi-formal", pos:"句首（中間填入具體名詞）", up:"for example → take ... as an example", ex:"Take Norway as an example: it banned AI tools in primary classrooms.", w:"中間要填具體名詞" },
+    { t:"Notably", m:"尤其；值得一提嘅係", reg:"formal", pos:"句中，名詞前", up:"for example → especially → notably", ex:"Several groups are affected, notably elderly people living alone.", w:"後接名詞，唔係接句子" }
+  ]},
+  { c:"🎯 強調／聚焦", tip:"用副詞掌控語氣，係 5** 同 5 嘅分水嶺", items:[
+    { t:"Crucially", m:"關鍵地；至關重要嘅係", reg:"formal", pos:"句首（標示最關鍵嘅一點）", up:"importantly → more importantly → crucially", ex:"Crucially, the reform does not address the shortage of frontline staff.", w:"一篇用 1-2 次，用得多會失效" },
+    { t:"Paradoxically", m:"矛盾地；弔詭地", reg:"formal", pos:"句首（帶出反直覺嘅觀察）", up:"surprisingly → ironically → paradoxically", ex:"Paradoxically, the safer the platform becomes, the more reckless its users grow.", w:"用於「看似矛盾但係真」嘅觀察" },
+    { t:"Arguably", m:"可以話；大概", reg:"formal", pos:"句中（be 動詞後／助動詞後）", up:"maybe → perhaps → arguably", ex:"It is arguably the most pressing social issue of our time.", w:"令語氣更謹慎，顯得論證有分寸" },
+    { t:"Above all", m:"最重要嘅係", reg:"formal", pos:"句首／句中", up:"importantly → most importantly → above all", ex:"Above all, any solution must respect the dignity of those affected.", w:"用於「最終排序」嘅最重點" },
+    { t:"Indeed", m:"的確；甚至（加強語氣）", reg:"formal", pos:"句中／句首", up:"really → in fact → indeed", ex:"The damage is serious — indeed, possibly irreversible.", w:"用於遞進強調，唔係普通「事實上」" }
+  ]},
+  { c:"🔢 順序／層次", tip:"段落推進要有層次，唔好段段 First / Second", items:[
+    { t:"First and foremost", m:"首先；首要", reg:"formal", pos:"句首（第一段主體句開頭）", up:"first → firstly → first and foremost", ex:"First and foremost, the safety of students must come before all else.", w:"帶「最重要」意味，唔好當普通「第一」用" },
+    { t:"To begin with", m:"首先；一開始", reg:"semi-formal", pos:"句首（主體段第一點開頭）", up:"first → to start with → to begin with", ex:"To begin with, the cost of the scheme has been grossly underestimated.", w:"議論文可用；正式報告用 in the first instance 更好" },
+    { t:"In the first instance", m:"首先；喺第一階段", reg:"formal", pos:"句首／句尾", up:"first → initially → in the first instance", ex:"In the first instance, schools should conduct a full risk assessment.", w:"正式報告／建議書用語" },
+    { t:"Ultimately", m:"最終；歸根究柢", reg:"formal", pos:"句首／句中", up:"finally → eventually → ultimately", ex:"Ultimately, the responsibility lies with the regulators, not the users.", w:"強調「最終結論」，唔係時間上嘅最後" },
+    { t:"In the final analysis", m:"歸根究柢", reg:"formal", pos:"句首（收尾段，後接最終判斷）", up:"finally → in conclusion → in the final analysis", ex:"In the final analysis, no technology can substitute for human judgement.", w:"收尾用，一篇一次" },
+    { t:"Last but not least", m:"最後但同樣重要", reg:"semi-formal", pos:"句首（最後一點開頭）", up:"finally → lastly → last but not least", ex:"Last but not least, we must not overlook the emotional toll on families.", w:"演講／書信常用，學術議論文慎用" }
+  ]},
+  { c:"⚖️ 總結／權衡", tip:"收尾要「權衡過」而唔係「重複講」", items:[
+    { t:"On balance", m:"整體而言；權衡之下", reg:"formal", pos:"句首（總結段開頭，後接判斷句）", up:"in conclusion → all things considered → on balance", ex:"On balance, the advantages of the scheme outweigh its drawbacks.", w:"表示「計過數」，係讓步式總結，唔係單純重複" },
+    { t:"All things considered", m:"總括而言；考慮到各方面", reg:"formal", pos:"句首（總結段開頭，用逗號隔開）", up:"in conclusion → overall → all things considered", ex:"All things considered, a phased implementation seems the most prudent option.", w:"後面接判斷句，唔好接新論點" },
+    { t:"By and large", m:"大體上；大致", reg:"semi-formal", pos:"句首／句尾", up:"generally → overall → by and large", ex:"By and large, the public has responded favourably to the measure.", w:"語氣較輕，正式議論文可用 on balance 代替" },
+    { t:"To that end", m:"為咗達到呢個目的", reg:"formal", pos:"句首（接建議）", up:"so → therefore → to that end", ex:"To that end, the government should invest in teacher training on AI literacy.", w:"用嚟由「問題」過渡到「建議」，非常好用" },
+    { t:"In essence", m:"本質上；簡單講", reg:"formal", pos:"句首／句中", up:"basically → essentially → in essence", ex:"In essence, the debate is about trust rather than technology.", w:"用嚟收窄論點，突顯核心" }
+  ]},
+  { c:"🔁 重述／換講", tip:"換句話講一次，展示 Language 掌控力", items:[
+    { t:"In other words", m:"換言之", reg:"formal", pos:"句首，或用分號連接上一句", up:"that means → that is → in other words", ex:"The policy is regressive; in other words, it penalises those who can least afford it.", w:"後面係「同一件事嘅另一種講法」，唔係新論點" },
+    { t:"To put it another way", m:"換個講法", reg:"semi-formal", pos:"句首（另起一句重述上文）", up:"that is → in other words → to put it another way", ex:"To put it another way, convenience has been purchased at the expense of privacy.", w:"同上；後面必須係「同一件事嘅另一種講法」，唔係新論點" },
+    { t:"That is to say", m:"即係話；亦即", reg:"formal", pos:"句中（用破折號或逗號連接）", up:"that is → namely → that is to say", ex:"The scheme is regressive — that is to say, it burdens the poor most heavily.", w:"用破折號連接更自然" },
+    { t:"Namely", m:"即；具體係", reg:"formal", pos:"句中，後接名詞列表", up:"that is → specifically → namely", ex:"Three groups are most at risk, namely the elderly, the unemployed and single parents.", w:"後接名詞清單，唔係接句子" }
+  ]}
+];
+
 const WritingToolkit = {
-  _fmt: null, _genre: null, _tab:'fmt', _cat:null, _att:null,
+  _fmt: null, _genre: null, _tab:'fmt', _cat:null, _att:null, _q:'', _syn:null, _link:null, _onlyFav:false,
   enter(){ WritingToolkit._fmt=null; WritingToolkit._genre=null; WritingToolkit._att=null; WritingToolkit.render(); },
+  /* ---------- 收藏：存入 Store，清 cache 都喺（跟現有備份機制行） ---------- */
+  fav(){ return (Store.state.favWrite)||[]; },
+  isFav(t){ return WritingToolkit.fav().indexOf(t)>=0; },
+  toggleFav(btn, t){
+    const s=Store.state; if(!s.favWrite) s.favWrite=[];
+    const i=s.favWrite.indexOf(t);
+    if(i>=0){ s.favWrite.splice(i,1); btn.textContent='☆ 收藏'; btn.classList.remove('on'); }
+    else{ s.favWrite.push(t); btn.textContent='★ 已收藏'; btn.classList.add('on'); }
+    try{ Store.persist(); }catch(e){}
+    Utils.toast(i>=0?'已取消收藏':'★ 已收藏 · 去「★ 收藏」睇返');
+  },
+  favBtn(t){
+    const on=WritingToolkit.isFav(t);
+    return `<button class="wt-copy ${on?'on':''}" style="${on?'background:#F59E0B1a;color:#B45309;border-color:#FDE68A':''}" onclick="event.stopPropagation();WritingToolkit.toggleFav(this,'${String(t).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">${on?'★ 已收藏':'☆ 收藏'}</button>`;
+  },
+  /* ---------- 全域搜尋：739+ 條寫作內容一次過搜 ---------- */
+  _index:null,
+  buildIndex(){
+    if(WritingToolkit._index) return WritingToolkit._index;
+    const out=[];
+    const push=(src,grp,t,m,reg,ex)=>out.push({src,grp,t,m:m||'',reg:reg||'',ex:ex||[]});
+    Object.entries(WRITING_MAP).forEach(([k,f])=>{
+      f.phrases.forEach(p=>push('📝 '+k, p.category, p.text, p.meaning));
+    });
+    Object.entries(SENTENCE_STRUCTURES).forEach(([k,c])=>{
+      c.items.forEach(s=>push('🧩 '+k, s.n, s.e, s.m, '', s.p?[s.p]:[]));
+    });
+    (ATTITUDE_WORDS||[]).forEach(a=>{
+      a.groups.forEach(g=>g.items.forEach(p=>push('🎭 '+a.e, g.g, p.t, p.m)));
+    });
+    (TOPIC_PHRASES||[]).forEach(tp=>{
+      tp.groups.forEach(g=>g.items.forEach(p=>push('🗂️ '+tp.e, g.g, p.t, p.m)));
+    });
+    (WRITING_PICKS||[]).forEach(g=>{
+      g.items.forEach(p=>push('📚 '+g.g, g.g, p.t, p.m, p.reg, p.ex));
+    });
+    (LINK_WORDS||[]).forEach(c=>{
+      c.items.forEach(p=>push('🔀 '+c.c, '連接詞', p.t, p.m+' · '+p.up, p.reg, [p.ex]));
+    });
+    WritingToolkit._index=out;
+    return out;
+  },
+  search(q){
+    q=(q||'').trim().toLowerCase();
+    if(!q) return [];
+    const all=WritingToolkit.buildIndex();
+    const exact=[], fuzzy=[];
+    all.forEach(x=>{
+      const t=(x.t||'').toLowerCase(), m=(x.m||'').toLowerCase();
+      if(t.indexOf(q)>=0) exact.push(x);
+      else if(m.indexOf(q)>=0||(x.ex||[]).some(e=>String(e).toLowerCase().indexOf(q)>=0)) fuzzy.push(x);
+    });
+    return exact.concat(fuzzy).slice(0,60);
+  },
+  _renderSearch(){
+    const v=Utils.$('#view-writing');
+    const q=WritingToolkit._q.trim();
+    const res=q?WritingToolkit.search(q):[];
+    const regBadge=r=>!r?'':`<span style="display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:20px;margin-left:5px;background:${r==='formal'?'#EEF2FF;color:#4F46E5':r==='informal'?'#FEF3C7;color:#B45309':'#ECFDF5;color:#047857'}">${r.toUpperCase()}</span>`;
+    v.innerHTML=`
+      ${WritingToolkit._tabs()}
+      <div class="section-title"><span class="dot"></span>搜尋寫作內容</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:10px">💡 一次過搜晒全站寫作內容：22 種格式片語、59 款句式、174 個語氣詞、8 大議題短語、195 條寫作片語（共 ${WritingToolkit.buildIndex().length} 條）。例如搜 <b>however</b>、<b>譴責</b>、<b>建議</b>。</div>
+      <input class="wt-search" value="${Utils.esc(q)}" placeholder="搜尋片語／中文意思／例句…" oninput="WritingToolkit._q=this.value;WritingToolkit.render()" style="width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--text);font-size:14px;margin-bottom:12px" />
+      ${q?`<div style="font-size:12px;color:var(--sub);margin-bottom:8px">搵到 <b>${res.length}</b> 條${res.length>=60?'（只顯示頭 60 條）':''}</div>`:''}
+      ${res.map(x=>`
+        <div class="wt-phrase" style="margin-bottom:8px">
+          <div style="flex:1;min-width:0">
+            <div class="txt">${Utils.esc(x.t)}${regBadge(x.reg)}</div>
+            <div class="mean">${Utils.esc(x.m)}</div>
+            <div style="font-size:10.5px;color:var(--faint);margin-top:4px">${Utils.esc(x.src)} · ${Utils.esc(x.grp)}</div>
+          </div>
+          ${WritingToolkit.favBtn(x.t)}
+          <button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(x.t).replace(/'/g,"\\'")}')">複製</button>
+        </div>`).join('') || (q?'<div style="text-align:center;color:var(--faint);padding:26px;font-size:13px">搵唔到，試吓其他關鍵字</div>':'')}
+    `;
+  },
   _tabs(){
     return `<div class="x-toolbar" style="margin-top:10px">
+      <div class="x-tab ${WritingToolkit._tab==='find'?'on':''}" onclick="WritingToolkit._tab='find';WritingToolkit.render()"><span class="ic">🔍</span>搜尋</div>
       <div class="x-tab ${WritingToolkit._tab==='fmt'?'on':''}" onclick="WritingToolkit._tab='fmt';WritingToolkit.render()"><span class="ic">📝</span>格式詞庫</div>
       <div class="x-tab ${WritingToolkit._tab==='struct'?'on':''}" onclick="WritingToolkit._tab='struct';WritingToolkit.render()"><span class="ic">🧩</span>進階句式</div>
       <div class="x-tab ${WritingToolkit._tab==='att'?'on':''}" onclick="WritingToolkit._tab='att';WritingToolkit.render()"><span class="ic">🎭</span>語氣態度詞</div>
       <div class="x-tab ${WritingToolkit._tab==='topic'?'on':''}" onclick="WritingToolkit._tab='topic';WritingToolkit.render()"><span class="ic">🗂️</span>議題短語</div>
       <div class="x-tab ${WritingToolkit._tab==='pick'?'on':''}" onclick="WritingToolkit._tab='pick';WritingToolkit.render()"><span class="ic">📚</span>寫作片語</div>
+      <div class="x-tab ${WritingToolkit._tab==='link'?'on':''}" onclick="WritingToolkit._tab='link';WritingToolkit.render()"><span class="ic">🔀</span>連接詞</div>
+      <div class="x-tab ${WritingToolkit._tab==='syn'?'on':''}" onclick="WritingToolkit._tab='syn';WritingToolkit.render()"><span class="ic">🔗</span>同義詞網</div>
+      <div class="x-tab ${WritingToolkit._tab==='fav'?'on':''}" onclick="WritingToolkit._tab='fav';WritingToolkit.render()"><span class="ic">★</span>收藏${WritingToolkit.fav().length?`(${WritingToolkit.fav().length})`:''}</div>
     </div>`;
+  },
+  /* ---------- 🔀 連接詞（5** 升級鏈） ---------- */
+  _renderLinkList(){
+    const v=Utils.$('#view-writing');
+    const n=(LINK_WORDS||[]).reduce((a,c)=>a+c.items.length,0);
+    v.innerHTML=`
+      ${WritingToolkit._tabs()}
+      <div class="section-title"><span class="dot"></span>5** 連接詞庫</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">💡 ${n} 個連接詞，全部附 <b>basic → 進階 → 5**</b> 升級鏈、擺位規則同常見錯誤。同一篇文唔好再用同一個轉折詞三次。</div>
+      <div class="wt-grid">
+        ${LINK_WORDS.map((c,i)=>`<div class="wt-fmt" onclick="WritingToolkit._link=${i};WritingToolkit.render()"><div class="t">${Utils.esc(c.c)}</div><div class="p">${c.items.length} 個 · ${Utils.esc(c.tip.slice(0,18))}</div></div>`).join('')}
+      </div>`;
+  },
+  _renderLinkDetail(){
+    const v=Utils.$('#view-writing');
+    const c=LINK_WORDS[WritingToolkit._link];
+    if(!c){ WritingToolkit._link=null; WritingToolkit._renderLinkList(); return; }
+    const regBadge=r=>`<span style="display:inline-block;font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;margin-left:6px;background:${r==='formal'?'#EEF2FF;color:#4F46E5':'#ECFDF5;color:#047857'}">${r.toUpperCase()}</span>`;
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin:10px 0 6px" onclick="WritingToolkit._link=null;WritingToolkit.render()">← 返回連接詞分類</button>
+      <div class="wt-detail-top" style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:13px 15px;margin-bottom:12px">
+        <h3 style="font-size:16px;font-weight:800;margin-bottom:4px">${Utils.esc(c.c)}</h3>
+        <div class="meta" style="font-size:12px;color:var(--sub)">${Utils.esc(c.tip)}</div>
+      </div>
+      ${c.items.map(p=>`
+        <div class="card" style="padding:12px;margin-bottom:10px">
+          <div style="font-size:14.5px;font-weight:800;color:var(--text)">${Utils.esc(p.t)}${regBadge(p.reg)}</div>
+          <div style="font-size:12.5px;color:var(--sub);margin-top:3px">${Utils.esc(p.m)}</div>
+          <div style="font-size:11.5px;line-height:1.65;margin-top:8px;border-top:1px dashed var(--border);padding-top:7px">
+            <div style="color:#6366F1">⬆️ <b>升級鏈：</b>${Utils.esc(p.up)}</div>
+            <div style="color:var(--sub);margin-top:3px">📍 <b>擺位：</b>${Utils.esc(p.pos)}</div>
+            <div style="margin-top:6px;background:var(--bg);border-radius:8px;padding:7px 9px;font-size:12px;line-height:1.6;font-style:italic">「${Utils.esc(p.ex)}」</div>
+            <div style="color:#B45309;margin-top:5px">⚠️ ${Utils.esc(p.w)}</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:9px">
+            ${WritingToolkit.favBtn(p.t)}
+            <button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.t).replace(/'/g,"\\'")}')">複製</button>
+            <button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.ex).replace(/'/g,"\\'")}')">複製例句</button>
+          </div>
+        </div>`).join('')}`;
+  },
+  /* ---------- 🔗 同義詞網：接入增強層嘅 28 組 ---------- */
+  _renderSyn(){
+    const v=Utils.$('#view-writing');
+    if(WritingToolkit._syn!=null){
+      const g=(Sup.on()?Sup.synList:[])[WritingToolkit._syn];
+      if(!g){ WritingToolkit._syn=null; return WritingToolkit._renderSyn(); }
+      v.innerHTML=`
+        <button class="btn ghost sm" style="margin:10px 0 6px" onclick="WritingToolkit._syn=null;WritingToolkit.render()">← 返回詞網列表</button>
+        <div class="wt-detail-top" style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:13px 15px;margin-bottom:12px">
+          <h3 style="font-size:16px;font-weight:800;margin-bottom:4px">🔗 ${Utils.esc(g.n)}</h3>
+          <div class="meta" style="font-size:12px;color:var(--sub)">${g.members.length} 種寫法 · 寫作時輪流用，避免重複</div>
+        </div>
+        <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">💡 同一個意思識多種寫法，係 Paper 2 Language 分嘅直接來源。一篇文入面同一個概念唔好再用同一個詞。</div>
+        ${g.members.map(m=>`
+          <div class="wt-phrase" style="margin-bottom:8px">
+            <div style="flex:1;min-width:0">
+              <div class="txt">${Utils.esc(m.phrase)} ${Enh.on()?`<span class="m-badge" style="background:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(m)]||'#94A3B8'}1a;color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(m)]||'#94A3B8'}">${Enh.tier(m)}</span>`:''}</div>
+              <div class="mean">${Utils.esc(m.meaning)}</div>
+            </div>
+            ${WritingToolkit.favBtn(m.phrase)}
+            <button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(m.phrase).replace(/'/g,"\\'")}')">複製</button>
+          </div>`).join('')}
+      `;
+      return;
+    }
+    const groups=Sup.on()?Sup.synList:[];
+    v.innerHTML=`
+      ${WritingToolkit._tabs()}
+      <div class="section-title"><span class="dot"></span>同義替換詞網</div>
+      ${!groups.length?`<div class="dse-tip" style="font-size:12px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:14px;line-height:1.6">要載入 <b>dse_vocab_supplement.js</b> 先有詞網（放同 index.html 同一層）。</div>`:`
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">💡 ${groups.length} 組同義詞網，嚟自詞庫 + Paper 2 講義。寫作時同一個意思換唔同寫法，係 5** Language 分嘅關鍵。</div>
+      <div class="wt-grid">
+        ${groups.map((g,i)=>`<div class="wt-fmt" onclick="WritingToolkit._syn=${i};WritingToolkit.render()"><div class="t">${Utils.esc(g.n)}</div><div class="p">${g.members.length} 種寫法</div></div>`).join('')}
+      </div>`}
+    `;
+  },
+  /* ---------- ★ 收藏 ---------- */
+  _renderFav(){
+    const v=Utils.$('#view-writing');
+    const favs=WritingToolkit.fav();
+    v.innerHTML=`
+      ${WritingToolkit._tabs()}
+      <div class="section-title"><span class="dot"></span>我嘅收藏（${favs.length}）</div>
+      ${!favs.length?`<div class="dse-tip" style="font-size:12px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:14px;line-height:1.6">仲未收藏任何片語。喺任何片語右邊撳「☆ 收藏」，就可以放埋一齊溫。</div>`:`
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">💡 考前集中溫自己揀嘅片語最有效。全部可一鍵複製。</div>
+      ${favs.map(t=>`
+        <div class="wt-phrase" style="margin-bottom:8px">
+          <div style="flex:1;min-width:0"><div class="txt">${Utils.esc(t)}</div></div>
+          ${WritingToolkit.favBtn(t)}
+          <button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(t).replace(/'/g,"\\'")}')">複製</button>
+        </div>`).join('')}
+      <button class="btn sm soft" style="margin-top:10px;width:100%" onclick="WritingToolkit.copyAllFav()">📋 複製全部收藏</button>`}
+    `;
+  },
+  copyAllFav(){
+    const txt=WritingToolkit.fav().join('\n');
+    try{ navigator.clipboard.writeText(txt); }catch(e){}
+    Utils.toast('已複製 '+WritingToolkit.fav().length+' 條收藏');
   },
   render(){
     const v=Utils.$('#view-writing');
+    if(WritingToolkit._tab==='find'){ WritingToolkit._renderSearch(); return; }
+    if(WritingToolkit._tab==='link'){ WritingToolkit._link!=null?WritingToolkit._renderLinkDetail():WritingToolkit._renderLinkList(); return; }
+    if(WritingToolkit._tab==='syn'){ WritingToolkit._renderSyn(); return; }
+    if(WritingToolkit._tab==='fav'){ WritingToolkit._renderFav(); return; }
     if(WritingToolkit._tab==='pick'){ WritingToolkit._pick?WritingToolkit._renderPickDetail():WritingToolkit._renderPickList(); return; }
     if(WritingToolkit._tab==='topic'){ WritingToolkit._topic?WritingToolkit._renderTopicDetail():WritingToolkit._renderTopicList(); return; }
     if(WritingToolkit._tab==='att'){ WritingToolkit._att?WritingToolkit._renderAttDetail():WritingToolkit._renderAttList(); return; }
@@ -1499,7 +1846,7 @@ const WritingToolkit = {
       <div class="section-title"><span class="dot"></span>揀寫作格式</div>
       <div class="cat-chips">${genreTabs}</div>
       <div class="wt-grid">${list}</div>
-      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-top:12px">💡 揀格式後會顯示對應嘅實用片語，撳「複製」即可插入作文。</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-top:12px">💡 揀格式後會顯示對應嘅實用片語，撳「複製」即可插入作文。想搵特定片語？用上面嘅 🔍 <b>搜尋</b>，一次過搜晒全站 ${WritingToolkit.buildIndex().length} 條寫作內容。</div>
     `;
   },
   setGenre(g){ WritingToolkit._genre=WritingToolkit._genre===g?null:g; WritingToolkit.render(); },
@@ -1515,7 +1862,7 @@ const WritingToolkit = {
         <h3 style="font-size:16px;font-weight:800;margin-bottom:4px">${Utils.esc(WritingToolkit._fmt)}</h3>
         <div class="meta" style="font-size:12px;color:var(--sub)">${Utils.esc(fmt.genre)} · ${Utils.esc(fmt.purpose)}</div>
       </div>
-      ${Object.entries(groups).map(([g,ps])=>`<div class="wt-group"><h4>${Utils.esc(g)}</h4>${ps.map(p=>`<div class="wt-phrase"><div><div class="txt">${Utils.esc(p.text)}</div><div class="mean">${Utils.esc(p.meaning)}</div></div><button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.text).replace(/'/g,"\\'")}')">複製</button></div>`).join('')}</div>`).join('')}
+      ${Object.entries(groups).map(([g,ps])=>`<div class="wt-group"><h4>${Utils.esc(g)}</h4>${ps.map(p=>`<div class="wt-phrase"><div><div class="txt">${Utils.esc(p.text)}</div><div class="mean">${Utils.esc(p.meaning)}</div></div>${WritingToolkit.favBtn(p.text)}<button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.text).replace(/'/g,"\\'")}')">複製</button></div>`).join('')}</div>`).join('')}
     `;
   },
   copy(btn, txt){
@@ -1578,7 +1925,7 @@ const WritingToolkit = {
         <h3 style="font-size:16px;font-weight:800;margin-bottom:4px">${Utils.esc(att.e)}</h3>
         <div class="meta" style="font-size:12px;color:var(--sub)">${Utils.esc(att.tip)}</div>
       </div>
-      ${att.groups.map(g=>`<div class="wt-group"><h4>${Utils.esc(g.g)}</h4>${g.items.map(p=>`<div class="wt-phrase"><div><div class="txt">${Utils.esc(p.t)}</div><div class="mean">${Utils.esc(p.m)}</div></div><button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.t).replace(/'/g,"\'")}')">複製</button></div>`).join('')}</div>`).join('')}
+      ${att.groups.map(g=>`<div class="wt-group"><h4>${Utils.esc(g.g)}</h4>${g.items.map(p=>`<div class="wt-phrase"><div><div class="txt">${Utils.esc(p.t)}</div><div class="mean">${Utils.esc(p.m)}</div></div>${WritingToolkit.favBtn(p.t)}<button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.t).replace(/'/g,"\'")}')">複製</button></div>`).join('')}</div>`).join('')}
     `;
   },
   /* ---------- 議題短語 ---------- */
@@ -1603,7 +1950,7 @@ const WritingToolkit = {
         <h3 style="font-size:16px;font-weight:800;margin-bottom:4px">${Utils.esc(tp.e)}</h3>
         <div class="meta" style="font-size:12px;color:var(--sub)">${Utils.esc(tp.tip)}</div>
       </div>
-      ${tp.groups.map(g=>`<div class="wt-group"><h4>${Utils.esc(g.g)}</h4>${g.items.map(p=>`<div class="wt-phrase"><div><div class="txt">${Utils.esc(p.t)}</div><div class="mean">${Utils.esc(p.m)}</div></div><button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.t).replace(/'/g,"\'")}')">複製</button></div>`).join('')}</div>`).join('')}
+      ${tp.groups.map(g=>`<div class="wt-group"><h4>${Utils.esc(g.g)}</h4>${g.items.map(p=>`<div class="wt-phrase"><div><div class="txt">${Utils.esc(p.t)}</div><div class="mean">${Utils.esc(p.m)}</div></div>${WritingToolkit.favBtn(p.t)}<button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.t).replace(/'/g,"\'")}')">複製</button></div>`).join('')}</div>`).join('')}
     `;
   },
   /* ---------- 寫作片語（詞庫精選） ---------- */
@@ -1642,7 +1989,7 @@ const WritingToolkit = {
                 ${(p.ex||[]).map(s=>`<div style="background:var(--bg);border-radius:8px;padding:6px 8px;margin-top:4px;font-size:11.5px;color:var(--ink);line-height:1.55">${Utils.esc(s)}</div>`).join('')}
               </div>
             </div>
-            <button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.t).replace(/'/g,"\'")}')">複製</button>
+            <div style="display:flex;gap:6px;flex-direction:column">${WritingToolkit.favBtn(p.t)}<button class="wt-copy" onclick="WritingToolkit.copy(this,'${Utils.esc(p.t).replace(/'/g,"\'")}')">複製</button></div>
           </div>
         </div>`).join('')}
     `;
@@ -2334,6 +2681,8 @@ const Browse = {
     if(c==='🔥 A級衝刺') return Enh.tier(w)==='A';
     if(c==='📘 B級基礎') return Enh.tier(w)==='B';
     if(c==='🏆 DSE真題高頻') return Enh.isFreq(w);
+    if(c==='✍️ 寫作句型') return w.pos==='pat';
+    if(c==='🆕 寫作補充') return !!w.supp;
     return w.category===c;
   },
   apply(base){
@@ -2377,14 +2726,16 @@ const Browse = {
     const k=Store.key(w);const tm=Store.state.tomo.has(k);
     const cs=Curve.status(w);
     return `<div class="list-item" id="li-${w.id}" data-word="${Utils.esc(w.phrase)}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
-      <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}${Enh.on()&&Enh.tier(w)?`<span class="m-badge" style="background:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}1a;color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]};border-color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}33">${Enh.tier(w)} 級</span>`:''}${Enh.isFreq(w)?`<span class="m-badge" style="background:#10B9811a;color:#10B981;border-color:#10B98133">DSE${Enh.dse(w)}/${Enh.nD()}</span>`:''}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}<span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33">${cs.t}</span></div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
+      <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}${Enh.on()&&Enh.tier(w)?`<span class="m-badge" style="background:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}1a;color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]};border-color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}33">${Enh.tier(w)} 級</span>`:''}${Enh.isFreq(w)?`<span class="m-badge" style="background:#10B9811a;color:#10B981;border-color:#10B98133">DSE${Enh.dse(w)}/${Enh.nD()}</span>`:''}${w.pos==='pat'?`<span class="m-badge" style="background:#A855F71a;color:#A855F7;border-color:#A855F733">句型</span>`:''}${Enh.syn(w)?`<span class="m-badge" style="background:#8B5CF61a;color:#8B5CF6;border-color:#8B5CF633">同義×${Enh.syn(w).members.length}</span>`:''}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}<span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33">${cs.t}</span></div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
       <div class="li-fav">${Store.state.fav.has(k)?'★':''}</div>
     </div>`;
   },
   renderList(){
     const v=Utils.$('#view-browse');
     const st=v.scrollTop;
-    const cats=Enh.on()?['🎯 S級必考','🔥 A級衝刺','📘 B級基礎','🏆 DSE真題高頻','全部','★5','未掌握',...[...new Set(Data.raw.map(w=>w.category))]]:['全部','★5','未掌握',...[...new Set(Data.raw.map(w=>w.category))]];
+    const extra=[];
+    if(Sup.on()){ if(Data.raw.some(w=>w.pos==='pat')) extra.push('✍️ 寫作句型'); if(Data.raw.some(w=>w.supp)) extra.push('🆕 寫作補充'); }
+    const cats=Enh.on()?['🎯 S級必考','🔥 A級衝刺','📘 B級基礎','🏆 DSE真題高頻',...extra,'全部','★5','未掌握',...[...new Set(Data.raw.map(w=>w.category))]]:['全部','★5','未掌握',...extra,...[...new Set(Data.raw.map(w=>w.category))]];
     const tomoCount=Store.state.tomo.size;
     const list=Browse.filtered.slice(0, Browse._page*Browse._pageSize);
     v.innerHTML=`
@@ -2528,7 +2879,114 @@ const TOPIC_PHRASES = [
         {"t": "safeguard player welfare amid fixture congestion", "m": "在密集賽程下保障球員健康"}
       ]}
     ]
+  },
+  {
+    "e": "🤖 AI 與教育", "tip": "生成式 AI 入校園、適齡限制、批判思維等議題必用短語",
+    "groups": [
+      {"g": "問題與現象", "items": [
+        {"t": "age-appropriate restrictions", "m": "適齡限制"},
+        {"t": "a phased implementation", "m": "分階段實施"},
+        {"t": "over-reliance on technology", "m": "對科技過度依賴"},
+        {"t": "substitute AI-generated work for genuine learning", "m": "以 AI 生成的作業取代真正的學習"},
+        {"t": "erode literacy and numeracy standards", "m": "侵蝕讀寫和算術水平"},
+        {"t": "stifle intellectual curiosity", "m": "扼殺求知慾"},
+        {"t": "widen the gap between digitally privileged and disadvantaged students", "m": "擴大數碼資源不均學生之間的差距"},
+        {"t": "deprive children of hands-on learning experiences", "m": "剝奪兒童親身學習的體驗"}
+      ]},
+      {"g": "後果與影響", "items": [
+        {"t": "undermine students' ability to think independently", "m": "削弱學生獨立思考的能力"},
+        {"t": "critical thinking skills", "m": "批判性思維能力"},
+        {"t": "prioritise pedagogy over technological novelty", "m": "將教學法置於科技新鮮感之上"},
+        {"t": "strike a balance between innovation and academic rigour", "m": "在創新與學術嚴謹之間取得平衡"},
+        {"t": "preserve the role of human instruction", "m": "維護人為教學的角色"}
+      ]},
+      {"g": "建議與措施", "items": [
+        {"t": "equip students with responsible digital habits", "m": "讓學生養成負責任的數碼習慣"},
+        {"t": "set clear boundaries for technology use in schools", "m": "為校內科技使用設定明確界線"},
+        {"t": "invest in teacher training on AI literacy", "m": "投資於教師的 AI 素養培訓"}
+      ]}
+    ]
+  },
+  {
+    "e": "👴 長者與家庭", "tip": "晚年再婚、家庭糾紛、長者財務剝削等議題必用短語",
+    "groups": [
+      {"g": "問題與現象", "items": [
+        {"t": "May-December romance", "m": "忘年戀"},
+        {"t": "late-life remarriage", "m": "晚年再婚"},
+        {"t": "family rift", "m": "家庭裂痕"},
+        {"t": "joint bank account", "m": "聯名銀行賬戶"},
+        {"t": "prey on the loneliness of the elderly", "m": "利用長者的孤獨感"},
+        {"t": "rush into a relationship without due caution", "m": "在缺乏應有謹慎下倉促投入一段關係"}
+      ]},
+      {"g": "後果與影響", "items": [
+        {"t": "sever ties with one's children", "m": "與子女斷絕關係"},
+        {"t": "squander one's life savings", "m": "揮霍畢生積蓄"},
+        {"t": "spiral into a cycle of conflict and regret", "m": "陷入衝突與悔恨的惡性循環"},
+        {"t": "inflict irreparable damage on family bonds", "m": "對家庭紐帶造成無法修復的傷害"},
+        {"t": "leave lasting emotional scars on loved ones", "m": "給至親留下持久的情感創傷"},
+        {"t": "sensationalise private family disputes", "m": "將私人家庭糾紛煽情化"}
+      ]},
+      {"g": "建議與措施", "items": [
+        {"t": "strengthen legal safeguards for the elderly", "m": "加強對長者的法律保障"},
+        {"t": "raise awareness of financial exploitation targeting seniors", "m": "提高對針對長者財務剝削的關注"},
+        {"t": "promote community support networks for the bereaved", "m": "為喪親者推廣社區支援網絡"}
+      ]}
+    ]
+  },
+  {
+    "e": "🍔 餐飲與經濟", "tip": "結業潮、跨境消費、市場飽和等經濟議題必用短語",
+    "groups": [
+      {"g": "問題與現象", "items": [
+        {"t": "food and beverage sector", "m": "餐飲業"},
+        {"t": "brick-and-mortar store", "m": "實體店舖"},
+        {"t": "market saturation", "m": "市場飽和"},
+        {"t": "price-sensitive consumer", "m": "對價格敏感的消費者"},
+        {"t": "fail to cater to local tastes", "m": "未能迎合本地口味"},
+        {"t": "overestimate the purchasing power of", "m": "高估…的購買力"}
+      ]},
+      {"g": "後果與影響", "items": [
+        {"t": "lose its competitive edge in", "m": "在…中失去競爭優勢"},
+        {"t": "buckle under soaring rental costs", "m": "不堪沉重租金而倒下"},
+        {"t": "trigger a wave of store closures", "m": "引發結業潮"},
+        {"t": "erode profit margins", "m": "侵蝕利潤空間"},
+        {"t": "hasten the exit of foreign brands", "m": "加速外國品牌的撤離"},
+        {"t": "a symptom of a broader economic downturn", "m": "更廣泛經濟低迷的徵兆"}
+      ]},
+      {"g": "建議與措施", "items": [
+        {"t": "adapt pricing strategies to local market conditions", "m": "按本地市場狀況調整定價策略"},
+        {"t": "diversify revenue streams", "m": "分散收入來源"},
+        {"t": "offer value-for-money alternatives", "m": "提供物有所值的選擇"},
+        {"t": "revitalise the local dining scene", "m": "振興餐飲業"},
+        {"t": "incentivise consumer spending through subsidies", "m": "透過補貼刺激消費"}
+      ]}
+    ]
+  },
+  {
+    "e": "🏓 運動與康樂", "tip": "新興運動、恆常運動習慣、公共康樂設施等議題必用短語",
+    "groups": [
+      {"g": "問題與現象", "items": [
+        {"t": "racket sport", "m": "球拍運動"},
+        {"t": "leisure activity", "m": "休閒活動"},
+        {"t": "an emerging sport gaining mainstream traction", "m": "逐漸普及的新興運動"},
+        {"t": "a low-impact alternative to traditional racket sports", "m": "傳統球拍運動的低衝擊替代選擇"},
+        {"t": "a shortage of public sports facilities", "m": "公共康樂設施不足"},
+        {"t": "long working hours leave little time for exercise", "m": "長工時令運動時間所剩無幾"}
+      ]},
+      {"g": "好處與影響", "items": [
+        {"t": "appeal to a broad demographic", "m": "吸引廣泛年齡層"},
+        {"t": "be gentle on the joints and ideal for beginners", "m": "對關節負擔小且適合初學者"},
+        {"t": "be well suited to Hong Kong's limited recreational space", "m": "適合香港有限的康樂空間"},
+        {"t": "reduce the risk of chronic diseases", "m": "降低患慢性疾病的風險"},
+        {"t": "cultivate a habit of regular exercise", "m": "培養恆常運動的習慣"}
+      ]},
+      {"g": "建議與措施", "items": [
+        {"t": "require only a compact court and basic equipment", "m": "只需小型場地和基本器材"},
+        {"t": "incentivise participation through free public programmes", "m": "透過免費公共計劃鼓勵市民參與"},
+        {"t": "invest in grassroots sports development", "m": "投資基層體育發展"}
+      ]}
+    ]
   }
+
 ];
 
 /* =====================================================================
@@ -3404,6 +3862,14 @@ const App = {
           ${th.map(x=>`<span class="m-badge" style="background:var(--bg-soft);color:var(--sub);border-color:var(--border)">${Utils.esc(x)}</span>`).join('')}
           ${Enh.evidence(w)}
         </div>
+        ${w.eg?`<div class="d-ex" style="color:var(--sub)">✍️ 例句：${Utils.esc(w.eg)}</div>`:''}
+        ${Enh.note(w)?`<div style="margin-top:10px;background:#B453090f;border:1px solid #FDE68A;border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.65;color:var(--text)">${Enh.note(w)}</div>`:''}
+        ${(()=>{ const g=Enh.syn(w); if(!g) return '';
+          const others=g.members.filter(x=>x.id!==w.id);
+          return `<div style="margin:10px 0">
+            <div style="font-size:12px;color:var(--faint);margin-bottom:5px">🔄 同義替換（${g.n}）—— 寫作避免重複用同一個詞</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">${others.map(x=>`<button class="m-badge" style="background:#8B5CF61a;color:#8B5CF6;border-color:#8B5CF633;cursor:pointer" onclick="App.openDetail('${x.id}')">${Utils.esc(x.phrase)}</button>`).join('')}</div>
+          </div>`;})()}
         ${Enh.on()&&(Enh.dse(w)||Enh.ale(w))?`<div class="d-ex" style="color:var(--sub)">📄 歷屆卷證據：DSE Paper 1 出現 <b>${Enh.dse(w)}</b> / ${Enh.nD()} 份${Enh.ale(w)?`（HKALE UE 另出現 ${Enh.ale(w)} / ${Enh.nA()} 年）`:''}</div>`:''}${Enh.isGeo(w)?'<div class="d-ex" style="color:var(--faint)">🗺️ 地名／專有名詞：DSE 極少直接考，唔使花時間背。</div>':''}${Enh.isDup(w)?'<div class="d-ex" style="color:var(--faint)">🔁 詞庫入面有重複詞條，應考路線只會計一次。</div>':''}`;})():''}
         ${(()=>{const cs=Curve.status(w);const r=Curve.retention(w);const x=Store.state.sched[Store.key(w)];return `<div class="d-curve"><span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33;font-size:10px">${cs.t}</span><span style="font-size:11px;color:var(--sub)">記憶強度 <b style="color:var(--txt)">${r}%</b>${x?` · 間隔 ${x.int} 天 · 複習 ${x.rep} 次`:' · 尚未複習'}</span></div>`;})()}
         ${w.example?`<div class="d-ex">📝 ${Utils.esc(w.example)}</div>`:''}
