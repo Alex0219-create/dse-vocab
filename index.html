@@ -537,7 +537,7 @@ const Utils = {
   },
   shuffle(a){ const r=[...a]; for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; },
   today(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); },
-  posTag(w){ if(!w||!w.pos) return ''; const m={n:'n.',v:'v.',adj:'adj.',adv:'adv.',phr:'phr.'}[w.pos]; return m?`<span class="pos-tag">(${m})</span>`:''; },
+  posTag(w){ if(!w) return ''; const p=Enh.pos(w)||w.pos||''; const m={n:'n.',v:'v.',adj:'adj.',adv:'adv.',phr:'phr.'}[p]; return m?`<span class="pos-tag">(${m})</span>`:''; },
   lvFromScore(s){ return s>=90?'5**':s>=82?'5*':s>=74?'5':s>=64?'4':s>=52?'3':s>=40?'2':'1'; },
   lvLabel(lv){ return ({'S級':'5**','A級':'5*','B級':'5','C級':'4','努力級':'1'})[lv]||lv; },
   priorityPlan(lv){
@@ -701,9 +701,24 @@ const Storage = {
 const Store = {
   state: null, _subs: [],
   key(w){ return w.id; },
+  /* 今日計數器：跨日自動歸零，令任務卡反映「今日」而唔係「累計」 */
+  day(){
+    const s=this.state, t=Utils.today();
+    if(!s.day || s.day.d!==t){ s.day={d:t,learn:0,review:0,quiz:0}; }
+    return s.day;
+  },
+  /* kind: 'learn' 新學 | 'review' 複習 | 'quiz' 測驗 */
+  tally(kind){
+    const s=this.state, d=this.day(), t=Utils.today();
+    if(kind==='learn') d.learn=(d.learn||0)+1;
+    else if(kind==='review') d.review=(d.review||0)+1;
+    else if(kind==='quiz') d.quiz=(d.quiz||0)+1;
+    s.history[t]=(s.history[t]||0)+1;
+  },
   defaultState(){ return {
     v:3, known:new Set(), wrong:new Set(), fav:new Set(), tomo:new Set(),
     sched:{}, history:{}, goal:20, mode:'all', dark:false,
+    day:{d:'',learn:0,review:0,quiz:0},
     quizCount:0, onboarded:false, dseDate:'', lvTest:null, essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false },
     essayCount:0, streak:0, streakDay:'', lastActive:'', achievements:[], fontSize:16, quizBest:0, customWords:[], webdav:{url:'',token:''}
   }; },
@@ -713,7 +728,7 @@ const Store = {
     const d=this.defaultState();
     const st={ ...d, ...(saved||{}),
       known:new Set(saved?.known||[]), wrong:new Set(saved?.wrong||[]), fav:new Set(saved?.fav||[]), tomo:new Set(saved?.tomo||[]),
-      sched:saved?.sched||{}, history:saved?.history||{}, essay:{ ...d.essay, ...(saved?.essay||{}) }, webdav:{ ...d.webdav, ...(saved?.webdav||{}) }
+      sched:saved?.sched||{}, history:saved?.history||{}, day:saved?.day||{d:'',learn:0,review:0,quiz:0}, essay:{ ...d.essay, ...(saved?.essay||{}) }, webdav:{ ...d.webdav, ...(saved?.webdav||{}) }
     };
     this.state=st;
     // 舊版 Level 測試數據遷移：舊制（score<=10 且無 pct）轉百分制
@@ -736,7 +751,7 @@ const Store = {
   },
   persist(){
     const s=this.state;
-    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], tomo:[...s.tomo], sched:s.sched, history:s.history, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, essayCount:s.essayCount||0, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0, customWords:s.customWords||[], webdav:s.webdav||{url:'',token:''} };
+    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], tomo:[...s.tomo], sched:s.sched, history:s.history, day:s.day||{d:'',learn:0,review:0,quiz:0}, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, essayCount:s.essayCount||0, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0, customWords:s.customWords||[], webdav:s.webdav||{url:'',token:''} };
     Storage.set('dse_state', JSON.stringify(snap));
     Storage.idbSet('backup', { s: JSON.stringify(snap), t: Date.now() });
   },
@@ -747,11 +762,85 @@ const Store = {
     const d=this.defaultState();
     this.state={ ...d, ...snap,
       known:new Set(snap.known||[]), wrong:new Set(snap.wrong||[]), fav:new Set(snap.fav||[]), tomo:new Set(snap.tomo||[]),
-      sched:snap.sched||{}, history:snap.history||{}, essay:{ ...d.essay, ...(snap.essay||{}) }, essayCount:snap.essayCount||0, streak:snap.streak||0, lastActive:snap.lastActive||'', achievements:new Set(snap.achievements||[]), fontSize:snap.fontSize||16, quizBest:snap.quizBest||0, customWords:snap.customWords||[], webdav:{ ...d.webdav, ...(snap.webdav||{}) } };
+      sched:snap.sched||{}, history:snap.history||{}, day:snap.day||{d:'',learn:0,review:0,quiz:0}, essay:{ ...d.essay, ...(snap.essay||{}) }, essayCount:snap.essayCount||0, streak:snap.streak||0, lastActive:snap.lastActive||'', achievements:new Set(snap.achievements||[]), fontSize:snap.fontSize||16, quizBest:snap.quizBest||0, customWords:snap.customWords||[], webdav:{ ...d.webdav, ...(snap.webdav||{}) } };
     this.persist();
   }
 };
 /* ===== 詞庫載入 ===== */
+/* =====================================================================
+ * 應考增強層（讀取 dse_vocab_enhance.js；唔到手唔影響原本功能）
+ * ===================================================================== */
+const Enh = {
+  D:null,
+  async load(){
+    if(window.__DSE_ENHANCE){ this.D=window.__DSE_ENHANCE; return true; }
+    try{
+      const r=await fetch('dse_vocab_enhance.js',{cache:'no-cache'});
+      if(r.ok){
+        const t=await r.text();
+        const m=t.match(/window\.__DSE_ENHANCE\s*=\s*(\{[\s\S]*\});?\s*$/);
+        if(m){ this.D=JSON.parse(m[1]); return true; }
+      }
+    }catch(e){}
+    return false;
+  },
+  on(){ return !!(this.D && this.D.n===Data.raw.length); },
+  _i(w){ return (w && typeof w.id==='number') ? w.id : -1; },
+  pri(w){ const i=this._i(w); return (this.on()&&i>=0)?(this.D.pri[i]||0):50; },
+  tier(w){ const i=this._i(w); return (this.on()&&i>=0)?(this.D.tier[i]||'B'):''; },
+  themes(w){
+    if(!this.on()) return [];
+    const i=this._i(w); if(i<0) return [];
+    const m=this.D.thm[i]||0, names=this.D.themes||[];
+    const out=[]; for(let k=0;k<names.length;k++) if(m&(1<<k)) out.push(names[k]);
+    return out;
+  },
+  hasTheme(w,name){ return this.themes(w).indexOf(name)>=0; },
+  isGeo(w){ const i=this._i(w); return !!(this.on()&&i>=0&&this.D.geo[i]==='1'); },
+  isProp(w){ const i=this._i(w); return !!(this.on()&&i>=0&&this.D.prop[i]==='1'); },
+  isCore(w){ const i=this._i(w); return !!(this.on()&&i>=0&&this.D.core[i]==='1'); },
+  isDup(w){ return !!(this.on()&&this.D.dup&&this.D.dup[this._i(w)]!=null); },
+  dse(w){ const i=this._i(w); return (this.on()&&i>=0)?(this.D.dse[i]||0):0; },
+  ale(w){ const i=this._i(w); return (this.on()&&i>=0)?(this.D.ale[i]||0):0; },
+  nD(){ return this.on()?(this.D.nD||0):0; },
+  nA(){ return this.on()?(this.D.nA||0):0; },
+  /* 高頻門檻隨語料規模自動縮放：15 份卷用 >=2，9 份卷亦係 >=2，30 份卷會變 >=4 */
+  freqMin(){ return Math.max(2, Math.round(this.nD()*0.13)); },
+  isFreq(w){ return this.dse(w)>=this.freqMin(); },
+  /* 真題證據徽章：DSE 優先，無 DSE 證據先用 A-Level */
+  evidence(w){
+    if(!this.on()) return '';
+    const d=this.dse(w), a=this.ale(w);
+    if(d>=1) return `<span class="m-badge" style="background:#10B9811a;color:#10B981;border-color:#10B98133">🎯 DSE ${d}/${this.nD()} 卷</span>`;
+    if(a>=5) return `<span class="m-badge" style="background:#94A3B81a;color:#64748B;border-color:#94A3B833">ALE ${a} 年</span>`;
+    return '';
+  },
+  pos(w){ if(!this.on()) return w&&w.pos; const f=this.D.posFix; const i=this._i(w); return (i>=0&&f&&f[i])||(w&&w.pos); },
+  /* 應考價值排序：優先度高、命中真題、星級高行先 */
+  cmp(a,b){
+    const d=Enh.pri(b)-Enh.pri(a);
+    if(d) return d;
+    if(Enh.dse(b)!==Enh.dse(a)) return Enh.dse(b)-Enh.dse(a);
+    if(Enh.isCore(b)!==Enh.isCore(a)) return Enh.isCore(b)?1:-1;
+    if((b.stars||0)!==(a.stars||0)) return (b.stars||0)-(a.stars||0);
+    return (a.id||0)-(b.id||0);
+  },
+  /* 應考路線：去重 + 剔除地名，按優先度排（結果快取，避免每次 render 重新排序） */
+  _path:null, _tc:null,
+  path(){
+    if(!this.on()) return Data.raw.slice();
+    if(this._path) return this._path;
+    const out=Data.raw.filter(w=>!Enh.isDup(w)&&!Enh.isGeo(w));
+    out.sort(Enh.cmp);
+    this._path=out;
+    return out;
+  },
+  tierCount(t){
+    if(!this.on()) return 0;
+    if(!this._tc){ this._tc={S:0,A:0,B:0,C:0}; Enh.path().forEach(w=>{ this._tc[Enh.tier(w)]=(this._tc[Enh.tier(w)]||0)+1; }); }
+    return this._tc[t]||0;
+  },
+};
 const Data = {
   raw:[], byId:new Map(), index:new Map(), __src:'',
   get(id){ const w=Data.byId.get(id); return w||Data.byId.get(Number(id)); },
@@ -786,6 +875,7 @@ const Data = {
     Data.raw=words; Data.byId=new Map(words.map(w=>[w.id,w]));
     Data._buildIndex();
     Data._mergeCustom();
+    try{ await Enh.load(); }catch(e){}
     return words.length;
   },
   _mergeCustom(){
@@ -976,6 +1066,7 @@ const SM2 = {
   review(w, quality){
     const s=Store.state;
     const k=Store.key(w);
+    const wasNew=!s.sched[k];
     const cur=s.sched[k]||{int:0,rep:0,due:Date.now(),ef:2.5};
     let {int,rep,ef}=cur;
     if(quality>=3){
@@ -984,24 +1075,71 @@ const SM2 = {
       else int=Math.round(int*ef);
       rep++;
     }else{
-      rep=0; int=1;
+      // 答錯：唔再由 1 日重新起步（會令大量詞卡喺短間隔、複習量失控）
+      // 改為間隔減半、EF 下降，下次答啱就按新 EF 繼續拉長
+      int=Math.max(1, Math.round((int||1)*0.5));
     }
     ef=Math.max(1.3, ef+(0.1-(5-quality)*(0.08+(5-quality)*0.02)));
     const due=Date.now()+int*86400000;
     s.sched[k]={int,rep,due,ef};
+    // 第一次排程 = 新學；之後 = 複習（用嚟做每日計數同任務進度）
+    Store.tally(wasNew?'learn':'review');
     return {int,rep,ef,due};
+  },
+  /* ---- 每日配額：控制「新詞湧入」同「到期爆量」兩個失控位 ---- */
+  newLeft(){ return Math.max(0, (Store.state.goal||20) - (Store.day().learn||0)); },
+  // 到期係「必溫」，cut 咗只會令積壓隱形；呢個只係安全閥（異常情況先會觸發）
+  dueLeft(){ return 600; },
+  /* 卡片類型：畀 UI 顯示，亦令學生知道而家溫緊邊一類 */
+  type(w){
+    const s=Store.state, k=Store.key(w);
+    if(s.tomo.has(k)) return {t:'⏰ 明日優先', c:'#F59E0B'};
+    const x=s.sched[k];
+    if(!x) return {t:'🆕 新學', c:'#10B981'};
+    if(x.due<=Date.now()){
+      const od=Math.floor((Date.now()-x.due)/86400000);
+      return {t:'🔁 到期複習'+(od>0?`（逾期 ${od} 日）`:''), c:'#0EA5E9'};
+    }
+    if(s.wrong.has(k)) return {t:'⚠️ 錯詞重溫', c:'#EF4444'};
+    return {t:'📚 提前溫習', c:'#94A3B8'};
+  },
+  /* 到期／錯詞統計：首頁同閃卡用 */
+  stats(){
+    const s=Store.state, now=Date.now();
+    let due=0, wrong=0, fresh=0;
+    Data.raw.forEach(w=>{
+      const k=Store.key(w), x=s.sched[k];
+      if(x){ if(x.due<=now) due++; }
+      else if(!s.known.has(k)) fresh++;
+      if(s.wrong.has(k)) wrong++;
+    });
+    return {due, wrong, fresh};
   },
   duePool(cat, star){
     const s=Store.state;
     const now=Date.now();
+    const K=w=>Store.key(w);
     const all=cat==='all'?Data.raw:Data.raw.filter(w=>w.category===cat);
-    const pool=star>1?all.filter(w=>w.stars>=star):all;
-    const tomo=pool.filter(w=>s.tomo.has(Store.key(w)));
-    const due=pool.filter(w=>{ const x=s.sched[Store.key(w)]; return x&&x.due<=now&&!s.tomo.has(Store.key(w)); });
-    const fresh=pool.filter(w=>{ const k=Store.key(w); return !s.sched[k]&&!s.known.has(k)&&!s.tomo.has(k); });
-    const review=pool.filter(w=>s.wrong.has(Store.key(w))&&!due.includes(w)&&!fresh.includes(w)&&!tomo.includes(w));
-    const rest=pool.filter(w=>!due.includes(w)&&!fresh.includes(w)&&!review.includes(w)&&!tomo.includes(w));
-    const q=[...tomo, ...due.sort((a,b)=>s.sched[Store.key(a)].due-s.sched[Store.key(b)].due), ...Utils.shuffle(fresh), ...Utils.shuffle(review), ...Utils.shuffle(rest)];
+    let pool=star>1?all.filter(w=>w.stars>=star):all;
+    if(Enh.on()) pool=pool.filter(w=>!Enh.isDup(w)&&!Enh.isGeo(w));
+
+    const tomo=pool.filter(w=>s.tomo.has(K(w)));
+    const isDue=w=>{ const x=s.sched[K(w)]; return !!x&&x.due<=now; };
+    // 到期：逾期愈耐排愈前
+    const due=pool.filter(w=>isDue(w)&&!s.tomo.has(K(w)))
+                  .sort((a,b)=>s.sched[K(a)].due-s.sched[K(b)].due);
+    // 錯詞（未到期）即時重溫，但要限額，避免霸佔成個隊列
+    const wrong=Utils.shuffle(pool.filter(w=>s.wrong.has(K(w))&&!isDue(w)&&!s.tomo.has(K(w))&&s.sched[K(w)]));
+    // 新詞：嚴格按每日配額，並按應考優先度排（唔係隨機）
+    const fresh=pool.filter(w=>{ const k=K(w); return !s.sched[k]&&!s.known.has(k)&&!s.tomo.has(k); });
+    const freshOrdered=Enh.on()?fresh.slice().sort(Enh.cmp):Utils.shuffle(fresh);
+
+    const q=[]; const seen=new Set();
+    const push=arr=>arr.forEach(w=>{ const k=K(w); if(!seen.has(k)){ seen.add(k); q.push(w); } });
+    push(tomo);
+    push(due.slice(0, SM2.dueLeft()));
+    push(wrong.slice(0, Math.max(10, Math.round((s.goal||20)/2))));
+    push(freshOrdered.slice(0, SM2.newLeft()));
     return q;
   }
 };
@@ -1122,14 +1260,13 @@ const Mission = {
   get todayKey(){ return Utils.today(); },
   progress(){ return Store.state.history[this.todayKey]||0; },
   list(){
-    const p=this.progress();
-    const learned=p;
-    const reviewed=Object.keys(Store.state.sched).length;
-    const quizDone=Store.state.quizCount;
+    const s=Store.state, d=Store.day(), st=SM2.stats();
+    // 複習目標跟「今日到期量」走：有幾多到期就溫幾多（上限 40），冇到期就 10
+    const rGoal=Math.min(40, Math.max(10, st.due));
     return [
-      {ic:'📖', t:'學習詞彙', goal:Store.state.goal, done:learned, unit:'詞'},
-      {ic:'🔁', t:'複習詞彙', goal:10, done:Math.min(reviewed,10), unit:'詞'},
-      {ic:'📝', t:'完成測驗', goal:1, done:Math.min(quizDone,1), unit:'次'}
+      {ic:'📖', t:'學習詞彙', goal:s.goal, done:d.learn||0, unit:'詞'},
+      {ic:'🔁', t:'複習詞彙', goal:rGoal, done:d.review||0, unit:'詞'},
+      {ic:'📝', t:'完成測驗', goal:1, done:d.quiz||0, unit:'次'}
     ];
   },
   doneCount(){
@@ -1141,9 +1278,12 @@ const Mission = {
       const done=x.done>=x.goal;
       return `<div class="mission-item ${done?'done':''}"><span class="m-ic">${done?'✓':x.ic}</span><span>${x.t}（${Math.min(x.done,x.goal)}/${x.goal}${x.unit}）</span></div>`;
     }).join('');
+    const _st=SM2.stats(), _dd=Store.day();
+    const backlog=Math.max(0, _st.due - (_dd.review||0));
     return `<div class="mission-card">
       <div class="mission-head"><span>🎯 今日任務</span><span class="mission-progress">${this.doneCount()}/3 完成</span></div>
       <div class="mission-list">${items}</div>
+      ${backlog>0?`<div style="font-size:11px;color:var(--faint);margin-top:6px">⏳ 仲有 ${backlog} 個詞到期未溫 —— 到期係必溫，愈早清愈好</div>`:''}
     </div>`;
   }
 };
@@ -1235,6 +1375,17 @@ const Home = {
         <div class="qb" onclick="App.go('browse')"><span class="ic">🔍</span><span class="t">詞庫總覽</span><span class="d">${total} 詞隨時查</span></div>
         <div class="qb" onclick="App.go('stats')"><span class="ic">📊</span><span class="t">學習數據</span><span class="d">掌握分析 × 打卡</span></div>
       </div>
+      ${Enh.on()?(()=>{const S=Enh.tierCount('S'),A=Enh.tierCount('A'),B=Enh.tierCount('B');
+        const sk=Enh.path().filter(w=>Enh.tier(w)==='S'&&s.known.has(Store.key(w))).length;
+        return `<div class="dse-card" style="margin-bottom:12px;background:linear-gradient(135deg,#0ea5e9,#6366f1)">
+        <div class="dse-left"><div class="dse-lv" style="font-size:26px">🎯</div><div class="dse-lbl" style="color:rgba(255,255,255,.85)">應考路線</div></div>
+        <div class="dse-mid">
+          <div class="dse-count" style="color:#fff">S 級必考 ${sk} / ${S} 詞</div>
+          <div class="dse-bar"><div class="dse-fill" style="width:${S?Math.round(sk/S*100):0}%;background:#fff"></div></div>
+          <div class="dse-txt" style="color:rgba(255,255,255,.85)">S 級 ${S} · A 級 ${A} · B 級 ${B} · 真題高頻 ${Enh.path().filter(w=>Enh.isFreq(w)).length}</div>
+        </div>
+        <div class="dse-right"><button class="btn sm" style="background:#fff;color:#6366f1" onclick="App.startPath()">開始</button></div>
+      </div>`;})():''}
       <div class="section-title"><span class="dot"></span>詞庫分佈</div>
       <div class="dse-report-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(54px,1fr));gap:8px;margin-bottom:6px">${stars}</div>
       <div style="font-size:10.5px;color:var(--faint);margin-bottom:12px;padding-left:2px">合計 ${total} 詞（各星級係實際詞數，唔會重複計）</div>
@@ -1257,16 +1408,24 @@ const Flash = {
   render(){
     const wrap=Utils.$('#flashWrap');
     if(!Flash.queue.length){
-      wrap.innerHTML=`<div class="fc-empty"><div class="ic">🎉</div><div>冇需要複習嘅詞彙</div><div class="btn sm soft" onclick="App.go('browse')">去詞庫學新詞</div></div>`;
+      const dq=Store.day(), gg=Store.state.goal||20, st=SM2.stats();
+      const msg=(dq.learn||0)>=gg ? `今日 ${gg} 個新詞配額已完成 🎉<br>聽日再學，或者去溫錯詞`
+        : st.due>0 ? `今日到期嘅 ${st.due} 個詞已全部溫完 🎉`
+        : `暫時冇到期要溫嘅詞 🎉<br>去詞庫揀詞，或者用「應考路線」排今日進度`;
+      wrap.innerHTML=`<div class="fc-empty"><div class="ic">🎉</div><div>${msg}</div><div class="btn sm soft" onclick="App.startPath()">排今日路線</div><div class="btn sm ghost" onclick="App.go('browse')">去詞庫</div></div>`;
       return;
     }
     const w=Flash.queue[Flash.idx];
     Flash._cur=w;
+    const tp=SM2.type(w);
+    const d=Store.day(), g=Store.state.goal||20;
     wrap.innerHTML=`
       <div class="flash-top">
         <span>${Flash.idx+1} / ${Flash.queue.length}</span>
+        <span style="font-size:11px;color:var(--sub)">今日 學 ${d.learn||0}/${g} · 複習 ${d.review||0}</span>
         <label class="star-tog"><input type="checkbox" ${Flash.star>1?'checked':''} onchange="Flash.setStar(this.checked)"> 只睇 ★${Flash.star>1?'':'≥'}${Flash.star>1?'':''}</label>
       </div>
+      <div style="text-align:center;margin-bottom:8px"><span class="m-badge" style="background:${tp.c}1a;color:${tp.c};border-color:${tp.c}33">${tp.t}</span></div>
       <div class="flash-card">
         <div class="fc-inner ${Flash.flipped?'flipped':''}" id="fcCard" onclick="Flash.flip()">
           <span class="fc-cat">${Utils.esc(w.category)}${Store.state.tomo.has(Store.key(w))?' <span style="color:#F59E0B;font-weight:700">⏰ 明日優先</span>':''}</span>
@@ -2112,9 +2271,8 @@ const Quiz = {
     const ok=q.opts[i].id===q.w.id;
     if(ok){ Quiz.score++; Store.state.known.add(Store.key(q.w)); }
     else Store.state.wrong.add(Store.key(q.w));
-    const today=Utils.today();
-    Store.state.history[today]=(Store.state.history[today]||0)+1;
     Store.state.quizCount=(Store.state.quizCount||0)+1;
+    Store.tally('quiz');
     Store.persist(); Store.notify();
     Quiz.render();
   },
@@ -2164,12 +2322,45 @@ const Quiz = {
  * 詞庫
  * ===================================================================== */
 const Browse = {
-  filtered:[], cat:'全部', q:'', _page:1, _pageSize:60, _lock:false,
-  enter(){ Browse.filtered=Data.raw; Browse._page=1; Browse.renderList(); },
+  filtered:[], cat:'全部', q:'', theme:null, _page:1, _pageSize:60, _lock:false,
+  enter(){ Browse.filtered=Browse.apply(Data.raw); Browse._page=1; Browse.renderList(); },
+  /* 統一篩選邏輯（支援應考分級 + 主題 + 去重） */
+  match(w){
+    const c=Browse.cat;
+    if(c==='全部') return true;
+    if(c==='★5') return w.stars>=5;
+    if(c==='未掌握') return !Store.state.known.has(Store.key(w));
+    if(c==='🎯 S級必考') return Enh.tier(w)==='S';
+    if(c==='🔥 A級衝刺') return Enh.tier(w)==='A';
+    if(c==='📘 B級基礎') return Enh.tier(w)==='B';
+    if(c==='🏆 DSE真題高頻') return Enh.isFreq(w);
+    return w.category===c;
+  },
+  apply(base){
+    let out=base.filter(w=>Browse.match(w));
+    if(Browse.theme) out=out.filter(w=>Enh.hasTheme(w,Browse.theme));
+    if(['🎯 S級必考','🔥 A級衝刺','📘 B級基礎','🏆 DSE真題高頻'].indexOf(Browse.cat)>=0){
+      out=out.filter(w=>!Enh.isDup(w)&&!Enh.isGeo(w));
+      if(Enh.on()){
+        // 真題高頻列表：以「出現份數」排，其餘以應考優先度排
+        out=out.slice().sort(Browse.cat==='🏆 DSE真題高頻'
+          ? (a,b)=> (Enh.dse(b)-Enh.dse(a)) || Enh.cmp(a,b)
+          : Enh.cmp);
+      }
+    }
+    return out;
+  },
   setCat(c){
     Browse.cat=c;
-    const all=Data.raw;
-    Browse.filtered = c==='全部'?all:(c==='★5'?all.filter(w=>w.stars>=5):(c==='未掌握'?all.filter(w=>!Store.state.known.has(Store.key(w))):all.filter(w=>w.category===c)));
+    Browse.theme=null;      // 轉分類 = 重新揀，清走舊主題篩選
+    Browse.filtered=Browse.apply(Data.raw);
+    Browse._page=1;
+    Browse.renderList();
+  },
+  setTheme(t){
+    Browse.theme=(Browse.theme===t)?null:t;
+    Browse.cat=Browse.theme?'全部':Browse.cat;
+    Browse.filtered=Browse.apply(Data.search(Browse.q||''));
     Browse._page=1;
     Browse.renderList();
   },
@@ -2177,11 +2368,7 @@ const Browse = {
     Browse.q=q;
     clearTimeout(Browse._t);
     Browse._t=setTimeout(()=>{
-      const base=Data.search(q);
-      if(Browse.cat==='全部') Browse.filtered=base;
-      else if(Browse.cat==='★5') Browse.filtered=base.filter(w=>w.stars>=5);
-      else if(Browse.cat==='未掌握') Browse.filtered=base.filter(w=>!Store.state.known.has(Store.key(w)));
-      else Browse.filtered=base.filter(w=>w.category===Browse.cat);
+      Browse.filtered=Browse.apply(Data.search(q));
       Browse._page=1;
       Browse.renderList();
     }, 200);
@@ -2190,19 +2377,20 @@ const Browse = {
     const k=Store.key(w);const tm=Store.state.tomo.has(k);
     const cs=Curve.status(w);
     return `<div class="list-item" id="li-${w.id}" data-word="${Utils.esc(w.phrase)}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
-      <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}<span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33">${cs.t}</span></div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
+      <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}${Enh.on()&&Enh.tier(w)?`<span class="m-badge" style="background:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}1a;color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]};border-color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}33">${Enh.tier(w)} 級</span>`:''}${Enh.isFreq(w)?`<span class="m-badge" style="background:#10B9811a;color:#10B981;border-color:#10B98133">DSE${Enh.dse(w)}/${Enh.nD()}</span>`:''}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}<span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33">${cs.t}</span></div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
       <div class="li-fav">${Store.state.fav.has(k)?'★':''}</div>
     </div>`;
   },
   renderList(){
     const v=Utils.$('#view-browse');
     const st=v.scrollTop;
-    const cats=['全部','★5','未掌握',...[...new Set(Data.raw.map(w=>w.category))]];
+    const cats=Enh.on()?['🎯 S級必考','🔥 A級衝刺','📘 B級基礎','🏆 DSE真題高頻','全部','★5','未掌握',...[...new Set(Data.raw.map(w=>w.category))]]:['全部','★5','未掌握',...[...new Set(Data.raw.map(w=>w.category))]];
     const tomoCount=Store.state.tomo.size;
     const list=Browse.filtered.slice(0, Browse._page*Browse._pageSize);
     v.innerHTML=`
       <div class="search-bar"><input class="field" id="browseSearch" placeholder="🔍 搜尋詞彙／中文意思…" value="${Utils.esc(Browse.q)}" oninput="Browse.search(this.value)"></div>
       <div class="cat-chips">${cats.map(c=>`<button class="cat-chip ${Browse.cat===c?'active':''}" onclick="Browse.setCat('${c.replace(/'/g,"\\'")}')">${c}</button>`).join('')}</div>
+      ${Enh.on()?`<div class="cat-chips">${(Enh.D.themes||[]).map(t=>`<button class="cat-chip ${Browse.theme===t?'active':''}" style="${Browse.theme===t?'background:var(--grad);color:#fff;border-color:transparent':''}" onclick="Browse.setTheme('${t}')">${t}</button>`).join('')}</div>`:''}
       ${tomoCount?`<div class="tomo-bar"><span>⏰ 明日優先複習：${tomoCount} 詞</span><button class="btn sm ghost" onclick="App.clearTomo()">清除全部</button></div>`:''}
       <div style="font-size:11px;color:var(--faint);margin:2px 2px 10px">共 ${Browse.filtered.length} 詞 · 長按可收藏</div>
       <div id="browseList">${list.map(w=>Browse._row(w)).join('')||`<div class="empty"><div class="e-icon">🔍</div>搵唔到相關詞彙</div>`}</div>
@@ -3211,6 +3399,12 @@ const App = {
         <div class="d-stars">${'★'.repeat(Math.min(w.stars,5))}${w.stars>5?'（高階）':''}</div>
         <div class="d-mean">${Utils.esc(w.meaning)}</div>
         ${Utils.isExamWord(w)?'<div class="d-ex" style="color:#F59E0B;font-weight:700">📌 DSE 真題高頻詞</div>':''}
+        ${Enh.on()?(()=>{const t=Enh.tier(w),th=Enh.themes(w);return `<div style="display:flex;flex-wrap:wrap;gap:5px;margin:8px 0">
+          ${t?`<span class="m-badge" style="background:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[t]}1a;color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[t]};border-color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[t]}33">應考 ${t} 級 · 優先度 ${Enh.pri(w)}</span>`:''}
+          ${th.map(x=>`<span class="m-badge" style="background:var(--bg-soft);color:var(--sub);border-color:var(--border)">${Utils.esc(x)}</span>`).join('')}
+          ${Enh.evidence(w)}
+        </div>
+        ${Enh.on()&&(Enh.dse(w)||Enh.ale(w))?`<div class="d-ex" style="color:var(--sub)">📄 歷屆卷證據：DSE Paper 1 出現 <b>${Enh.dse(w)}</b> / ${Enh.nD()} 份${Enh.ale(w)?`（HKALE UE 另出現 ${Enh.ale(w)} / ${Enh.nA()} 年）`:''}</div>`:''}${Enh.isGeo(w)?'<div class="d-ex" style="color:var(--faint)">🗺️ 地名／專有名詞：DSE 極少直接考，唔使花時間背。</div>':''}${Enh.isDup(w)?'<div class="d-ex" style="color:var(--faint)">🔁 詞庫入面有重複詞條，應考路線只會計一次。</div>':''}`;})():''}
         ${(()=>{const cs=Curve.status(w);const r=Curve.retention(w);const x=Store.state.sched[Store.key(w)];return `<div class="d-curve"><span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33;font-size:10px">${cs.t}</span><span style="font-size:11px;color:var(--sub)">記憶強度 <b style="color:var(--txt)">${r}%</b>${x?` · 間隔 ${x.int} 天 · 複習 ${x.rep} 次`:' · 尚未複習'}</span></div>`;})()}
         ${w.example?`<div class="d-ex">📝 ${Utils.esc(w.example)}</div>`:''}
         ${Utils.synonymsHtml(w)}
@@ -3358,6 +3552,20 @@ const App = {
   },
   resetData(){
     if(confirm('確定要重置所有學習數據？此操作無法還原。')){ Store.reset(); Utils.toast('已重置'); App.go('home'); }
+  },
+  /* 應考路線：由 S 級開始，每日 goal 個詞 */
+  startPath(){
+    if(!Enh.on()){ App.go('flash'); return; }
+    const p=Enh.path().filter(w=>!Store.state.known.has(Store.key(w)));
+    const n=Store.state.goal||20;
+    const today=Utils.today();
+    const done=Store.state.history[today]||0;
+    const slice=p.slice(0, Math.max(1, n));
+    if(!slice.length){ Utils.toast('S 級已經全部掌握 🎉'); App.go('flash'); return; }
+    Store.state.tomo=new Set(slice.map(w=>Store.key(w)));
+    Store.persist();
+    Utils.toast('今日路線：' + slice.length + ' 詞（已排入閃卡最前）');
+    App.go('flash');
   },
   closeGuide(){ Utils.$('#guide').classList.remove('show'); Store.state.onboarded=true; Storage.set('onboarded','1'); },
   async boot(){
