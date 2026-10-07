@@ -113,6 +113,43 @@ textarea.field{min-height:150px;line-height:1.7}
 @keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
 .sheet-handle{width:42px;height:4.5px;border-radius:99px;background:var(--border-2);margin:4px auto 14px}
 /* Toast */
+#modalOverlay{z-index:210}
+/* ===== 全域命令面板（Ctrl/Cmd+K） ===== */
+.pal-wrap{position:fixed;inset:0;z-index:220;display:none}
+.pal-wrap.show{display:block}
+.pal-mask{position:absolute;inset:0;background:rgba(10,12,24,.42);backdrop-filter:blur(3px)}
+.pal{position:absolute;left:50%;top:max(14px,env(safe-area-inset-top));transform:translateX(-50%);width:min(560px,94vw);max-height:76vh;display:flex;flex-direction:column;background:var(--card);border-radius:18px;box-shadow:var(--shadow-lg);overflow:hidden}
+.pal-in{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border)}
+.pal-in .ic{font-size:17px;opacity:.6}
+.pal-in input{flex:1;border:none;background:none;outline:none;font-size:16px;color:var(--text);font-family:inherit}
+.pal-in input::placeholder{color:var(--faint)}
+.pal-kbd{font-size:10.5px;font-weight:700;color:var(--sub);background:var(--bg-soft);border:1px solid var(--border-2);border-radius:6px;padding:3px 6px;white-space:nowrap}
+.pal-list{overflow-y:auto;padding:6px;flex:1;-webkit-overflow-scrolling:touch}
+.pal-sec{font-size:10.5px;font-weight:800;color:var(--faint);letter-spacing:.6px;padding:9px 10px 5px}
+.pal-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:12px;cursor:pointer;font-size:13.5px;line-height:1.4}
+.pal-item .pi-ic{font-size:15px;width:22px;text-align:center;flex-shrink:0}
+.pal-item .pi-main{flex:1;min-width:0}
+.pal-item .pi-t{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pal-item .pi-s{font-size:11.5px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pal-item .pi-go{font-size:11px;color:var(--faint);flex-shrink:0}
+.pal-item.on{background:var(--bg-soft)}
+.pal-item.on .pi-go{color:var(--brand-1);font-weight:800}
+.pal-empty{padding:34px 18px;text-align:center;color:var(--sub);font-size:13px}
+.pal-foot{padding:8px 13px;border-top:1px solid var(--border);font-size:10.5px;color:var(--faint);display:flex;gap:12px;flex-wrap:wrap}
+.pal-foot b{color:var(--sub);background:var(--bg-soft);border:1px solid var(--border-2);border-radius:5px;padding:1px 5px;font-weight:700}
+.fc-swipe-tip{text-align:center;font-size:11px;color:var(--faint);margin-top:9px;line-height:1.6}
+.fc-swipe-tip b{color:var(--sub)}
+/* ===== 快捷鍵說明 ===== */
+.ks-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--border);font-size:12.5px}
+.ks-row:last-child{border-bottom:none}
+.ks-keys{display:flex;gap:4px;flex:0 0 auto;min-width:96px}
+.ks-k{font-size:11px;font-weight:800;background:var(--bg-soft);border:1px solid var(--border-2);border-bottom-width:2px;border-radius:6px;padding:3px 7px;color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.ks-d{color:var(--sub);flex:1;line-height:1.5}
+/* ===== 無障礙：可見焦點 + 最小觸控目標 ===== */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2.5px solid var(--brand-1);outline-offset:2px;border-radius:8px}
+.nav button,.icon-btn{min-height:44px}
+.pal-item{min-height:44px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 #toast{position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:13px;font-weight:600;padding:10px 20px;border-radius:99px;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;max-width:88vw;text-align:center;box-shadow:var(--shadow-md)}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 /* 空狀態 */
@@ -190,6 +227,19 @@ textarea.field{min-height:150px;line-height:1.7}
 .fc-hint{position:absolute;bottom:16px;font-size:11px;color:var(--faint)}
 .fc-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .fc-btn{padding:13px;border-radius:16px;font-size:14px;font-weight:800;text-align:center;transition:transform .15s;user-select:none}
+.fc-actions4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.fc4{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:11px;padding:9px 3px;cursor:pointer;border:1.5px solid;transition:transform .12s}
+.fc4:active{transform:scale(.95)}
+.fc4 .k{font-size:11px;font-weight:800;letter-spacing:.3px}
+.fc4 .v{font-size:12px;font-weight:700}
+.fc4 .h{font-size:9.5px;opacity:.72;line-height:1.25;text-align:center}
+.fc4.again{background:#FEF2F2;border-color:#FCA5A5;color:#B91C1C}
+.fc4.hard{background:#FFF7ED;border-color:#FDBA74;color:#C2410C}
+.fc4.good{background:#F0FDF4;border-color:#86EFAC;color:#047857}
+.fc4.easy{background:#EFF6FF;border-color:#93C5FD;color:#1D4ED8}
+.fc4-tip{font-size:10.5px;color:var(--sub);text-align:center;margin-top:7px;line-height:1.5}
+.flash-msg{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;font-size:11.5px;font-weight:700;text-align:center;padding:6px 10px;border-radius:9px;margin-bottom:8px;line-height:1.5}
+.flash-undo{background:#EEF2FF;border:1px solid #C7D2FE;color:#4338CA;font-size:11.5px;font-weight:700;text-align:center;padding:6px 10px;border-radius:9px;margin-bottom:8px;cursor:pointer}
 .fc-btn:active{transform:scale(.95)}
 .fc-btn.no{background:#FEF2F2;color:#EF4444;border:1.5px solid #FECACA}
 .fc-btn.yes{background:#ECFDF5;color:#10B981;border:1.5px solid #A7F3D0}
@@ -432,7 +482,20 @@ textarea.field{min-height:150px;line-height:1.7}
 .sp-result b{color:inherit}
 .sp-actions{display:flex;gap:8px}
 .sp-actions .btn{flex:1}
-.sp-stats{text-align:center;font-size:12px;color:var(--sub);font-weight:700}
+      .spell-mode.prod{border-color:#4F46E5;background:linear-gradient(135deg,#EEF2FF,#F5F3FF)}
+      .spell-mode.prod .sm-ic{background:#4F46E5}
+      .sp-prod-prompt{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:13px 14px;text-align:left;margin-bottom:4px}
+      .sp-pp-lbl{font-size:11px;font-weight:800;color:#4F46E5;letter-spacing:.5px;margin-bottom:6px}
+      .sp-pp-cn{font-size:17px;font-weight:800;line-height:1.45;color:var(--text)}
+      .sp-pp-meta{font-size:11px;color:var(--sub);margin-top:5px}
+      .sp-pp-eg{margin-top:9px;padding-top:8px;border-top:1px dashed var(--border);font-size:12.5px;line-height:1.6;color:var(--sub)}
+      .sp-pp-hint{margin-top:8px;font-size:12.5px;color:#B45309;background:#FFFBEB;border-radius:8px;padding:6px 9px}
+      .sp-grp{margin-top:10px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:10px 12px;text-align:left}
+      .sp-grp-h{font-size:11.5px;font-weight:800;color:#047857;margin-bottom:6px}
+      .sp-grp-list{display:flex;flex-wrap:wrap;gap:5px}
+      .sp-grp-chip{font-size:12px;font-weight:700;background:#fff;border:1px solid #BBF7D0;border-radius:20px;padding:3px 9px;color:#065F46}
+      .sp-grp-tip{font-size:11px;color:var(--sub);margin-top:7px;line-height:1.55}
+      .sp-stats{text-align:center;font-size:12px;color:var(--sub);font-weight:700}
 .spell-done{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px 18px;margin-top:20px;text-align:center;box-shadow:var(--shadow-sm)}
 .sd-ic{font-size:48px}
 .sd-t{font-size:19px;font-weight:800;margin-top:8px}
@@ -447,6 +510,7 @@ textarea.field{min-height:150px;line-height:1.7}
   <header class="header">
     <h1>📘 DSE Vocab <span class="sub">V5.14.2</span></h1>
     <div class="hd-right">
+      <button class="icon-btn" onclick="Pal.open_()" aria-label="搜尋">🔍</button>
       <button class="icon-btn" id="themeBtn" onclick="App.toggleTheme()">🌙</button>
       <button class="icon-btn" onclick="App.go('stats')">📊</button>
     </div>
@@ -509,6 +573,30 @@ textarea.field{min-height:150px;line-height:1.7}
   </div>
 </div>
 <div id="toast"></div>
+<!-- 全域命令面板 -->
+<div class="pal-wrap" id="palWrap" onclick="if(event.target===this)Pal.close()">
+  <div class="pal-mask" onclick="Pal.close()"></div>
+  <div class="pal" role="dialog" aria-label="全域搜尋">
+    <div class="pal-in">
+      <span class="ic">🔍</span>
+      <input id="palInput" type="text" placeholder="搜詞彙、寫作片語、功能…" autocomplete="off" autocapitalize="off" spellcheck="false"
+             oninput="Pal.query(this.value)" onkeydown="Pal.key(event)">
+      <span class="pal-kbd">Esc 關閉</span>
+    </div>
+    <div class="pal-list" id="palList"></div>
+    <div class="pal-foot">
+      <span><b>↑</b><b>↓</b> 揀</span><span><b>Enter</b> 開啟</span><span><b>Ctrl</b>+<b>K</b> 隨時叫出</span>
+    </div>
+  </div>
+</div>
+<!-- 通用確認／選項彈窗 -->
+<div class="overlay" id="modalOverlay" onclick="if(event.target===this)UI.close()">
+  <div class="sheet" style="padding-bottom:calc(20px + env(safe-area-inset-bottom))">
+    <div class="sheet-handle"></div>
+    <h3 id="modalTitle" style="font-size:16px;font-weight:800;margin:0 0 4px"></h3>
+    <div id="modalBody"></div>
+  </div>
+</div>
 <script>
 'use strict';
 /* =====================================================================
@@ -554,6 +642,7 @@ const Utils = {
   },
   dw(stars){ return ({1:0.8,2:0.9,3:1.0,4:1.1,5:1.2})[stars]||1; },
   lvOldScore(sc){ return sc<=10 ? Math.min(100, Math.round(sc*10)) : sc; },
+  daysSince(ts){ if(!ts) return null; const n=Date.now(); return Math.max(0, Math.floor((n-ts)/86400000)); },
   dseDays(){ const target=Store.state.dseDate||'2027-04-06'; const t=new Date(target+'T00:00:00'), n=new Date(); n.setHours(0,0,0,0); return Math.max(0, Math.round((t-n)/86400000)); },
   masteryScore(){
     const s=Store.state;
@@ -691,13 +780,320 @@ const Utils = {
 };
 /* ===== 本地儲存 ===== */
 const Storage = {
+  /* 寫入結果：舊版 catch(e){} 靜默吞掉，儲存失敗用戶完全唔知 —— 最危險嘅 bug */
+  lastError:'',
   get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
-  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
-  del(k){ try{ localStorage.removeItem(k); }catch(e){} },
-  idbGet(key){ return new Promise(res=>{ try{ const r=indexedDB.open('dse_vocab',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>{ const db=r.result, tx=db.transaction('kv').objectStore('kv').get(key); tx.onsuccess=()=>res(tx.result||null); tx.onerror=()=>res(null); }; r.onerror=()=>res(null); }catch(e){ res(null); } }); },
-  idbSet(key,val){ return new Promise(res=>{ try{ const r=indexedDB.open('dse_vocab',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>{ const db=r.result, tx=db.transaction('kv','readwrite').objectStore('kv').put(val,key); tx.onsuccess=()=>res(true); tx.onerror=()=>res(false); }; r.onerror=()=>res(false); }catch(e){ res(false); } }); }
+  set(k,v){
+    try{ localStorage.setItem(k,v); Storage.lastError=''; return true; }
+    catch(e){
+      // QuotaExceededError / Safari 無痕模式 -> 數據會全部冇咗，一定要話畀用戶知
+      Storage.lastError=(e&&e.name==='QuotaExceededError')?'儲存空間已滿':'無法寫入本機儲存';
+      if(typeof Utils!=='undefined'&&Utils.toast) Utils.toast('⚠️ '+Storage.lastError+'！請立即匯出備份');
+      return false;
+    }
+  },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} return null; },
+  /* 剩餘空間估算（bytes），-1 = 量唔到 */
+  usage(){
+    try{
+      let n=0; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); n+=(k.length+(localStorage.getItem(k)||'').length)*2; }
+      return n;
+    }catch(e){ return -1; }
+  },
+  _db(){ return new Promise(res=>{ try{ const r=indexedDB.open('dse_vocab',1); r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains('kv')) r.result.createObjectStore('kv'); }; r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch(e){ res(null); } }); },
+  async idbGet(key){
+    const db=await Storage._db(); if(!db) return null;
+    return new Promise(res=>{ try{ const tx=db.transaction('kv').objectStore('kv').get(key); tx.onsuccess=()=>res(tx.result||null); tx.onerror=()=>res(null); }catch(e){ res(null); } });
+  },
+  async idbSet(key,val){
+    const db=await Storage._db(); if(!db) return false;
+    return new Promise(res=>{ try{ const tx=db.transaction('kv','readwrite').objectStore('kv').put(val,key); tx.onsuccess=()=>res(true); tx.onerror=()=>res(false); }catch(e){ res(false); } });
+  },
+  async idbDel(key){
+    const db=await Storage._db(); if(!db) return false;
+    return new Promise(res=>{ try{ const tx=db.transaction('kv','readwrite').objectStore('kv').delete(key); tx.onsuccess=()=>res(true); tx.onerror=()=>res(false); }catch(e){ res(false); } });
+  },
+  /* ---- 本機備份輪替（舊版得一份 'backup'，寫壞咗就冇得救） ----
+   * 規則：最近 6 份 + 每日保留 1 份，最多 10 份
+   */
+  BAK_MAX:10, BAK_KEEP_RECENT:6,
+  async bakList(){ const idx=await Storage.idbGet('bak_index'); return Array.isArray(idx)?idx:[]; },
+  async bakSave(str){
+    const t=Date.now(), day=new Date(t).toDateString();
+    const idx=await Storage.bakList();
+    // 同一日已經有 -> 更新嗰份（唔係無限增長）
+    const sameDay=idx.find(b=>new Date(b.t).toDateString()===day && b.auto);
+    const key = sameDay ? sameDay.key : ('bak_'+t);
+    const ok=await Storage.idbSet(key, {s:str, t});
+    if(!ok) return false;
+    if(sameDay){ sameDay.t=t; }
+    else idx.push({t, key, auto:true});
+    idx.sort((a,b)=>b.t-a.t);
+    // 保留：最近 6 份 + 其餘每日 1 份
+    const keep=[], seenDay={};
+    for(const b of idx){
+      if(keep.length<Storage.BAK_KEEP_RECENT){ keep.push(b); seenDay[new Date(b.t).toDateString()]=1; continue; }
+      const d=new Date(b.t).toDateString();
+      if(!seenDay[d] && keep.length<Storage.BAK_MAX){ keep.push(b); seenDay[d]=1; }
+    }
+    for(const b of idx) if(!keep.includes(b)) Storage.idbDel(b.key);
+    await Storage.idbSet('bak_index', keep);
+    return true;
+  }
 };
 /* ===== 狀態管理 ===== */
+/* =====================================================================
+ * 應試設定：目標等級 × Paper 3 級別（B1 / B2）
+/* =====================================================================
+ * 全域命令面板（Ctrl/Cmd+K）
+ * 13 個頁面得 5 個喺底欄，其餘全部收埋喺「更多」入面 —— 搵嘢要靠估。
+ * 而家一個框搜晒：詞彙 / 寫作片語 / 功能頁 / 動作。
+ * ===================================================================== */
+const Pal = {
+  PAGES: [
+    ['home','🏠','首頁','今日任務 · 進度'],
+    ['flash','🃏','閃卡複習','SM-2 智能排程'],
+    ['spell','✍️','混合複習','聽寫 × 意思拼寫'],
+    ['quiz','📝','詞彙測驗','即時測驗練手感'],
+    ['browse','🔍','詞庫總覽','11K 詞隨時查'],
+    ['writing','✍️','寫作工具箱','句式 × 連接詞 × 同義網'],
+    ['essay','🤖','AI 作文評分','即時評分反饋'],
+    ['listening','🎧','聆聽綜合','Paper 3 訓練'],
+    ['speaking','🗣️','口語特訓','Paper 4 框架'],
+    ['debate','⚖️','辯論訓練','立論 × 駁論'],
+    ['reading','📖','閱讀訓練','Paper 1 題型'],
+    ['stats','📊','學習數據','掌握分析 × 打卡'],
+    ['more','☰','更多設定','目標 · 備份 · 字體']
+  ],
+  ACTIONS: [
+    ['🎯','排今日應考路線','由 S 級開始排 20 詞','App.startPath()'],
+    ['⚡','開始閃卡','直接進入複習','App.go(\'flash\')'],
+    ['📝','開始測驗','10 題即時測','Quiz.enter()'],
+    ['✏️','調整每日目標','改每日學幾多詞','App.setGoal()'],
+    ['📤','匯出備份','下載 JSON 備份檔','App.exportDialog()'],
+    ['🌙','切換深色／淺色','即時切換主題','App.toggleTheme()'],
+    ['🧟','難詞管理','睇反覆忘記嘅詞','More.showLeech()'],
+    ['🗂️','備份與還原','時間點還原','App.showBackups()'],
+    ['🎓','應試設定','目標等級 × 卷三 B1/B2','More.render()'],
+    ['⌨️','鍵盤快捷鍵','睇全部快捷鍵','Pal.help()']
+  ],
+  items:[], sel:0, open:false,
+  isDesktop:(typeof window!=='undefined' && !!(window.matchMedia && window.matchMedia('(pointer:fine)').matches)),
+  open_(){
+    this.open=true; this.sel=0;
+    Utils.$('#palWrap').classList.add('show');
+    const inp=Utils.$('#palInput'); inp.value=''; inp.focus();
+    this.query('');
+  },
+  close(){
+    this.open=false;
+    Utils.$('#palWrap').classList.remove('show');
+  },
+  toggle(){ this.open?this.close():this.open_(); },
+  /* 建立候選清單：頁 → 動作 → 詞彙 → 寫作 */
+  build(q){
+    const out=[];
+    const s=(q||'').trim().toLowerCase();
+    if(!s){
+      out.push({sec:'快速開始'});
+      Pal.ACTIONS.slice(0,5).forEach(a=>out.push({ic:a[0],t:a[1],sub:a[2],run:a[3]}));
+      out.push({sec:'功能頁'});
+      Pal.PAGES.forEach(p=>out.push({ic:p[1],t:p[2],sub:p[3],run:"App.go('"+p[0]+"')"}));
+      return out;
+    }
+    // 功能頁
+    const pg=Pal.PAGES.filter(p=>(p[2]+p[3]+p[0]).toLowerCase().indexOf(s)>=0);
+    if(pg.length){ out.push({sec:'功能頁'}); pg.forEach(p=>out.push({ic:p[1],t:p[2],sub:p[3],run:"App.go('"+p[0]+"')"})); }
+    // 動作
+    const ac=Pal.ACTIONS.filter(a=>(a[1]+a[2]).toLowerCase().indexOf(s)>=0);
+    if(ac.length){ out.push({sec:'動作'}); ac.forEach(a=>out.push({ic:a[0],t:a[1],sub:a[2],run:a[3]})); }
+    // 寫作片語（搜尋索引已含句型／連接詞／同義網）
+    let wr=[];
+    try{ if(typeof WritingToolkit!=='undefined'&&WritingToolkit.search) wr=(WritingToolkit.search(s)||[]).slice(0,8); }catch(e){}
+    if(wr.length){
+      out.push({sec:'寫作片語'});
+      wr.forEach(x=>{ const t=x.t||x.text||String(x); out.push({ic:'✍️',t:t,sub:x.m||x.meaning||'寫作',run:"App.go('writing');setTimeout(()=>{try{WritingToolkit._q="+JSON.stringify(t)+";WritingToolkit._tab='sch';WritingToolkit.render()}catch(e){}},80)"}); });
+    }
+    // 詞彙（詞面優先，其次釋義）
+    const kw=[];
+    for(let i=0;i<Data.raw.length && kw.length<10;i++){
+      const w=Data.raw[i], ph=(w.phrase||'').toLowerCase(), mn=(w.meaning||'').toLowerCase();
+      if(ph.indexOf(s)===0){ kw.unshift(w); continue; }
+      if(ph.indexOf(s)>0 || mn.indexOf(s)>=0) kw.push(w);
+      if(kw.length>=10) break;
+    }
+    if(kw.length){
+      out.push({sec:'詞彙'});
+      kw.slice(0,10).forEach(w=>out.push({ic:'📘',t:w.phrase,sub:(w.meaning||'')+(w.pos?' · '+w.pos:''),run:"App.openDetail('"+w.id+"')"}));
+    }
+    return out;
+  },
+  query(q){
+    this.items=Pal.build(q);
+    // 過濾出可選項目（分節標題唔計）
+    this.picks=this.items.filter(x=>x.run);
+    if(this.sel>=this.picks.length) this.sel=0;
+    this.paint();
+  },
+  paint(){
+    const el=Utils.$('#palList');
+    if(!el) return;
+    if(!this.items.length){ el.innerHTML='<div class="pal-empty">搵唔到「'+Utils.esc(Utils.$('#palInput').value)+'」</div>'; return; }
+    let pi=-1;
+    el.innerHTML=this.items.map(x=>{
+      if(x.sec) return '<div class="pal-sec">'+Utils.esc(x.sec)+'</div>';
+      pi++;
+      const on=pi===this.sel;
+      return '<div class="pal-item'+(on?' on':'')+'" data-i="'+pi+'" onclick="Pal.run('+pi+')">'+
+             '<span class="pi-ic">'+x.ic+'</span>'+
+             '<span class="pi-main"><span class="pi-t">'+Utils.esc(x.t)+'</span>'+(x.sub?'<br><span class="pi-s">'+Utils.esc(x.sub)+'</span>':'')+'</span>'+
+             '<span class="pi-go">'+(on?'Enter ↵':'')+'</span></div>';
+    }).join('');
+    const cur=el.querySelector('.pal-item.on');
+    if(cur&&cur.scrollIntoView) cur.scrollIntoView({block:'nearest'});
+  },
+  move(d){
+    if(!this.picks||!this.picks.length) return;
+    this.sel=(this.sel+d+this.picks.length)%this.picks.length;
+    this.paint();
+  },
+  key(e){
+    if(e.key==='ArrowDown'){ e.preventDefault(); Pal.move(1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); Pal.move(-1); }
+    else if(e.key==='Enter'){ e.preventDefault(); Pal.run(this.sel); }
+    else if(e.key==='Escape'){ e.preventDefault(); Pal.close(); }
+  },
+  run(i){
+    const p=this.picks&&this.picks[i]; if(!p) return;
+    Pal.close();
+    try{ eval(p.run); }catch(e){ Utils.toast('打唔開：'+e.message); }
+  },
+  help(){
+    const rows=[
+      [['Ctrl','K'],'叫出全域搜尋（任何頁面都得）'],
+      [['Space'],'閃卡：揭曉答案'],
+      [['1'],'閃卡：Again 唔記得'],
+      [['2'],'閃卡：Hard 要諗一陣'],
+      [['3'],'閃卡：Good 記得'],
+      [['4'],'閃卡：Easy 一眼認得'],
+      [['U'],'閃卡：還原上一題'],
+      [['←','→'],'閃卡：上一題／下一題（未揭曉時）'],
+      [['A','D'],'測驗：揀選項 A–D'],
+      [['Esc'],'關閉彈窗／返回'],
+      [['?'],'呢張快捷鍵表']
+    ];
+    UI.modal('⌨️ 鍵盤快捷鍵', `
+      <div style="font-size:12.5px;line-height:1.6;color:var(--sub);margin-bottom:6px">桌面版練習快好多；手機用撳掣同滑動就夠。</div>
+      ${rows.map(r=>`<div class="ks-row"><span class="ks-keys">${r[0].map(k=>'<span class="ks-k">'+k+'</span>').join('')}</span><span class="ks-d">${r[1]}</span></div>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" onclick="UI.close()">知啦</button></div>`);
+  }
+};
+
+/* =====================================================================
+ * 鍵盤快捷鍵（桌面練習速度）
+ * ===================================================================== */
+const Keys = {
+  init(){
+    document.addEventListener('keydown', e=>{
+      const tag=(e.target&&e.target.tagName)||'';
+      const typing = tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(e.target&&e.target.isContentEditable);
+      const meta = e.ctrlKey||e.metaKey;
+      // Ctrl/Cmd+K：任何情況都開
+      if(meta && (e.key==='k'||e.key==='K')){ e.preventDefault(); Pal.toggle(); return; }
+      if(Pal.open) return;                       // 面板開咗就交畀面板
+      if(typing) return;                          // 打字中唔劫持
+      if(e.key==='Escape'){
+        if(Utils.$('#modalOverlay')&&Utils.$('#modalOverlay').classList.contains('show')){ UI.close(); return; }
+        if(Utils.$('#overlay')&&Utils.$('#overlay').classList.contains('show')){ App.closeSheet&&App.closeSheet(); return; }
+        if(UI.current!=='home'){ App.go('home'); return; }
+        return;
+      }
+      if(e.key==='?'){ e.preventDefault(); Pal.help(); return; }
+      // 分頁快捷鍵
+      if(UI.current==='flash') Keys.flash(e);
+      else if(UI.current==='quiz') Keys.quiz(e);
+    });
+  },
+  flash(e){
+    const k=e.key;
+    if(k===' '||k==='Enter'){ e.preventDefault(); if(!Flash.flipped) Flash.flip(); return; }
+    if(k==='1'||k==='2'||k==='3'||k==='4'){
+      e.preventDefault();
+      if(!Flash.flipped){ Flash.flip(); return; }
+      Flash.rate([0,3,4,5][+k-1]); return;
+    }
+    if(k==='u'||k==='U'){ e.preventDefault(); if(Flash._undo) Flash.undo(); return; }
+  },
+  quiz(e){
+    const k=e.key.toUpperCase();
+    const i='1234'.indexOf(k)>=0 ? +k-1 : 'ABCD'.indexOf(k);
+    if(i>=0 && i<4){ e.preventDefault(); if(!Quiz.answered&&Quiz.qs&&Quiz.qs[Quiz.idx]) Quiz.pick(i); }
+  }
+};
+
+/* ===== 應試設定：目標等級 × Paper 3 級別（B1 / B2）
+ * 揀 B1 全科最高只可以到 Level 4 —— 即係 5 / 5* / 5** 全部冇份。
+ * 所以目標 5** 一定要 lock 死 B2。
+ * ===================================================================== */
+const ExamCfg = {
+  LEVELS: [
+    {k:'5**', d:'最高等級', min:'卷一、卷二近乎全中，卷三卷四高水平', need:'B2'},
+    {k:'5*',  d:'次高等級', min:'接近全中，錯少少高階題',              need:'B2'},
+    {k:'5',   d:'第五級',   min:'整體穩定，偶爾失手',                  need:'B2'},
+    {k:'4',   d:'第四級',   min:'B1 嘅上限（聯合院校最低入學要求）',    need:'B1 或 B2'}
+  ],
+  /* 依目標等級推算建議溫習嘅詞彙星級範圍 */
+  plan(lv){
+    if(lv==='5**') return {range:[4,5], goal:20, note:'★4–5 係你嘅主戰場，★1–2 唔好再花時間'};
+    if(lv==='5*')  return {range:[4,5], goal:18, note:'★4–5 優先，★3 用嚟補底'};
+    if(lv==='5')   return {range:[3,5], goal:16, note:'★3–5 都要，★3 係基本盤'};
+    return {range:[2,4], goal:14, note:'★2–4，先鞏固基礎'};
+  },
+  /* 卷三級別 → 全科上限 */
+  cap(p3){ return p3==='B1' ? 4 : null; },
+  /* 目標等級與卷三級別係咪相容 */
+  conflict(target, p3){
+    const cap=ExamCfg.cap(p3);
+    if(!cap) return null;
+    const order={'5**':3,'5*':2,'5':1,'4':0};
+    const want=order[target]!==undefined?order[target]:3;
+    const capOrder=0; // Level 4
+    return want>capOrder ? cap : null;
+  },
+  set(lv){ Store.state.target=lv; Store.state.p3Level='B2'; Store.persist(); Store.notify(); Utils.toast('目標設為 '+lv+'　·　卷三已鎖 B2'); },
+  setP3(v){ Store.state.p3Level=v; Store.persist(); Store.notify();
+    if(v==='B1') Utils.toast('⚠️ 揀 B1 最高得 Level 4'); else Utils.toast('卷三設為 B2 ✅'); },
+  label(){ const s=Store.state; return (s.target||'5**')+'　·　卷三 '+(s.p3Level||'B2'); },
+  /* 首頁嘅應試設定卡 */
+  card(){
+    const s=Store.state;
+    const target=s.target||'5**', p3=s.p3Level||'B2';
+    const cf=ExamCfg.conflict(target,p3);
+    const plan=ExamCfg.plan(target);
+    return `
+      <div class="card" style="margin-bottom:12px;${cf?'border:1px solid #FCA5A5;background:#FEF2F2':''}">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="st-t">🎯 應試設定</div>
+          <button class="btn sm ghost" onclick="App.go('more');setTimeout(()=>More.showExamCfg&&More.showExamCfg(),60)">修改</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:800;padding:4px 10px;border-radius:20px;background:#EEF2FF;color:#4F46E5">目標 ${target}</span>
+          <span style="font-size:12px;font-weight:800;padding:4px 10px;border-radius:20px;background:${p3==='B2'?'#ECFDF5;color:#047857':'#FEF2F2;color:#B91C1C'}">卷三 ${p3}</span>
+        </div>
+        ${cf?`<div style="margin-top:9px;font-size:12.5px;line-height:1.65;color:#B91C1C">
+          🚨 <b>衝突：揀 B1 全科最高得 Level ${cf}。</b><br>
+          Paper 3 Part B 分 B1／B2 —— B1 題目易、字數少、要求低，但<b>評級上限係 Level 4</b>，
+          即係 5 / 5* / 5** 全部冇份。目標 ${target} 一定要做 <b>B2</b>。
+          <button class="btn sm" style="margin-top:8px;width:100%" onclick="ExamCfg.setP3('B2')">改做 B2（推薦）</button>
+        </div>`:`<div style="margin-top:9px;font-size:12.5px;line-height:1.65;color:var(--sub)">
+          ✅ 設定相容：卷三 B2 係 Level 5 或以上嘅必要條件。<br>
+          📌 ${plan.note}
+        </div>`}
+      </div>`;
+  }
+};
+window.ExamCfg=ExamCfg;
+
 const Store = {
   state: null, _subs: [],
   key(w){ return w.id; },
@@ -716,11 +1112,13 @@ const Store = {
     s.history[t]=(s.history[t]||0)+1;
   },
   defaultState(){ return {
-    v:3, known:new Set(), wrong:new Set(), fav:new Set(), tomo:new Set(),
+    v:4, known:new Set(), wrong:new Set(), fav:new Set(), tomo:new Set(),
+    prod:new Set(), prodWrong:new Set(), leech:new Set(), rlog:[], target:'5**', p3Level:'B2',
     sched:{}, history:{}, goal:20, mode:'all', dark:false,
     day:{d:'',learn:0,review:0,quiz:0},
     quizCount:0, onboarded:false, dseDate:'', lvTest:null, essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false },
-    essayCount:0, streak:0, streakDay:'', lastActive:'', achievements:[], fontSize:16, quizBest:0, customWords:[], webdav:{url:'',token:''}
+    essayCount:0, streak:0, streakDay:'', lastActive:'', achievements:[], fontSize:16, quizBest:0, customWords:[], webdav:{url:'',token:''},
+    lastExport:0, favWrite:[], _savedAt:0, lastView:'home'
   }; },
   init(){
     const raw=Storage.get('dse_state');
@@ -728,6 +1126,9 @@ const Store = {
     const d=this.defaultState();
     const st={ ...d, ...(saved||{}),
       known:new Set(saved?.known||[]), wrong:new Set(saved?.wrong||[]), fav:new Set(saved?.fav||[]), tomo:new Set(saved?.tomo||[]),
+      prod:new Set(saved?.prod||[]), prodWrong:new Set(saved?.prodWrong||[]),
+      leech:new Set(saved?.leech||[]), rlog:saved?.rlog||[],
+      target:saved?.target||'5**', p3Level:saved?.p3Level||'B2',
       sched:saved?.sched||{}, history:saved?.history||{}, day:saved?.day||{d:'',learn:0,review:0,quiz:0}, essay:{ ...d.essay, ...(saved?.essay||{}) }, webdav:{ ...d.webdav, ...(saved?.webdav||{}) }
     };
     this.state=st;
@@ -749,20 +1150,145 @@ const Store = {
     const og=Storage.get('onboarded'); if(og==='1') this.state.onboarded=true;
     if(Storage.get('goal')) this.state.goal=parseInt(Storage.get('goal'),10)||20;
   },
+  /* ---- 單一快照來源 ----
+   * 舊版三處各自 hand-write 欄位（persist / exportData / exportWebDAV），
+   * 結果 persist 漏咗 leech、rlog、prod、prodWrong、target、p3Level —— 即係
+   * 5** 升級嘅進度（產出模式、難詞、保留率、應試設定）reload 一次就全部冇咗。
+   * 匯出亦只係子集，匯入備份會丟一半數據。
+   * 而家統一由 snapshot() 產生，加新欄位只需改 SETS / FIELDS。
+   */
+  SAVE_VER:5, BAK_MAX:10,
+  SETS:['known','wrong','fav','tomo','prod','prodWrong','leech','achievements'],
+  FIELDS:['sched','history','day','rlog','target','p3Level','goal','mode','dark','quizCount','lastView',
+          'onboarded','dseDate','lvTest','essay','essayCount','streak','streakDay','lastActive',
+          'fontSize','quizBest','customWords','favWrite','webdav','lastExport'],
+  /* dropKey=true：匯出檔案唔包 API Key（預設，避免外洩） */
+  snapshot(dropKey){
+    const s=this.state;
+    const o={ app:'dse_vocab', v:Store.SAVE_VER, t:Date.now() };
+    Store.SETS.forEach(k=>{ o[k]=[...(s[k]||[])]; });
+    Store.FIELDS.forEach(k=>{ o[k]=s[k]; });
+    if(dropKey && o.essay) o.essay=Object.assign({}, o.essay, {apiKey:''});
+    return o;
+  },
   persist(){
     const s=this.state;
-    const snap={ v:3, known:[...s.known], wrong:[...s.wrong], fav:[...s.fav], tomo:[...s.tomo], sched:s.sched, history:s.history, day:s.day||{d:'',learn:0,review:0,quiz:0}, goal:s.goal, mode:s.mode, dark:s.dark, quizCount:s.quizCount, onboarded:s.onboarded, dseDate:s.dseDate, lvTest:s.lvTest||null, essay:s.essay, essayCount:s.essayCount||0, streak:s.streak||0, lastActive:s.lastActive||'', achievements:[...(s.achievements||[])], fontSize:s.fontSize||16, quizBest:s.quizBest||0, customWords:s.customWords||[], favWrite:s.favWrite||[], favWrite:s.favWrite||[], webdav:s.webdav||{url:'',token:''} };
-    Storage.set('dse_state', JSON.stringify(snap));
-    Storage.idbSet('backup', { s: JSON.stringify(snap), t: Date.now() });
+    const snap=Store.snapshot(false);                 // 本機儲存保留 API Key
+    const str=JSON.stringify(snap);
+    const ok=Storage.set('dse_state', str);
+    if(ok){ s._savedAt=Date.now(); Storage.bakSave(str); }   // 輪替備份（非同步，唔阻塞）
+    return ok;
+  },
+  /* 首頁備份提醒：只喺「有嘢值得唔見」且「耐冇備份」時先出現，唔好長期騷擾 */
+  backupNag(){
+    const s=this.state;
+    const n=(s.known?[...s.known].length:0)+Object.keys(s.sched||{}).length;
+    if(n<30) return '';                                  // 數據太少，唔值得提醒
+    const d=Utils.daysSince(s.lastExport);
+    const due = d===null || d>7;
+    if(!due && !Storage.lastError) return '';
+    const hard=Storage.lastError || d===null || d>30;
+    return `
+      <div class="card" style="margin-bottom:12px;background:${hard?'#FEF2F2':'#FFFBEB'};border:1px solid ${hard?'#FCA5A5':'#FDE68A'}">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="font-size:22px">${hard?'🚨':'💾'}</div>
+          <div style="flex:1;font-size:12.5px;line-height:1.6;color:${hard?'#B91C1C':'#92400E'}">
+            ${hard&&Storage.lastError?`<b>${Utils.esc(Storage.lastError)}</b> —— 進度冇保存到，立即匯出。`
+              :`你已經有 <b>${n}</b> 個詞嘅進度${d===null?'，但<b>從未匯出過備份</b>':`（上次匯出 ${d} 日前）`}。<br>清網站資料／換機就冇晒。`}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn sm" style="flex:1;background:${hard?'#DC2626':'#D97706'};color:#fff;border:none" onclick="App.exportDialog()">立即匯出</button>
+          <button class="btn sm ghost" style="flex:1" onclick="Store.snoozeNag()">7 日後再提</button>
+        </div>
+      </div>`;
+  },
+  snoozeNag(){ this.state.lastExport=Date.now(); this.persist(); Utils.toast('好，7 日後再提你'); if(typeof App!=='undefined') App.go('home'); },
+  /* 備份清單（畀 UI 顯示） */
+  async backups(){
+    const idx=await Storage.bakList();
+    return idx.map(b=>({t:b.t, size:0}));
+  },
+  async restoreBackup(t){
+    const idx=await Storage.bakList();
+    const b=idx.find(x=>x.t===t); if(!b) return false;
+    const rec=await Storage.idbGet(b.key); if(!rec||!rec.s) return false;
+    try{ Store.importSnapshot(JSON.parse(rec.s)); return true; }catch(e){ return false; }
   },
   subscribe(fn){ this._subs.push(fn); },
   notify(){ this._subs.forEach(fn=>{ try{ fn(); }catch(e){} }); },
   reset(){ this.state=this.defaultState(); this.persist(); },
+  /* 驗證：唔再盲目信任外來檔案（舊版淨係 try/catch JSON.parse） */
+  validate(snap){
+    if(!snap||typeof snap!=='object') return '唔係有效嘅 JSON 物件';
+    if(snap.app && snap.app!=='dse_vocab') return '唔係 DSE Vocab 備份檔案';
+    if(!snap.sched && !snap.known && !snap.history) return '檔案入面搵唔到學習數據';
+    if(snap.known && !Array.isArray(snap.known)) return 'known 欄位格式錯誤';
+    if(snap.sched && typeof snap.sched!=='object') return 'sched 欄位格式錯誤';
+    return null;
+  },
+  /* 摘要：匯入前畀用戶睇清楚入面有啲乜，避免覆寫錯檔案 */
+  summary(snap){
+    const n=(a)=>Array.isArray(a)?a.length:(a&&typeof a.size==='number'?a.size:0);
+    return {
+      known:n(snap.known), wrong:n(snap.wrong), fav:n(snap.fav), leech:n(snap.leech),
+      sched:snap.sched?Object.keys(snap.sched).length:0,
+      days:snap.history?Object.keys(snap.history).length:0,
+      streak:snap.streak||0, quizBest:snap.quizBest||0,
+      target:snap.target||'', t:snap.t||0, v:snap.v||0
+    };
+  },
+  /* 合併匯入：詞彙取聯集，排程取「較好」嗰份，計數取大 —— 換機／雙裝置用 */
+  mergeSnapshot(snap){
+    const s=this.state;
+    Store.SETS.forEach(k=>{ (snap[k]||[]).forEach(v=>s[k].add(v)); });
+    const o=snap.sched||{};
+    Object.keys(o).forEach(k=>{
+      const a=s.sched[k], b=o[k];
+      if(!b) return;
+      // 冇嘅直接取；有嘅取「學得更耐」嗰份（rep 大 / 間隔長）
+      if(!a){ s.sched[k]=b; return; }
+      const score=x=>(x.rep||0)*1000+(x.int||0);
+      if(score(b)>score(a)) s.sched[k]=b;
+    });
+    Object.keys(snap.history||{}).forEach(d=>{
+      s.history[d]=Math.max(s.history[d]||0, snap.history[d]||0);
+    });
+    s.streak=Math.max(s.streak||0, snap.streak||0);
+    s.quizBest=Math.max(s.quizBest||0, snap.quizBest||0);
+    s.essayCount=Math.max(s.essayCount||0, snap.essayCount||0);
+    s.quizCount=Math.max(s.quizCount||0, snap.quizCount||0);
+    if(snap.customWords&&snap.customWords.length){
+      const have=new Set((s.customWords||[]).map(w=>w.phrase||w.id||JSON.stringify(w)));
+      snap.customWords.forEach(w=>{ const k=w.phrase||w.id||JSON.stringify(w); if(!have.has(k)){ s.customWords.push(w); have.add(k); } });
+    }
+    if(snap.favWrite&&snap.favWrite.length){
+      const set=new Set(s.favWrite||[]); snap.favWrite.forEach(x=>set.add(x)); s.favWrite=[...set];
+    }
+    if(snap.rlog&&snap.rlog.length){
+      s.rlog=(s.rlog||[]).concat(snap.rlog).sort((a,b)=>a[0]-b[0]).slice(-2000);
+    }
+    this.persist();
+  },
   importSnapshot(snap){
     const d=this.defaultState();
-    this.state={ ...d, ...snap,
-      known:new Set(snap.known||[]), wrong:new Set(snap.wrong||[]), fav:new Set(snap.fav||[]), tomo:new Set(snap.tomo||[]),
-      sched:snap.sched||{}, history:snap.history||{}, day:snap.day||{d:'',learn:0,review:0,quiz:0}, essay:{ ...d.essay, ...(snap.essay||{}) }, essayCount:snap.essayCount||0, streak:snap.streak||0, lastActive:snap.lastActive||'', achievements:new Set(snap.achievements||[]), fontSize:snap.fontSize||16, quizBest:snap.quizBest||0, customWords:snap.customWords||[], webdav:{ ...d.webdav, ...(snap.webdav||{}) } };
+    const st={ ...d };
+    Store.SETS.forEach(k=>{ st[k]=new Set(Array.isArray(snap[k])?snap[k]:(snap[k]?[...snap[k]]:[])); });
+    Store.FIELDS.forEach(k=>{ if(snap[k]!==undefined && snap[k]!==null) st[k]=snap[k]; });
+    // 複合欄位要合併預設值，避免缺子欄
+    st.essay={ ...d.essay, ...(snap.essay||{}) };
+    st.webdav={ ...d.webdav, ...(snap.webdav||{}) };
+    st.day=snap.day||{d:'',learn:0,review:0,quiz:0};
+    st.sched=snap.sched||{}; st.history=snap.history||{};
+    if(!Array.isArray(st.rlog)) st.rlog=[];
+    if(!st.target) st.target='5**';
+    if(!st.p3Level) st.p3Level='B2';
+    // 舊版 Level 測試數據遷移
+    if(st.lvTest && typeof st.lvTest.pct!=='number'){
+      const old=st.lvTest;
+      st.lvTest={ score:old.score, maxRaw:old.score, raw:old.score*10, pct:old.score*10, lv:Utils.lvLabel(old.lv||''), ts:old.ts||Date.now(), old:true };
+    }
+    this.state=st;
     this.persist();
   }
 };
@@ -1025,6 +1551,7 @@ const UI = {
   current:'home',
   go(view){
     UI.current=view;
+    try{ if(Store.state) { Store.state.lastView=view; Store.persist(); } }catch(e){}
     Utils.$$('.view').forEach(v=>v.classList.remove('active'));
     const el=document.getElementById('view-'+view);
     if(el) el.classList.add('active');
@@ -1032,7 +1559,15 @@ const UI = {
     Utils.$$('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===navView));
     Utils.$('.views').scrollTop=0;
   },
-  card(cls, html){ return `<div class="card ${cls||''}">${html}</div>`; }
+  card(cls, html){ return `<div class="card ${cls||''}">${html}</div>`; },
+  /* 通用彈窗：畀匯出／匯入／雲端同步共用（唔再逐個用 confirm / prompt） */
+  modal(title, html){
+    const ov=Utils.$('#modalOverlay'); if(!ov){ window.confirm(title)?null:null; return; }
+    Utils.$('#modalTitle').textContent=title;
+    Utils.$('#modalBody').innerHTML=html;
+    ov.classList.add('show');
+  },
+  close(){ const ov=Utils.$('#modalOverlay'); if(ov) ov.classList.remove('show'); }
 };
 /* ===== UK 讀音（音標 + 發音） ===== */
 const Dict = {
@@ -1145,6 +1680,19 @@ const Dict = {
 };
 /* ===== SM-2 演算法 ===== */
 const SM2 = {
+  /* ---- 評分制（SM-2 標準 0–5 質量） ----
+   * 0 Again  完全唔記得 -> 重新學，同一節再出
+   * 3 Hard   記得但要諗好耐 -> 間隔縮短，EF 降
+   * 4 Good   正常記得 -> 間隔按 EF 拉長
+   * 5 Easy   一眼就認得 -> 間隔額外 +30%，EF 升
+   * 舊版只得「記得／唔記得」兩級，Hard 同 Easy 嘅差別完全冇用到，
+   * 結果所有人嘅 EF 都係向同一個方向漂移，間隔無差別化。
+   */
+  Q:{AGAIN:0, HARD:3, GOOD:4, EASY:5},
+  STEP_MS:[10*60*1000, 86400000],   // 學習步驟：10 分鐘後（同節） -> 1 日後（畢業）
+  SESSION_MS:30*60*1000,
+  LEECH_AT:4,                        // 累計 4 次失誤 = 難詞
+
   /* 自適應節奏：錯詞比例高 -> 放慢複習節奏，先打穩基礎 */
   adaptive(){
     const s=Store.state;
@@ -1155,28 +1703,117 @@ const SM2 = {
     if(wrongRate>0.2) return 0.8;
     return 1;
   },
+  /* 間隔上限：唔可以長過「距離 DSE 嘅一半時間」，否則考前再都見唔到嗰個詞
+   * 但最少 14 日、最多 90 日，避免極端值
+   */
+  maxInt(){
+    const d=Utils.dseDays();
+    if(!d) return 90;
+    return Math.max(14, Math.min(90, Math.round(d/2)));
+  },
+  /* 係咪仲喺「學習階段」（未畢業）——呢啲要喺同一節入面再出多次 */
+  learning(w){
+    const x=Store.state.sched[Store.key(w)];
+    return !!x && (x.step||0) < 2;
+  },
+  /* 喺同一節入面要再出（未畢業 且 到期時間喺 30 分鐘內） */
+  inSession(w){
+    const x=Store.state.sched[Store.key(w)];
+    if(!x) return false;
+    return (x.step||0) < 2 && x.due <= Date.now()+SM2.SESSION_MS;
+  },
   review(w, quality){
     const s=Store.state;
     const k=Store.key(w);
     const wasNew=!s.sched[k];
-    const cur=s.sched[k]||{int:0,rep:0,due:Date.now(),ef:2.5};
-    let {int,rep,ef}=cur;
+    const cur=s.sched[k]||{int:0,rep:0,due:Date.now(),ef:2.5,step:0,lapse:0};
+    let {int,rep,ef,step,lapse}=cur;
+    step=step||0; lapse=lapse||0;
+    const now=Date.now();
+
     if(quality>=3){
-      if(rep===0) int=1;
-      else if(rep===1) int=Math.round(6*SM2.adaptive());
-      else int=Math.round(int*ef);
-      rep++;
+      if(step<2){
+        /* ---- 學習階段：行學習步驟，未計入長期間隔 ---- */
+        step++;
+        if(step===1){ int=0; }               // 10 分鐘後同節再出
+        else       { int=1; rep=1; }         // 畢業：聽日再溫
+      }else{
+        /* ---- 複習階段：SM-2 間隔 ---- */
+        if(rep<=1)      int=Math.round(6*SM2.adaptive());
+        else            int=Math.round(int*ef);
+        if(quality===5) int=Math.round(int*1.3);        // Easy：額外推遠
+        else if(quality===3) int=Math.round(int*0.8);   // Hard：拉唔到咁遠
+        rep++;
+        int=Math.min(int, SM2.maxInt());
+      }
     }else{
-      // 答錯：唔再由 1 日重新起步（會令大量詞卡喺短間隔、複習量失控）
-      // 改為間隔減半、EF 下降，下次答啱就按新 EF 繼續拉長
-      int=Math.max(1, Math.round((int||1)*0.5));
+      /* ---- 答錯：唔再由 1 日重新起步（會令大量詞卡喺短間隔、複習量失控）
+       * 改為：未畢業就退回第一個步驟（同節再學）；已畢業就間隔減半 + 計一次失誤
+       */
+      if(step<2){ step=0; int=0; }
+      else{
+        int=Math.max(1, Math.round((int||1)*0.5));
+        lapse++;
+        if(lapse>=SM2.LEECH_AT) s.leech.add(k);
+      }
     }
+    int=Math.max(0, int);
     ef=Math.max(1.3, ef+(0.1-(5-quality)*(0.08+(5-quality)*0.02)));
-    const due=Date.now()+int*86400000;
-    s.sched[k]={int,rep,due,ef};
+
+    /* 到期時間：學習階段用分鐘級，複習階段用日 */
+    const due = (step<2) ? now + (step===1?SM2.STEP_MS[0]:60*1000) : now + int*86400000;
+    s.sched[k]={int,rep,due,ef,step,lapse};
+
+    /* 真實保留率：只記錄「已畢業」嘅複習（學習步驟唔計，否則會假性拉高） */
+    if(step>=2) SM2._log(quality>=3);
+
     // 第一次排程 = 新學；之後 = 複習（用嚟做每日計數同任務進度）
     Store.tally(wasNew?'learn':'review');
-    return {int,rep,ef,due};
+    return {int,rep,ef,due,step,lapse};
+  },
+  /* 複習流水帳：{
+   * 只留最近 2000 筆，用嚟計真實保留率（舊版嘅 wrong set 係累計，永遠唔會跌）
+   */
+  _log(ok){
+    const s=Store.state;
+    if(!s.rlog) s.rlog=[];
+    s.rlog.push([Date.now(), ok?1:0]);
+    if(s.rlog.length>2000) s.rlog=s.rlog.slice(-2000);
+  },
+  /* 真實保留率：最近 N 日、已畢業詞嘅答啱比例 */
+  retention(days){
+    const s=Store.state; const log=s.rlog||[];
+    if(!log.length) return null;
+    const cut=Date.now()-(days||30)*86400000;
+    const win=log.filter(x=>x[0]>=cut);
+    if(win.length<10) return null;
+    return Math.round(win.filter(x=>x[1]===1).length/win.length*100);
+  },
+  /* 難詞（Leech）：反覆忘記，死記硬背效率極低，要換方法 */
+  leechList(){
+    const s=Store.state;
+    return Data.raw.filter(w=>s.leech.has(Store.key(w)));
+  },
+  /* 未來 N 日嘅複習負荷預測 */
+  forecast(days){
+    const s=Store.state, now=Date.now();
+    const n=days||14; const out=[];
+    for(let i=0;i<n;i++){
+      const a=now+i*86400000, b=a+86400000;
+      let c=0;
+      Object.values(s.sched).forEach(x=>{ if(x&&x.due>=a&&x.due<b) c++; });
+      out.push(c);
+    }
+    return out;
+  },
+  /* 負荷預警：未來 7 日有冇爆量 */
+  loadWarn(){
+    const f=SM2.forecast(7);
+    const peak=Math.max.apply(null, f.concat([0]));
+    const total=f.reduce((a,b)=>a+b,0);
+    if(peak>200) return {lv:'high', peak, total, msg:'未來 7 日有一日高達 '+peak+' 個詞到期 —— 建議今日開始減新詞量，先消化積壓。'};
+    if(peak>120) return {lv:'mid',  peak, total, msg:'未來 7 日最高 '+peak+' 個詞到期，負荷偏高但仲頂得住。'};
+    return {lv:'ok', peak, total, msg:'未來 7 日最高 '+peak+' 個詞到期，負荷正常。'};
   },
   /* ---- 每日配額：控制「新詞湧入」同「到期爆量」兩個失控位 ---- */
   newLeft(){ return Math.max(0, (Store.state.goal||20) - (Store.day().learn||0)); },
@@ -1192,6 +1829,7 @@ const SM2 = {
       const od=Math.floor((Date.now()-x.due)/86400000);
       return {t:'🔁 到期複習'+(od>0?`（逾期 ${od} 日）`:''), c:'#0EA5E9'};
     }
+    if(s.leech.has(k)) return {t:'🧟 難詞（反覆忘記）', c:'#7C3AED'};
     if(s.wrong.has(k)) return {t:'⚠️ 錯詞重溫', c:'#EF4444'};
     return {t:'📚 提前溫習', c:'#94A3B8'};
   },
@@ -1207,6 +1845,41 @@ const SM2 = {
     });
     return {due, wrong, fresh};
   },
+  /* 複習健康度：真實保留率 + 難詞 + 負荷預警（首頁用） */
+  reviewHealth(){
+    const s=Store.state;
+    const r30=SM2.retention(30), r7=SM2.retention(7);
+    const leech=s.leech.size||0;
+    const warn=SM2.loadWarn();
+    if(!r30 && !leech && warn.lv==='ok') return '';
+    const col=r30===null?'var(--sub)':r30>=85?'#047857':r30>=70?'#B45309':'#B91C1C';
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="st-t">📈 複習健康度</div>
+          ${leech?`<button class="btn sm ghost" onclick="More.showLeech()">難詞 ${leech}</button>`:''}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:9px">
+          <div style="flex:1;background:var(--bg);border-radius:10px;padding:9px 10px">
+            <div style="font-size:19px;font-weight:800;color:${col}">${r30===null?'—':r30+'%'}</div>
+            <div style="font-size:10.5px;color:var(--sub);margin-top:1px">30 日保留率</div>
+          </div>
+          <div style="flex:1;background:var(--bg);border-radius:10px;padding:9px 10px">
+            <div style="font-size:19px;font-weight:800;color:${r7===null?'var(--sub)':r7>=85?'#047857':r7>=70?'#B45309':'#B91C1C'}">${r7===null?'—':r7+'%'}</div>
+            <div style="font-size:10.5px;color:var(--sub);margin-top:1px">7 日保留率</div>
+          </div>
+          <div style="flex:1;background:var(--bg);border-radius:10px;padding:9px 10px">
+            <div style="font-size:19px;font-weight:800;color:${leech?'#7C3AED':'var(--sub)'}">${leech}</div>
+            <div style="font-size:10.5px;color:var(--sub);margin-top:1px">難詞</div>
+          </div>
+        </div>
+        ${r30===null?`<div style="font-size:11.5px;color:var(--sub);margin-top:8px;line-height:1.55">仲未夠數據（最少 10 次已畢業複習）。繼續溫就會出數字。</div>`
+        :`<div style="font-size:11.5px;line-height:1.6;margin-top:8px;color:${col}">
+            ${r30>=85?'✅ 保留率好穩 — 節奏啱，繼續。':r30>=70?'⚠️ 保留率偏低：建議減每日新詞量（例如 20 → 12），等複習追得上。':'🚨 保留率過低：而家學得快過記得，新詞再多都冇用。先將目標降到 10 詞／日，用一星期消化積壓。'}
+          </div>`}
+        ${warn.lv!=='ok'?`<div style="font-size:11.5px;line-height:1.6;margin-top:7px;padding:8px 10px;border-radius:9px;background:${warn.lv==='high'?'#FEF2F2':'#FFFBEB'};color:${warn.lv==='high'?'#B91C1C':'#92400E'}">${warn.msg}</div>`:''}
+      </div>`;
+  },
   duePool(cat, star){
     const s=Store.state;
     const now=Date.now();
@@ -1221,7 +1894,9 @@ const SM2 = {
     const due=pool.filter(w=>isDue(w)&&!s.tomo.has(K(w)))
                   .sort((a,b)=>s.sched[K(a)].due-s.sched[K(b)].due);
     // 錯詞（未到期）即時重溫，但要限額，避免霸佔成個隊列
-    const wrong=Utils.shuffle(pool.filter(w=>s.wrong.has(K(w))&&!isDue(w)&&!s.tomo.has(K(w))&&s.sched[K(w)]));
+    const wrong=Utils.shuffle(pool.filter(w=>s.wrong.has(K(w))&&!isDue(w)&&!s.tomo.has(K(w))&&s.sched[K(w)]&&!s.leech.has(K(w))));
+    // 難詞：反覆忘記，要穩定少量咁磨，但唔可以霸佔成個隊列
+    const leech=Utils.shuffle(pool.filter(w=>s.leech.has(K(w))&&!isDue(w)&&!s.tomo.has(K(w))));
     // 新詞：嚴格按每日配額，並按應考優先度排（唔係隨機）
     const fresh=pool.filter(w=>{ const k=K(w); return !s.sched[k]&&!s.known.has(k)&&!s.tomo.has(k); });
     const freshOrdered=Enh.on()?fresh.slice().sort(Enh.cmp):Utils.shuffle(fresh);
@@ -1231,6 +1906,7 @@ const SM2 = {
     push(tomo);
     push(due.slice(0, SM2.dueLeft()));
     push(wrong.slice(0, Math.max(10, Math.round((s.goal||20)/2))));
+    push(leech.slice(0, 8));
     push(freshOrdered.slice(0, SM2.newLeft()));
     return q;
   }
@@ -1404,6 +2080,9 @@ const Home = {
     const gap=Utils.gapToTop();
     const starCnt={}; Data.raw.forEach(w=>{ const st=Math.min(5,Math.max(1,parseInt(w.stars,10)||3)); starCnt[st]=(starCnt[st]||0)+1; });
     const stars=[5,4,3,2,1].map(st=>{ const c=starCnt[st]||0; return `<div class="rp-cell"><div class="rp-lv">★${st}</div><div class="rp-num">${c}</div><div class="rp-lbl">詞</div></div>`; }).join('');
+    const prodN=(s.prod&&s.prod.size)||0;
+    const prodRate=known?Math.round(prodN/known*100):0;
+    const prodDue=(()=>{ try{ return SM2.duePool('all',1).length; }catch(e){ return 0; } })();
     const catInfo=[['情境詞彙',s.mode==='all'||s.mode==='情境'?'active':''],['寫作慣用語',s.mode==='寫作'?'active':''],['議題詞彙',s.mode==='議題'?'active':''],['21世紀潮語',s.mode==='潮語'?'active':''],['進階詞彙A',s.mode==='進階A'?'active':''],['進階短語B',s.mode==='進階B'?'active':'']];
     Utils.touchStreak();
     const ach=Utils.unlockCheck();
@@ -1415,9 +2094,17 @@ const Home = {
         <div class="goal-txt"><span>今日進度 ${gPct}%</span><span onclick="App.setGoal()" style="font-weight:800">✏️ 調整目標</span></div>
       </div>
       <div class="stat-grid">
-        <div class="stat-card"><div class="num">${known}</div><div class="lbl">已掌握</div></div>
-        <div class="stat-card"><div class="num">${total-known}</div><div class="lbl">未掌握</div></div>
-        <div class="stat-card"><div class="num">${master}%</div><div class="lbl">掌握率</div></div>
+        <div class="stat-card"><div class="num">${known}</div><div class="lbl">認得</div></div>
+        <div class="stat-card"><div class="num">${prodN}</div><div class="lbl">寫得出</div></div>
+        <div class="stat-card"><div class="num">${prodRate}%</div><div class="lbl">產出率</div></div>
+      </div>
+      <div class="card" style="margin-bottom:12px;background:${prodRate<30?'#FEF2F2':'var(--card)'};border:1px solid ${prodRate<30?'#FCA5A5':'var(--border)'};border-radius:12px;padding:11px 13px">
+        <div style="font-size:12.5px;line-height:1.65">
+          <b>認得 ≠ 寫得出。</b>閱讀卷只要求「認得」，但<b>寫作卷同卷三要你主動產出</b>——呢個差距就係 5 同 5** 嘅分界。
+          而家認得 <b>${known}</b> 個，寫得出 <b>${prodN}</b> 個（${prodRate}%）。
+          ${prodRate<30?`<div style="margin-top:7px;color:#B91C1C">⚠️ 產出率偏低：用「產出模式」練主動提取，唔好再淨係撳卡。</div>`:''}
+          <button class="btn sm" style="margin-top:9px;width:100%" onclick="Spell.start('prod')">✍️ 去產出模式（${prodDue} 詞到期）</button>
+        </div>
       </div>
       <div class="streak-card" style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:10px">
@@ -1427,6 +2114,9 @@ const Home = {
         <div style="text-align:right"><div style="font-size:15px;font-weight:800">${ach.length} 個成就</div><div style="font-size:11px;opacity:.85">🏆 已解鎖</div></div>
       </div>
       ${ach.length?`<div class="ach-row" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px">${ach.map(a=>`<div style="flex:0 0 auto;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;text-align:center;min-width:64px"><div style="font-size:18px">${a.ic}</div><div style="font-size:10px;font-weight:700;margin-top:2px">${a.t}</div></div>`).join('')}</div>`:''}
+      ${ExamCfg.card()}
+      ${Store.backupNag()}
+      ${SM2.reviewHealth()}
       ${Mission.render()}
       ${Curve.mini()}
       ${s.lvTest?(()=>{const pp=Utils.priorityPlan(s.lvTest.lv);return `
@@ -1486,7 +2176,12 @@ const Home = {
       <div class="dse-report-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(54px,1fr));gap:8px;margin-bottom:6px">${stars}</div>
       <div style="font-size:10.5px;color:var(--faint);margin-bottom:12px;padding-left:2px">合計 ${total} 詞（各星級係實際詞數，唔會重複計）</div>
       <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:8px">💡 長按詞彙列表可快速收藏；詳情彈窗可標記掌握／收藏，詞庫會自動更新。</div>
-      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6">📤 數據頁底部可匯出／匯入備份，支援 WebDAV 雲端同步。</div>
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;gap:8px">
+          <button class="btn soft sm" style="flex:2" onclick="Pal.open_()">🔍 搜任何嘢（詞／片語／功能）</button>
+          <button class="btn ghost sm" style="flex:1" onclick="Pal.help()">⌨️ 快捷鍵</button>
+        </div>
+      </div>
     `;
   }
 };
@@ -1495,11 +2190,25 @@ const Home = {
  * ===================================================================== */
 const Flash = {
   queue:[], idx:0, flipped:false, star:1, _cur:null,
-  enter(){ Flash._load(); },
+  _again:[], _round:0, _undo:null, _lastMsg:'',
+  enter(){ Flash._again=[]; Flash._round=0; Flash._undo=null; Flash._load(); },
   _load(){
     const q=SM2.duePool('all', Flash.star);
     Flash.queue=q; Flash.idx=0; Flash.flipped=false;
     Flash.render();
+  },
+  /* 一輪溫完之後：如果有「學習步驟」未畢業嘅詞，喺同一節再出一次（最多 3 輪） */
+  _nextRound(){
+    if(Flash._again.length && Flash._round<3){
+      Flash._round++;
+      Flash.queue=Flash._again.slice();
+      Flash._again=[];
+      Flash.idx=0; Flash.flipped=false;
+      Flash._lastMsg='🔁 學習步驟：呢 '+Flash.queue.length+' 個詞要喺同一節再溫一次';
+      Flash.render();
+      return true;
+    }
+    return false;
   },
   render(){
     const wrap=Utils.$('#flashWrap');
@@ -1522,6 +2231,9 @@ const Flash = {
         <label class="star-tog"><input type="checkbox" ${Flash.star>1?'checked':''} onchange="Flash.setStar(this.checked)"> 只睇 ★${Flash.star>1?'':'≥'}${Flash.star>1?'':''}</label>
       </div>
       <div style="text-align:center;margin-bottom:8px"><span class="m-badge" style="background:${tp.c}1a;color:${tp.c};border-color:${tp.c}33">${tp.t}</span></div>
+      ${Flash._lastMsg?`<div class="flash-msg">${Flash._lastMsg}</div>`:''}
+      ${Flash._undo?`<div class="flash-undo" onclick="Flash.undo()">↩ 還原上一題（啱啱評咗「${Flash._undo.label}」）</div>`:''}
+      <div class="fc-swipe-tip">💡 撳卡揭曉 · 揭曉後<b>向右滑=記得</b>、<b>向左滑=唔記得</b>${Pal.isDesktop?'（或撳 1–4）':''}</div>
       <div class="flash-card">
         <div class="fc-inner ${Flash.flipped?'flipped':''}" id="fcCard" onclick="Flash.flip()">
           <span class="fc-cat">${Utils.esc(w.category)}${Store.state.tomo.has(Store.key(w))?' <span style="color:#F59E0B;font-weight:700">⏰ 明日優先</span>':''}</span>
@@ -1530,28 +2242,94 @@ const Flash = {
           ${Flash.flipped?`<div class="fc-mean">${Utils.esc(w.meaning)}</div>${w.example?`<div class="fc-ex">${Utils.esc(w.example)}</div>`:''}`:`<div class="fc-hint">點擊揭曉 👆</div>`}
         </div>
         ${Flash.flipped?`
-        <div class="fc-actions">
-          <div class="fc-btn no" onclick="Flash.rate(0)">✗ 唔記得</div>
-          <div class="fc-btn yes" onclick="Flash.rate(1)">✓ 記得</div>
-        </div>`:''}
+        <div class="fc-actions4">
+          <div class="fc4 again" onclick="Flash.rate(0)"><span class="k">Again</span><span class="v">唔記得</span><span class="h">重新學</span></div>
+          <div class="fc4 hard"  onclick="Flash.rate(3)"><span class="k">Hard</span><span class="v">要諗一陣</span><span class="h">縮短間隔</span></div>
+          <div class="fc4 good"  onclick="Flash.rate(4)"><span class="k">Good</span><span class="v">記得</span><span class="h">正常拉長</span></div>
+          <div class="fc4 easy"  onclick="Flash.rate(5)"><span class="k">Easy</span><span class="v">一眼認得</span><span class="h">推遠 +30%</span></div>
+        </div>
+        <div class="fc4-tip">💡 老實評分先有效：揀 Easy 會推遠下次複習，錯判只會令你考前先發現唔記得。</div>`:''}
       </div>
     `;
     if(!Flash._cur._phonRendered){ Flash._cur._phonRendered=true; Dict.renderPhon('fc-phon', Flash._cur); }
+    try{ Flash.bindSwipe(); }catch(e){}
   },
   flip(){ Flash.flipped=!Flash.flipped; Flash.render(); },
   setStar(on){ Flash.star=on?2:1; Flash._load(); },
-  rate(ok){
+  _LABEL:{0:'Again 唔記得',3:'Hard 要諗一陣',4:'Good 記得',5:'Easy 一眼認得'},
+  /* q: 0=Again 3=Hard 4=Good 5=Easy（SM-2 標準質量） */
+  /* 手機滑動手勢：未揭曉滑=揭曉；揭咗向右滑=記得、向左滑=唔記得 */
+  _sx:0, _sy:0, _sw:false,
+  bindSwipe(){
+    const el=Utils.$('#fcCard'); if(!el||el._swiped) return;
+    el._swiped=true;
+    el.addEventListener('touchstart',e=>{
+      const t=e.touches[0]; Flash._sx=t.clientX; Flash._sy=t.clientY; Flash._sw=true; el.style.transition='none';
+    },{passive:true});
+    el.addEventListener('touchmove',e=>{
+      if(!Flash._sw) return;
+      const t=e.touches[0], dx=t.clientX-Flash._sx;
+      if(Math.abs(dx)>28 && !Flash.flipped){ Flash.flip(); Flash._sw=false; return; }
+      if(Flash.flipped) el.style.transform='translateX('+dx+'px) rotate('+(dx/22)+'deg)';
+    },{passive:true});
+    el.addEventListener('touchend',e=>{
+      if(!Flash._sw) return;
+      Flash._sw=false; el.style.transition=''; el.style.transform='';
+      const t=e.changedTouches[0], dx=t.clientX-Flash._sx, dy=t.clientY-Flash._sy;
+      if(!Flash.flipped) return;
+      if(Math.abs(dx)<60 || Math.abs(dy)>70) return;      // 太細／係垂直捲動
+      if(dx>0) Flash.rate(4); else Flash.rate(0);
+    },{passive:true});
+  },
+  rate(q){
     const w=Flash._cur; if(!w) return;
-    const k=Store.key(w);
-    if(ok){ Store.state.known.add(k); Store.state.wrong.delete(k); }
-    else{ Store.state.wrong.add(k); Store.state.known.delete(k); }
-    Store.state.tomo.delete(k);
-    SM2.review(w, ok?5:0);
+    const k=Store.key(w), s=Store.state;
+    // 記低還原點（只記上一題，避免無限 undo 令狀態混亂）
+    Flash._undo={ w, label:Flash._LABEL[q]||'',
+      sched:s.sched[k]?Object.assign({},s.sched[k]):null,
+      known:s.known.has(k), wrong:s.wrong.has(k), leech:s.leech.has(k),
+      rlogLen:(s.rlog||[]).length, dayLearn:Store.day().learn, dayReview:Store.day().review };
+
+    if(q>=3){ s.known.add(k); s.wrong.delete(k); }
+    else{ s.wrong.add(k); s.known.delete(k); }
+    s.tomo.delete(k);
+    const r=SM2.review(w, q);
     const today=Utils.today();
-    Store.state.history[today]=(Store.state.history[today]||0)+1;
+    s.history[today]=(s.history[today]||0)+1;
+
+    // 學習步驟未畢業 -> 同一節再出
+    let msg='';
+    if(SM2.inSession(w)){ Flash._again.push(w); msg='🔁 呢個詞未畢業，陣間再出多次'; }
+    else if(q>=3 && r.step===2 && r.rep===1){ msg='🎓 畢業！聽日再溫'; }
+    if(s.leech.has(k) && !Flash._undo.leech){ msg='🧟 呢個詞已經係第 '+SM2.LEECH_AT+' 次忘記 —— 建議換方法（睇例句／造句）'; }
+
     Store.persist(); Store.notify();
-    Flash.idx++;
-    if(Flash.idx>=Flash.queue.length){ Flash._load(); Utils.toast('完成一輪複習 🎉'); return; }
+    Flash.idx++; Flash._lastMsg=msg;
+    if(Flash.idx>=Flash.queue.length){
+      if(Flash._nextRound()) return;
+      Flash._again=[]; Flash._round=0;
+      Flash._load(); Utils.toast('完成一輪複習 🎉'); return;
+    }
+    Flash.flipped=false;
+    Flash.render();
+  },
+  /* 還原上一題：評錯咗（尤其手滑撳 Easy）可以即刻改返 */
+  undo(){
+    const u=Flash._undo; if(!u) return;
+    const s=Store.state, k=Store.key(u.w);
+    if(u.sched) s.sched[k]=u.sched; else delete s.sched[k];
+    u.known?s.known.add(k):s.known.delete(k);
+    u.wrong?s.wrong.add(k):s.wrong.delete(k);
+    u.leech?s.leech.add(k):s.leech.delete(k);
+    if((s.rlog||[]).length>u.rlogLen) s.rlog=s.rlog.slice(0,u.rlogLen);
+    const d=Store.day(); d.learn=u.dayLearn; d.review=u.dayReview;
+    // 由重出清單掟走（如果未畢業唔應該留喺陣）
+    Flash._again=Flash._again.filter(x=>Store.key(x)!==k);
+    Store.persist(); Store.notify();
+    // 擺返去目前位置前面再溫一次
+    Flash.queue.splice(Math.max(0,Flash.idx-1),0,u.w);
+    Flash.idx=Math.max(0,Flash.idx-1);
+    Flash._undo=null; Flash._lastMsg='↩ 已還原，再評一次';
     Flash.flipped=false;
     Flash.render();
   },
@@ -2340,6 +3118,25 @@ const SENTENCE_STRUCTURES = {
  * 統計
  * ===================================================================== */
 const Stats = {
+  /* 儲存狀態：上次儲存時間 + 空間用量 + 備份提醒 */
+  saveStatus(){
+    const s=Store.state;
+    const savedAgo=s._savedAt?Utils.daysSince(s._savedAt):null;
+    const expD=Utils.daysSince(s.lastExport);
+    const bytes=Storage.usage();
+    const kb=bytes>0?Math.round(bytes/1024):0;
+    const err=Storage.lastError;
+    const warn = expD===null || expD>7;
+    return `
+      <div style="border-radius:12px;padding:11px;margin-bottom:10px;font-size:11.5px;line-height:1.7;
+           background:${err?'#FEF2F2':warn?'#FFFBEB':'#F0FDF4'};
+           border:1px solid ${err?'#FCA5A5':warn?'#FDE68A':'#BBF7D0'};
+           color:${err?'#B91C1C':warn?'#92400E':'#047857'}">
+        ${err?`🚨 <b>${Utils.esc(err)}</b><br>而家嘅進度<b>冇保存到</b>。請立即匯出備份，並清理瀏覽器空間。`
+             :`💾 已自動儲存${savedAgo!==null&&savedAgo>0?`（${savedAgo} 日前）`:'（啱啱）'} · 佔用約 ${kb} KB`}
+        <br>${expD===null?'⚠️ <b>從未匯出過備份</b> —— 清網站資料就會冇晒。':expD>7?'⚠️ 上次匯出係 <b>'+expD+' 日前</b>，建議而家匯一次。':'✅ 上次匯出 '+expD+' 日前'}
+      </div>`;
+  },
   enter(){ Stats.render(); },
   render(){
     const v=Utils.$('#view-stats');
@@ -2393,8 +3190,10 @@ const Stats = {
       <div class="chart-card"><h4>📚 各分類掌握度</h4><div style="display:flex;flex-direction:column;gap:10px">${catRows}</div></div>
       <div class="card" style="margin-bottom:12px">
         <div class="section-title" style="margin-top:0"><span class="dot"></span>數據管理</div>
-        <div style="display:flex;flex-direction:column;gap:9px">
-          <button class="btn ghost sm" onclick="App.exportData()">📤 匯出備份</button>
+        ${Stats.saveStatus()}
+        <div style="display:flex;flex-direction:column;gap:9px;margin-top:10px">
+          <button class="btn ghost sm" onclick="App.showBackups()">🗂️ 本機備份（時間點還原）</button>
+          <button class="btn soft sm" onclick="App.exportDialog()">📤 匯出備份檔案</button>
           <label class="btn ghost sm" style="cursor:pointer">📥 匯入備份<input type="file" accept=".json" style="display:none" onchange="App.importData(this)"></label>
           <button class="btn ghost sm" onclick="App.webdavSetup()">☁️ WebDAV 設置</button>
           <div style="display:flex;gap:8px">
@@ -2405,7 +3204,7 @@ const Stats = {
           <button class="btn danger sm" onclick="App.resetData()">🗑️ 重置所有數據</button>
         </div>
       </div>
-      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6">💾 數據自動儲存於本機瀏覽器，建議定期匯出備份。</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6">💾 每次改動即時儲存到本機，並自動保留 10 份時間點備份。但<b>清網站資料／換機／無痕模式都會冇</b> —— 考前一星期請務必匯出一次檔案。</div>
     `;
   }
 };
@@ -2434,13 +3233,41 @@ const Spell = {
           <div class="sm-t">意思 + 讀音</div>
           <div class="sm-d">睇中文意思 + 聽讀音 → 拼寫</div>
         </div>
+        <div class="spell-mode prod" onclick="Spell.start('prod')">
+          <div class="sm-ic">✍️</div>
+          <div class="sm-t">產出模式</div>
+          <div class="sm-d">睇中文 → 寫英文（5** 關鍵）</div>
+        </div>
       </div>
-      <div class="spell-tip">💡 兩種模式共用 SM-2 排程：拼啱會拉長複習間隔，拼錯會縮短，同閃卡／測驗數據互通。</div>
+      <div class="spell-tip">💡 三種模式共用 SM-2 排程：啱會拉長複習間隔，錯會縮短，同閃卡／測驗數據互通。<br>
+      🏆 <b>產出模式</b>係衝 5** 嘅核心：認得唔等於寫得出。佢會優先出 S 級寫作詞，而且<b>同義替換一律當啱</b>——練嘅係「同一個意思有幾種寫法」，直接提升寫作卷用詞分數。</div>
     `;
+  },
+  /* 產出模式：優先 S 級寫作詞／有同義群組嘅詞——呢啲先係要「寫得出」嘅 */
+  _prodQueue(){
+    let q=SM2.duePool('all',1);
+    // 全新用戶未有排程都應該可以即刻練產出：改用 S 級寫作詞做起始池
+    if(!q.length){
+      q=Data.raw.filter(w=>{
+        const t=Enh.on()?Enh.tier(w):'';
+        return t==='S'||t==='A'||/寫作|Part 2/.test(w.category||'');
+      });
+      if(!q.length) q=Data.raw.filter(w=>w.stars>=4);
+    }
+    const score=w=>{
+      let sc=0;
+      const t=Enh.on()?Enh.tier(w):'';
+      if(t==='S') sc+=100; else if(t==='A') sc+=50;
+      if(Sup.on()&&Sup.group(w)) sc+=60;            // 有同義群組 = 寫作多功能詞
+      if(/寫作|Part 2/.test(w.category||'')) sc+=40;
+      if(w.stars>=4) sc+=20;
+      return sc;
+    };
+    return q.slice().sort((a,b)=>score(b)-score(a));
   },
   start(mode){
     Spell.mode=mode; Spell.idx=0; Spell.ok=0; Spell.fail=0; Spell._answered=false; Spell._hint=false;
-    Spell.queue=SM2.duePool('all',1);
+    Spell.queue = (mode==='prod') ? Spell._prodQueue() : SM2.duePool('all',1);
     if(!Spell.queue.length){ Utils.toast('未有可複習詞彙，先學新詞或去閃卡溫一轉'); Spell.enter(); return; }
     Spell._cur=Spell.queue[0];
     Spell.render();
@@ -2461,9 +3288,14 @@ const Spell = {
     const inp=Spell._norm(Spell._input||'');
     const exact=answered&&inp===ans;
     const near=answered&&!exact&&inp&&Utils.levDist(inp,ans)<=Math.max(1,Math.round(ans.length*0.25));
-    const resultHtml=!answered?'':(exact
-      ? `<div class="sp-result ok">✅ 拼啱咗！<span class="sr-sub">已記住：${Utils.esc(w.phrase)}</span></div>`
-      : `<div class="sp-result no">${near?'🔶 好接近！':'❌ 拼錯'}<span class="sr-sub">正確拼寫：<b>${Utils.esc(w.phrase)}</b>（${Utils.esc(w.meaning)}）</span></div>`);
+    let resultHtml;
+    if(Spell.mode==='prod'&&answered){
+      resultHtml=Spell._prodResult(w);
+    } else {
+      resultHtml=!answered?'':(exact
+        ? `<div class="sp-result ok">✅ 拼啱咗！<span class="sr-sub">已記住：${Utils.esc(w.phrase)}</span></div>`
+        : `<div class="sp-result no">${near?'🔶 好接近！':'❌ 拼錯'}<span class="sr-sub">正確拼寫：<b>${Utils.esc(w.phrase)}</b>（${Utils.esc(w.meaning)}）</span></div>`);
+    }
     v.innerHTML=`
       <div class="spell-top">
         <button class="btn ghost sm" onclick="App.go('home')">← 退出</button>
@@ -2475,6 +3307,15 @@ const Spell = {
         ${Spell.mode==='dict'
           ? `<div class="sp-voice" onclick="Spell.play()"><div class="sp-voice-btn">🔊</div><div class="sp-voice-hint">點擊重聽</div>${Spell._hint?`<div class="sp-mean">${Utils.esc(w.meaning)}</div>`:''}</div>
              ${!Spell._hint&&!answered?`<button class="btn ghost sm" onclick="Spell._hint=true;Spell.render()">💡 睇意思提示</button>`:''}`
+          : Spell.mode==='prod'
+          ? `<div class="sp-prod-prompt">
+               <div class="sp-pp-lbl">用英文寫出呢個意思</div>
+               <div class="sp-pp-cn">${Utils.esc(w.meaning)}</div>
+               <div class="sp-pp-meta">${Utils.esc(w.category||'')}${w.pos?' · '+Utils.esc(w.pos):''}${' · '+'★'.repeat(Math.min(w.stars,5))}</div>
+               ${w.eg?`<div class="sp-pp-eg">📄 ${Utils.esc(Spell._blank(w.eg, w.phrase))}</div>`:''}
+               ${Spell._hint?`<div class="sp-pp-hint">💡 首字母：<b>${Utils.esc(String(w.phrase).trim()[0])}</b>　·　${String(w.phrase).trim().split(/\s+/).length} 個字</div>`:''}
+             </div>
+             ${!Spell._hint&&!answered?`<button class="btn ghost sm" onclick="Spell._hint=true;Spell.render()">💡 畀少少提示</button>`:''}`
           : `<div class="sp-mean">${Utils.esc(w.meaning)}</div>
              <button class="btn ghost sm" onclick="Spell.play()">🔊 聽讀音</button>`}
         <input class="field spell-input" id="spellInput" placeholder="輸入英文拼寫…" value="${Utils.esc(Spell._input||'')}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" oninput="Spell._input=this.value" onkeydown="if(event.key==='Enter')Spell.check()">
@@ -2490,15 +3331,69 @@ const Spell = {
     `;
     if(!answered){ const el=Utils.$('#spellInput'); if(el){ el.focus(); el.select(); } }
   },
+  /* 例句挖空：把目標詞由例句度遮住 */
+  _blank(eg, phrase){
+    const p=String(phrase).trim();
+    if(!eg) return '';
+    const re=new RegExp(p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
+    return String(eg).replace(re,'______');
+  },
+  /* 產出模式批改：1) 完全啱 2) 同義替換（同組）3) 接近 4) 錯 */
+  _prodJudge(w, input){
+    const ans=Spell._norm(w.phrase), inp=Spell._norm(input);
+    if(!inp) return {k:'empty'};
+    if(inp===ans) return {k:'exact'};
+    const grp=(Sup.on()&&Sup.group(w))||null;
+    if(grp){
+      const hit=grp.members.find(m=>Spell._norm(m.phrase)===inp);
+      if(hit&&hit.id!==w.id) return {k:'syn', word:hit.phrase, grp};
+    }
+    if(Utils.levDist(inp,ans)<=Math.max(1,Math.round(ans.length*0.25))) return {k:'near', grp};
+    return {k:'wrong', grp};
+  },
+  _groupHtml(grp, exceptId){
+    if(!grp) return '';
+    const others=grp.members.filter(m=>m.id!==exceptId);
+    if(!others.length) return '';
+    return `<div class="sp-grp"><div class="sp-grp-h">🔄 同一個意思（${grp.n}）仲可以寫：</div>
+      <div class="sp-grp-list">${others.slice(0,8).map(m=>`<span class="sp-grp-chip">${Utils.esc(m.phrase)}</span>`).join('')}</div>
+      <div class="sp-grp-tip">💡 一篇文入面輪流用，就係「用詞多變」——寫作卷 Language 分直接加分。</div></div>`;
+  },
+  _prodResult(w){
+    const j=Spell._prodJudge(w, Spell._input||'');
+    const grp=j.grp||(Sup.on()?Sup.group(w):null);
+    if(j.k==='exact')
+      return `<div class="sp-result ok">✅ 寫得出！<span class="sr-sub">${Utils.esc(w.phrase)}　已計入「寫得出」</span></div>${Spell._groupHtml(grp, w.id)}`;
+    if(j.k==='syn')
+      return `<div class="sp-result ok">✅ 同義替換，一樣計啱！<span class="sr-sub">你寫：<b>${Utils.esc(Spell._input)}</b>　·　標準答案：${Utils.esc(w.phrase)}</span></div>${Spell._groupHtml(grp, w.id)}`;
+    if(j.k==='near')
+      return `<div class="sp-result no">🔶 好接近！<span class="sr-sub">你寫：<b>${Utils.esc(Spell._input)}</b><br>正確：<b>${Utils.esc(w.phrase)}</b>（${Utils.esc(w.meaning)}）</span></div>${Spell._groupHtml(grp, w.id)}`;
+    return `<div class="sp-result no">❌ 寫唔出／寫錯<span class="sr-sub">正確：<b>${Utils.esc(w.phrase)}</b>（${Utils.esc(w.meaning)}）</span></div>${Spell._groupHtml(grp, w.id)}`;
+  },
   check(){
     if(Spell._answered||!Spell._cur) return;
     const input=(Spell._input||'').trim();
     if(!input){ Utils.toast('請先輸入拼寫'); return; }
     const w=Spell._cur;
+    const k=Store.key(w);
+    if(Spell.mode==='prod'){
+      const j=Spell._prodJudge(w, input);
+      Spell._answered=true;
+      if(j.k==='exact'||j.k==='syn'){
+        Spell.ok++; SM2.review(w, SM2.Q.GOOD);
+        Store.state.prod.add(k); Store.state.prodWrong.delete(k);
+        Store.state.known.add(k); Store.state.wrong.delete(k);
+      } else {
+        Spell.fail++; SM2.review(w, SM2.Q.AGAIN);
+        Store.state.prodWrong.add(k);
+      }
+      Store.persist(); Spell.render(); return;
+    }
     const ok=Spell._norm(input)===Spell._norm(w.phrase);
     Spell._answered=true;
-    if(ok){ Spell.ok++; SM2.review(w,5); Store.state.known.add(Store.key(w)); Store.state.wrong.delete(Store.key(w)); }
-    else{ Spell.fail++; SM2.review(w,0); Store.state.wrong.add(Store.key(w)); Store.state.known.delete(Store.key(w)); }
+    // 聽寫／意思模式：啱 = Good(4) 而唔係 Easy(5)，因為「識拼」唔等於「一眼認得」
+    if(ok){ Spell.ok++; SM2.review(w,SM2.Q.GOOD); Store.state.known.add(k); Store.state.wrong.delete(k); }
+    else{ Spell.fail++; SM2.review(w,SM2.Q.AGAIN); Store.state.wrong.add(k); Store.state.known.delete(k); }
     Store.persist();
     Spell.render();
   },
@@ -2523,6 +3418,7 @@ const Spell = {
         <div class="sd-t">今輪完成！</div>
         <div class="sd-score"><b>${acc}%</b> 正確率</div>
         <div class="sd-detail">✅ 啱 ${Spell.ok} · ❌ 錯 ${Spell.fail} · 共 ${total} 詞</div>
+        ${Spell.mode==='prod'?`<div style="font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.6">「寫得出」累計 <b>${(Store.state.prod&&Store.state.prod.size)||0}</b> 個詞。產出率越高，寫作卷同卷三越穩。</div>`:''}
         <div class="sd-msg">${msg}</div>
         <div class="sd-actions">
           <button class="btn soft" onclick="Spell.start(Spell.mode)">🔁 再溫一輪</button>
@@ -3693,6 +4589,9 @@ const More = {
         <div class="setting-row"><div class="st-info"><div class="st-t">每日學習目標</div><div class="st-d">而家 ${s.goal} 詞／日</div></div><button class="btn sm ghost" onclick="App.setGoal()">調整</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">深色模式</div><div class="st-d">夜間護眼</div></div><div class="switch ${s.dark?'on':''}" onclick="App.toggleTheme()"></div></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">字體大小</div><div class="st-d">而家 ${s.fontSize||16}px</div></div><div style="display:flex;gap:6px"><button class="btn sm ghost" onclick="App.setFont(-1)">A−</button><button class="btn sm ghost" onclick="App.setFont(1)">A+</button></div></div>
+        <div class="setting-row"><div class="st-info"><div class="st-t">🎯 應試設定</div><div class="st-d">目標等級 · 卷三 B1／B2</div></div><button class="btn sm ghost" onclick="More.showExamCfg()">設定</button></div>
+        <div class="setting-row"><div class="st-info"><div class="st-t">🧟 難詞管理</div><div class="st-d">反覆忘記 ${Store.state.leech.size||0} 個 · 換方法</div></div><button class="btn sm ghost" onclick="More.showLeech()">查看</button></div>
+        <div class="setting-row"><div class="st-info"><div class="st-t">🗂️ 備份與還原</div><div class="st-d">${Store.state.lastExport?('上次匯出 '+Utils.daysSince(Store.state.lastExport)+' 日前'):'⚠️ 從未匯出'}</div></div><button class="btn sm ghost" onclick="App.showBackups()">管理</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">AI 評分設置</div><div class="st-d">API Key ／模型</div></div><button class="btn sm ghost" onclick="EssayGrader.renderSettings();App.go('essay')">設置</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">數據備份</div><div class="st-d">匯出／匯入／WebDAV</div></div><button class="btn sm ghost" onclick="App.go('stats')">管理</button></div>
       </div>
@@ -3709,6 +4608,81 @@ const More = {
       ${wrong.length?`<button class="btn" style="width:100%;margin:6px 0 20px" onclick="More.clearWrong()">清除錯詞紀錄</button>`:''}
     `;
     UI.go('sub');
+  },
+  showExamCfg(){
+    const v=Utils.$('#view-sub');
+    const s=Store.state;
+    const target=s.target||'5**', p3=s.p3Level||'B2';
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin-top:10px" onclick="App.go('more')">← 返回更多</button>
+      <div class="section-title"><span class="dot"></span>應試設定</div>
+      <div class="card" style="margin-bottom:12px;background:#FFFBEB;border:1px solid #FDE68A">
+        <div style="font-size:13px;font-weight:800;color:#B45309">🚨 卷三 B1 / B2 係成敗關鍵</div>
+        <div style="font-size:12.5px;line-height:1.7;margin-top:6px">
+          DSE 英文科 <b>Paper 3（聆聽及綜合能力，佔全科 30%）</b> Part B 分兩個級別：
+          <b>B1</b>（題目較易、字數要求較低）同 <b>B2</b>（要求較高）。<br><br>
+          考評局規定：<b>揀 B1 嘅考生，全科最高只可獲 Level 4</b>。
+          即係話 —— 想攞 5 / 5* / 5**，<b>一定要做 B2</b>。<br><br>
+          佔全科 30% 嘅卷，揀錯級別就直接冇咗 5** 嘅資格，係最常見亦最致命嘅失誤。
+        </div>
+      </div>
+      <div class="section-title"><span class="dot"></span>目標等級</div>
+      <div class="card" style="margin-bottom:12px">
+        ${ExamCfg.LEVELS.map(l=>`
+          <div onclick="ExamCfg.set('${l.k}');More.showExamCfg()" style="padding:9px 4px;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+            <div><div style="font-size:14px;font-weight:800;color:${target===l.k?'#4F46E5':'var(--text)'}">Level ${l.k} ${target===l.k?'✓':''}</div>
+              <div style="font-size:11.5px;color:var(--sub);margin-top:2px">${l.d}　·　${l.min}</div></div>
+            <div style="font-size:11px;font-weight:700;color:${l.need==='B2'?'#047857':'#B91C1C'}">卷三 ${l.need}</div>
+          </div>`).join('')}
+      </div>
+      <div class="section-title"><span class="dot"></span>Paper 3 級別</div>
+      <div class="card" style="margin-bottom:12px">
+        <div onclick="ExamCfg.setP3('B2');More.showExamCfg()" style="padding:10px 4px;border-bottom:1px dashed var(--border);cursor:pointer">
+          <div style="font-size:14px;font-weight:800;color:${p3==='B2'?'#047857':'var(--text)'}">B2 ${p3==='B2'?'✓ 已選':''}</div>
+          <div style="font-size:11.5px;color:var(--sub);margin-top:2px">要求較高，但係 Level 5 或以上嘅必要條件 ✅</div>
+        </div>
+        <div onclick="ExamCfg.setP3('B1');More.showExamCfg()" style="padding:10px 4px;cursor:pointer">
+          <div style="font-size:14px;font-weight:800;color:${p3==='B1'?'#B91C1C':'var(--text)'}">B1 ${p3==='B1'?'✓ 已選':''}</div>
+          <div style="font-size:11.5px;color:var(--sub);margin-top:2px">題目較易，但<b style="color:#B91C1C">全科上限 Level 4</b> ⚠️</div>
+        </div>
+      </div>
+      <div style="margin-bottom:20px;font-size:11.5px;color:var(--sub);line-height:1.6">
+        💡 資料來源：考評局 DSE 英文科評級機制。若考評局修訂規則，請以最新版《考試規則及評級機制》為準。
+      </div>
+    `;
+    UI.go('sub');
+  },
+  showLeech(){
+    const v=Utils.$('#view-sub');
+    const list=SM2.leechList();
+    v.innerHTML=`
+      <button class="btn ghost sm" style="margin-top:10px" onclick="App.go('more')">← 返回更多</button>
+      <div class="section-title"><span class="dot"></span>🧟 難詞（${list.length}）</div>
+      <div class="card" style="margin-bottom:12px;background:#F5F3FF;border:1px solid #DDD6FE">
+        <div style="font-size:12.5px;line-height:1.7">
+          呢啲詞你已經忘記 <b>至少 ${SM2.LEECH_AT} 次</b>。繼續用同一方法死記係<b>效率最低</b>嘅做法——
+          間隔重複對呢啲詞已經失效，要換策略：<br><br>
+          ① <b>睇例句</b>：孤立背單詞最易忘，放入句子先會記得<br>
+          ② <b>自己造句</b>：用佢寫一句同自己有關嘅嘢<br>
+          ③ <b>拆詞根</b>：認清前綴／字根，一次記一串<br>
+          ④ <b>暫時放低</b>：如果係極低頻嘅詞，唔值得再花時間——去詞庫取消收藏就得
+        </div>
+      </div>
+      ${list.length?list.map(w=>`
+        <div class="list-item" onclick="App.openDetail('${w.id}')">
+          <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)}</div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
+          <div class="li-fav" style="color:#7C3AED">🧟</div>
+        </div>`).join(''):`<div class="empty"><div class="e-icon">🎉</div>暫時冇難詞，記憶好穩！</div>`}
+      ${list.length?`<button class="btn ghost" style="width:100%;margin:10px 0 20px" onclick="More.clearLeech()">清除難詞標記（重新計）</button>`:''}
+    `;
+    UI.go('sub');
+  },
+  clearLeech(){
+    if(confirm('清除曬所有難詞標記？詞彙本身同學習記錄會保留，只係重新計失誤次數。')){
+      Store.state.leech.clear();
+      Object.keys(Store.state.sched).forEach(k=>{ const x=Store.state.sched[k]; if(x) x.lapse=0; });
+      Store.persist(); Store.notify(); More.showLeech(); Utils.toast('已清除');
+    }
   },
   clearWrong(){
     if(confirm('確定清除所有錯詞紀錄？')){ Store.state.wrong.clear(); Store.persist(); Store.notify(); More.showReview(); Utils.toast('已清除'); }
@@ -3961,19 +4935,81 @@ const App = {
     More.render();
     Utils.toast('字體 '+(s.fontSize||16)+'px');
   },
-  exportData(){
+  /* 匯出：完整快照。API Key 預設唔包（避免備份檔外洩憑證） */
+  exportData(withKey){
+    const snap=Store.snapshot(!withKey);
     const s=Store.state;
-    const blob=new Blob([JSON.stringify({app:'dse_vocab',v:3,t:Date.now(),known:[...s.known],wrong:[...s.wrong],fav:[...s.fav],tomo:[...s.tomo],sched:s.sched,history:s.history,goal:s.goal,mode:s.mode,quizCount:s.quizCount},null,2)],{type:'application/json'});
+    const blob=new Blob([JSON.stringify(snap,null,2)],{type:'application/json'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob); a.download='dse_vocab_backup_'+Utils.today()+'.json'; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),3000);
-    Utils.toast('已匯出備份檔案');
+    s.lastExport=Date.now(); Store.persist();
+    const kb=Math.round(blob.size/1024);
+    Utils.toast('已匯出備份（'+kb+' KB'+(withKey?' · 含 API Key':'')+'）');
+    if(typeof Stats!=='undefined'&&Stats.render) Stats.render();
   },
+  exportDialog(){
+    const s=Store.state;
+    const d=Utils.daysSince(s.lastExport);
+    UI.modal('📤 匯出備份', `
+      <div style="font-size:13px;line-height:1.75">
+        匯出一個 JSON 檔案，內含你<b>全部</b>學習數據：<br>
+        詞彙進度 · 複習排程 · 產出模式 · 難詞 · 保留率紀錄 · 收藏 · 錯詞 · 應試設定 · 連續打卡。
+        ${d===null?'':`<br><br>上次匯出：<b>${d} 日前</b>${d>7?'　<span style="color:#B45309">建議而家匯一次</span>':''}`}
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:12.5px;line-height:1.6;cursor:pointer">
+        <input type="checkbox" id="expWithKey" style="margin-top:3px">
+        <span>包含 AI 作文評分嘅 API Key<br><span style="color:var(--sub);font-size:11px">如果呢個備份會傳去公用電腦／雲端，唔好剔</span></span>
+      </label>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn" style="flex:2" onclick="UI.close();App.exportData(Utils.$('#expWithKey').checked)">匯出</button>
+        <button class="btn ghost" style="flex:1" onclick="UI.close()">取消</button>
+      </div>`);
+  },
+  /* 匯入：先驗證 → 顯示摘要 → 畀用戶揀「覆蓋」定「合併」 */
   importData(input){
     const f=input.files&&input.files[0]; if(!f) return;
     const reader=new FileReader();
-    reader.onload=()=>{ try{ Store.importSnapshot(JSON.parse(reader.result)); Utils.toast('匯入成功 ✅'); App.go('home'); }catch(e){ Utils.toast('匯入失敗：檔案格式錯誤'); } };
-    reader.readAsText(f); input.value='';
+    reader.onload=()=>{
+      let snap=null;
+      try{ snap=JSON.parse(reader.result); }catch(e){ Utils.toast('匯入失敗：唔係有效 JSON'); input.value=''; return; }
+      const err=Store.validate(snap);
+      if(err){ Utils.toast('匯入失敗：'+err); input.value=''; return; }
+      const m=Store.summary(snap);
+      const cur=Store.summary(Store.snapshot(false));
+      const dt=m.t?new Date(m.t).toLocaleString('zh-HK'):'唔知';
+      window.__impSnap=snap;
+      UI.modal('📥 匯入備份', `
+        <div style="font-size:12.5px;line-height:1.7">
+          <b>備份檔案內容</b>（${dt}${m.v?' · v'+m.v:''}）<br>
+          <div style="background:var(--bg);border-radius:10px;padding:10px;margin-top:7px;font-size:12px;line-height:1.85">
+            已掌握 <b>${m.known}</b> 詞 · 錯詞 <b>${m.wrong}</b> · 難詞 <b>${m.leech}</b><br>
+            排程 <b>${m.sched}</b> 詞 · 學習 <b>${m.days}</b> 日 · 連續 <b>${m.streak}</b> 日<br>
+            目標 <b>${m.target||'—'}</b> · 最佳測驗 <b>${m.quizBest}</b>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:var(--sub)">
+            目前本機：已掌握 ${cur.known} 詞 · 排程 ${cur.sched} 詞 · 學習 ${cur.days} 日
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+          <button class="btn" onclick="App.doImport('replace')">🔄 覆蓋（用備份取代而家嘅數據）</button>
+          <button class="btn soft" onclick="App.doImport('merge')">➕ 合併（保留兩邊，取較新／較好）</button>
+          <button class="btn ghost" onclick="UI.close()">取消</button>
+        </div>
+        <div style="font-size:11px;color:var(--sub);margin-top:9px;line-height:1.6">
+          合併：詞彙取聯集；排程每個詞取「間隔較長、到期較遲」嗰份；連續打卡同最佳分取大。
+        </div>`);
+      input.value='';
+    };
+    reader.readAsText(f);
+  },
+  doImport(mode){
+    const snap=window.__impSnap; if(!snap){ UI.close(); return; }
+    if(mode==='replace'){ Store.importSnapshot(snap); }
+    else{ Store.mergeSnapshot(snap); }
+    window.__impSnap=null; UI.close();
+    Utils.toast(mode==='replace'?'匯入成功 ✅':'合併成功 ✅');
+    App.go('home');
   },
   webdavSetup(){
     const cur=Store.state.webdav||{url:'',token:''};
@@ -3990,7 +5026,24 @@ const App = {
     const wd=Store.state.webdav||{};
     if(!wd.url){ Utils.toast('請先 ☁️ WebDAV 設置'); return; }
     const s=Store.state;
-    const payload=JSON.stringify({app:'dse_vocab',v:3,t:Date.now(),known:[...s.known],wrong:[...s.wrong],fav:[...s.fav],tomo:[...s.tomo],sched:s.sched,history:s.history,goal:s.goal,mode:s.mode,quizCount:s.quizCount,essayCount:s.essayCount||0,streak:s.streak||0,lastActive:s.lastActive||'',customWords:s.customWords||[]});
+    // 安全檢查：雲端有一份「詞量多好多」嘅備份，好可能係另一部機 —— 唔好盲目覆蓋
+    try{
+      const hh={}; if(wd.token) hh['Authorization']=wd.token;
+      const chk=await fetch(wd.url,{method:'GET',headers:hh});
+      if(chk.ok){
+        const old=await chk.json();
+        const e=Store.validate(old);
+        if(!e){
+          const a=Object.keys(s.sched||{}).length, b=Object.keys(old.sched||{}).length;
+          if(b>a*1.5 && b-a>50){
+            if(!confirm('⚠️ 雲端嗰份有 '+b+' 個詞嘅排程，本機只得 '+a+' 個。\n可能係另一部裝置嘅備份。\n\n確定要用本機覆蓋雲端？（建議改為「取消」→ 先下載導入）')){
+              Utils.toast('已取消上傳，冇改動到雲端'); return;
+            }
+          }
+        }
+      }
+    }catch(e){ /* 讀唔到雲端（例如第一次用）就照上傳 */ }
+    const payload=JSON.stringify(Store.snapshot(true));   // 雲端唔上傳 API Key
     try{
       const headers={'Content-Type':'application/json'};
       if(wd.token) headers['Authorization']=wd.token;
@@ -4009,12 +5062,76 @@ const App = {
       const res=await fetch(wd.url,{method:'GET',headers});
       if(!res.ok) throw new Error('HTTP '+res.status);
       const snap=await res.json();
-      if(!snap||snap.app!=='dse_vocab'||!snap.known){ throw new Error('檔案格式不符（非 DSE Vocab 備份）'); }
-      Store.importSnapshot(snap);
-      Store.state.webdav.lastSync=Date.now(); Store.persist();
-      Stats.render(); App.go('home');
-      Utils.toast('☁️ 下載並導入成功 ✅');
+      const err=Store.validate(snap);
+      if(err) throw new Error(err);
+      const m=Store.summary(snap), cur=Store.summary(Store.snapshot(false));
+      const go=(mode)=>{
+        if(mode==='merge') Store.mergeSnapshot(snap); else Store.importSnapshot(snap);
+        Store.state.webdav.lastSync=Date.now(); Store.persist();
+        UI.close(); Stats.render(); App.go('home');
+        Utils.toast(mode==='merge'?'☁️ 合併成功 ✅':'☁️ 下載並導入成功 ✅');
+      };
+      window.__wdSnap=snap;
+      UI.modal('☁️ 雲端備份', `
+        <div style="font-size:12.5px;line-height:1.7">
+          雲端：<b>${m.known}</b> 詞已掌握 · 排程 <b>${m.sched}</b> 詞 · 學習 <b>${m.days}</b> 日<br>
+          本機：<b>${cur.known}</b> 詞已掌握 · 排程 <b>${cur.sched}</b> 詞 · 學習 <b>${cur.days}</b> 日
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+          <button class="btn" onclick="App.doWdImport('replace')">🔄 用雲端覆蓋本機</button>
+          <button class="btn soft" onclick="App.doWdImport('merge')">➕ 合併（保留兩邊）</button>
+          <button class="btn ghost" onclick="UI.close()">取消</button>
+        </div>`);
     }catch(e){ Utils.toast('☁️ 下載失敗：'+e.message); }
+  },
+  /* 本機備份管理：可以還原到某個時間點（舊版得一份，冇得揀） */
+  async showBackups(){
+    const v=Utils.$('#view-sub');
+    v.innerHTML=`<button class="btn ghost sm" style="margin-top:10px" onclick="App.go('more')">← 返回更多</button>
+      <div class="section-title"><span class="dot"></span>🗂️ 本機備份（${Store.BAK_MAX||10} 份上限）</div>
+      <div class="card"><div style="font-size:12px;color:var(--sub);line-height:1.7">載入中…</div></div>`;
+    UI.go('sub');
+    const list=await Store.backups();
+    const cur=Store.summary(Store.snapshot(false));
+    const el=Utils.$('#view-sub');
+    if(!list.length){
+      el.innerHTML=`<button class="btn ghost sm" style="margin-top:10px" onclick="App.go('more')">← 返回更多</button>
+        <div class="section-title"><span class="dot"></span>🗂️ 本機備份</div>
+        <div class="empty"><div class="e-icon">🗂️</div>仲未有任何備份<br><span style="font-size:12px;color:var(--sub)">開始學習之後會自動建立</span></div>`;
+      return;
+    }
+    el.innerHTML=`<button class="btn ghost sm" style="margin-top:10px" onclick="App.go('more')">← 返回更多</button>
+      <div class="section-title"><span class="dot"></span>🗂️ 本機備份（${list.length} 份）</div>
+      <div class="card" style="margin-bottom:12px">
+        <div style="font-size:12px;line-height:1.7;color:var(--sub)">
+          目前：已掌握 <b style="color:var(--text)">${cur.known}</b> 詞 · 排程 <b style="color:var(--text)">${cur.sched}</b> 詞 · 學習 <b style="color:var(--text)">${cur.days}</b> 日
+        </div>
+      </div>
+      ${list.map(b=>`
+        <div class="list-item" onclick="App.restoreBak(${b.t})">
+          <div class="li-main">
+            <div class="li-ph">${new Date(b.t).toLocaleString('zh-HK')}</div>
+            <div class="li-mean">${Utils.daysSince(b.t)} 日前${b.t===list[0].t?' · 最新':''}</div>
+          </div>
+          <div class="li-fav" style="color:#2563EB">還原</div>
+        </div>`).join('')}
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-top:10px">
+        系統會自動保留最近 6 次改動 + 每日 1 份（最多 10 份）。還原會<b>覆蓋</b>目前數據，建議先匯出一次。
+      </div>`;
+  },
+  async restoreBak(t){
+    const d=Utils.daysSince(t);
+    if(!confirm('確定還原到 '+new Date(t).toLocaleString('zh-HK')+'（'+d+' 日前）？\n\n目前未儲存嘅進度會被覆蓋。')) return;
+    const ok=await Store.restoreBackup(t);
+    if(ok){ UI.go('home'); App.go('home'); Utils.toast('已還原 ✅'); }
+    else Utils.toast('還原失敗：備份讀唔到');
+  },
+  doWdImport(mode){
+    const snap=window.__wdSnap; if(!snap){ UI.close(); return; }
+    if(mode==='merge') Store.mergeSnapshot(snap); else Store.importSnapshot(snap);
+    Store.state.webdav.lastSync=Date.now(); Store.persist();
+    window.__wdSnap=null; UI.close(); Stats.render(); App.go('home');
+    Utils.toast(mode==='merge'?'☁️ 合併成功 ✅':'☁️ 下載並導入成功 ✅');
   },
   resetData(){
     if(confirm('確定要重置所有學習數據？此操作無法還原。')){ Store.reset(); Utils.toast('已重置'); App.go('home'); }
@@ -4036,6 +5153,15 @@ const App = {
   closeGuide(){ Utils.$('#guide').classList.remove('show'); Store.state.onboarded=true; Storage.set('onboarded','1'); },
   async boot(){
     window.onerror=(msg)=>{ Utils.toast('⚠️ '+msg); };
+    try{ Keys.init(); }catch(e){}
+    // 還原上次位置：唔好每次開 app 都回落首頁
+    try{
+      const lv=Store.state.lastView;
+      if(lv && lv!=='home' && Utils.$('#view-'+lv)){
+        App.go(lv);
+        if(lv==='flash'||lv==='quiz'||lv==='spell'){ /* 呢啲要 enter 先有內容 */ }
+      }
+    }catch(e){}
     window.addEventListener('unhandledrejection',e=>{ Utils.toast('⚠️ '+(e.reason&&e.reason.message||'未知錯誤')); });
     Store.init();
     document.body.style.zoom=(Store.state.fontSize/16||1).toFixed(2);
@@ -4071,6 +5197,105 @@ window.Store=Store; window.SM2=SM2; window.Home=Home;
 window.Flash=Flash; window.Quiz=Quiz; window.Browse=Browse;
 window.Stats=Stats; window.WritingToolkit=WritingToolkit;
 window.EssayGrader=EssayGrader; window.More=More; 
+/* =====================================================================
+ * Paper 4 說話：互動技巧語庫 + Part B 個人短講 + 評分準則
+ * Part A 小組討論（10 分鐘準備 + 討論）：互動技巧係最主要評分點
+ * Part B 個人短講（1 分鐘，冇準備時間）：考即時組織
+ * ===================================================================== */
+const P4 = {
+  INTERACT:[
+    {c:'🚀 開啟討論 Opening', tip:'第一句唔好淨係讀題目，要畀個方向', items:[
+      {t:"Shall we start by looking at ...?", m:'我哋不如先睇吓…（最穩陣嘅開場）'},
+      {t:"Perhaps we could begin with the question of whether ...", m:'我哋可以由「…與否」呢點開始'},
+      {t:"There are several angles to this. I'd suggest we tackle ... first.", m:'呢題有幾個角度，我建議先處理…'},
+      {t:"To kick things off, I think ...", m:'開個頭，我認為…'}
+    ]},
+    {c:'🙋 邀請他人 Inviting', tip:'主動邀請安靜嘅同學，互動技巧直接加分', items:[
+      {t:"What do you think, [name]?", m:'你點睇？（最基本但最有用）'},
+      {t:"We haven't heard from you yet — do you have any thoughts on this?", m:'我哋仲未聽到你嘅意見，你有冇諗法？'},
+      {t:"[name], you mentioned earlier that ... — could you elaborate?", m:'你頭先提過…，可唔可以講多啲？'},
+      {t:"I'd be interested to hear your take on this, [name].", m:'我想聽吓你嘅睇法'}
+    ]},
+    {c:'🤝 表達同意 Agreeing', tip:'唔好淨係 "I agree"，要講同意邊一點 + 補充', items:[
+      {t:"I see eye to eye with you on that point.", m:'呢點我同你意見一致'},
+      {t:"That's a valid point, and I'd add that ...", m:'呢點講得啱，我想補充…'},
+      {t:"Exactly — and to build on that, ...", m:'冇錯，再延伸落去…'},
+      {t:"I couldn't agree more, particularly when it comes to ...", m:'我非常同意，尤其係關於…'}
+    ]},
+    {c:'🛡️ 有禮反對 Disagreeing politely', tip:'先認後駁，千祈唔好直接 "I disagree"', items:[
+      {t:"I take your point, but I wonder if ...", m:'我明白你嘅意思，但我想問…'},
+      {t:"That's one way of looking at it, although ...", m:'呢個係一個角度，不過…'},
+      {t:"I see where you're coming from, yet I'd argue that ...", m:'我理解你嘅出發點，但我會話…'},
+      {t:"With all due respect, I have a slightly different view.", m:'恕我直言，我嘅睇法有少少唔同'}
+    ]},
+    {c:'🔄 部分讓步 Conceding', tip:'肯讓步 = 成熟度，係高分嘅標誌', items:[
+      {t:"You have a point there — I hadn't considered that.", m:'你講得有道理，我之前冇諗到'},
+      {t:"I take that on board. That said, ...", m:'我接受到呢點。話雖如此，…'},
+      {t:"That's fair enough, but let's not overlook ...", m:'咁講都合理，但唔好忽略…'},
+      {t:"I'd concede that ..., yet on balance ...", m:'我承認…，但整體而言…'}
+    ]},
+    {c:'❓ 要求澄清 Clarifying', tip:'聽唔明就問，好過亂答', items:[
+      {t:"Sorry, could you run that by me again?", m:'唔好意思，可唔可以講多次？'},
+      {t:"Do you mean that ...?", m:'你係咪指…？'},
+      {t:"Just to clarify, are you saying that ...?", m:'想確認吓，你係話…？'},
+      {t:"I'm not sure I follow — could you give an example?", m:'我跟唔上，可唔可以舉個例？'}
+    ]},
+    {c:'➡️ 推進／轉話題 Moving on', tip:'掌控節奏嘅人通常最高分', items:[
+      {t:"Shall we move on to the next point?", m:'我哋去下一點好嗎？'},
+      {t:"We've covered that quite well — let's turn to ...", m:'呢點講得差唔多，我哋轉去…'},
+      {t:"Before we run out of time, we should also discuss ...", m:'趁仲有時間，我哋都應該講吓…'},
+      {t:"Coming back to what you said about ..., I think ...", m:'返去你講過嘅…，我認為…'}
+    ]},
+    {c:'🎯 歸納共識 Reaching consensus', tip:'Part A 收尾一定要有人做結論', items:[
+      {t:"So it seems we all agree that ...", m:'咁睇嚟大家都同意…'},
+      {t:"To sum up our discussion, we've considered ... and concluded that ...", m:'總結我哋嘅討論…'},
+      {t:"While we have different views on ..., the common ground is that ...", m:'雖然我哋對…有分歧，但共通點係…'},
+      {t:"Shall we go with that as our conclusion?", m:'我哋用呢個做結論好嗎？'}
+    ]}
+  ],
+  /* Part B 個人短講：1 分鐘、冇準備時間 */
+  PART_B_STRUCT:[
+    {s:'第 1 句：直接畀立場', d:'10 秒 · 唔好鋪墊，開門見山', eg:'I would definitely say that ... / If asked to choose, I would go for ...'},
+    {s:'第 2 句：理由 + 具體例子', d:'20 秒 · 例子要真實，唔好空講', eg:'The main reason is that ... For instance, ...'},
+    {s:'第 3 句：承認反面（讓步）', d:'15 秒 · 展示你諗過兩面', eg:'Admittedly, ... — but that does not change the fact that ...'},
+    {s:'第 4 句：總結／升華', d:'15 秒 · 收尾要有力，唔好爛尾', eg:'All things considered, ... is clearly the better option.'}
+  ],
+  PART_B_TIPS:[
+    '⏱️ <b>60 秒 ≈ 120–140 字</b>。唔好求快，講得清楚比講得多重要。',
+    '🚫 <b>冇準備時間</b>——所以平時要練「即時組織」。用上面四句結構，任何題目都套得落。',
+    '🎯 題目通常係「你個人嘅選擇／經驗」，第一句一定要畀立場，模棱兩可會扣分。',
+    '💡 例子要<b>具體</b>：講「我學校上年搞過…」好過「社會上好多…」。',
+    '🗣️ 唔好停低。卡住嗰陣用 <i>Let me put it another way</i> 或者 <i>What I mean is</i> 爭取時間。',
+    '⚠️ 收尾要完整。講到一半被 cut 會影響 Ideas & Organisation 分。'
+  ],
+  /* DSE Paper 4 四個評分維度 */
+  DOMAINS:[
+    {ic:'🗣️', n:'發音與表達', en:'Pronunciation & Delivery',
+     lo:'發音含糊、語速太快或太慢、全程低頭讀稿、音量太細',
+     hi:'發音清晰、語速自然、有適當停頓同重音、眼神交流自然、聲量穩定'},
+    {ic:'🤝', n:'溝通策略', en:'Communication Strategies',
+     lo:'只顧自己講、打斷人、冇回應他人、聽唔明都唔問、淨係 "I agree"',
+     hi:'主動邀請他人、有禮反對、懂得讓步、會要求澄清、幫手推進討論同歸納共識'},
+    {ic:'📚', n:'詞彙與語言運用', en:'Vocabulary & Language Patterns',
+     lo:'用字重複（good / bad / very）、句子短、文法錯多、成日搵唔到字',
+     hi:'用詞多變（significant / detrimental / beneficial）、句式有變化、文法準確、用啱語體'},
+    {ic:'🧠', n:'內容與組織', en:'Ideas & Organisation',
+     lo:'論點冇層次、冇例子、離題、前後矛盾、收尾爛尾',
+     hi:'立場清晰、論點有層次、有具體例子、有讓步、開頭結尾完整'}
+  ],
+  partBQ(){
+    const t=Speaking.TOPICS[Math.floor(Math.random()*Speaking.TOPICS.length)];
+    const forms=[
+      'Do you personally '+t.q.replace(/^(Is|Are|Should|Will|Do|Does)\s/i,'').replace(/\?$/,'')+'? Why?',
+      'What is your own view on this issue? Give reasons.',
+      'If you had to decide on this for your school, what would you do and why?',
+      'Think of an experience you have had relating to this. Share it and explain.'
+    ];
+    return {topic:t, q:forms[Math.floor(Math.random()*forms.length)]};
+  }
+};
+window.P4=P4;
+
 /* ================= V5.1 口語特訓 Speaking ================= */
 const Speaking={
   TOPICS:[
@@ -4088,19 +5313,114 @@ const Speaking={
     {cat:'文化',q:'Should we preserve traditional culture in the digital age?',pro:['Traditional culture is part of our identity','Digital tools can preserve heritage forever','Festivals and customs unite communities'],con:['Culture should evolve with the times','Some traditions are outdated and costly','Young people prefer modern entertainment'],ph:['cultural heritage 文化遺產','pass down 傳承','traditional customs 傳統習俗','sense of belonging 歸屬感','modernisation 現代化']},
     {cat:'義工',q:'Should community service be compulsory for students?',pro:['It teaches empathy and social responsibility','Students gain practical experience for their CV','It strengthens the local community'],con:['Forced service is less genuine than voluntary work','Students already have heavy workloads','It may widen inequality between students'],ph:['community service 社區服務','social responsibility 社會責任','sense of empathy 同理心','voluntary work 義工工作','give back to society 回饋社會']}
   ],
-  _t:null,
+  _t:null, _tab:'topic', _pb:null,
   enter(){
+    if(Speaking._tab==='interact') return Speaking.renderInteract();
+    if(Speaking._tab==='partb')    return Speaking.renderPartB();
+    if(Speaking._tab==='rubric')   return Speaking.renderRubric();
+    Speaking._tab='topic';
     const v=Utils.$('#view-speaking');
     v.innerHTML=`
-      <div class="x-toolbar"><div class="x-tab on"><span class="ic">🗣️</span>口語特訓</div><div class="x-tab" onclick="App.go('debate')"><span class="ic">⚔️</span>辯論</div><div class="x-tab" onclick="App.go('reading')"><span class="ic">📖</span>閱讀</div><div class="x-tab" onclick="App.go('listening')"><span class="ic">🎧</span>聆聽</div></div>
+      ${Speaking._subTabs()}
       <div class="card" style="margin-bottom:12px">
         <div class="st-t">🎤 發音評分練習</div>
         <div class="st-d">用咪高峰讀出詞彙，AI 即時比對評分（需允許麥克風權限）</div>
         <button class="btn sm" style="margin-top:8px" onclick="Speaking.speakPractice()">開始練習</button>
       </div>
-      <div class="section-title"><span class="dot"></span>DSE Paper 4 討論話題</div>
+      <div class="section-title"><span class="dot"></span>Part A 小組討論話題（${Speaking.TOPICS.length} 題）</div>
       <button class="btn" style="width:100%;margin-bottom:12px" onclick="Speaking.random()">🎲 隨機抽一題</button>
       ${Speaking.TOPICS.map((t,i)=>'<div class="topic-card" onclick="Speaking.open('+i+')"><span class="n">'+(i+1)+'</span><span class="q">'+t.q+'</span><span class="go">›</span></div>').join('')}
+    `;
+  },
+  _subTabs(){
+    const t=Speaking._tab||'topic';
+    const tabs=[['topic','💬 Part A 話題'],['interact','🤝 互動語'],['partb','🎤 Part B'],['rubric','📋 評分準則']];
+    return `<div class="x-toolbar">
+      <div class="x-tab ${t==='topic'?'on':''}" onclick="Speaking._tab='topic';Speaking.enter()"><span class="ic">💬</span>Part A 話題</div>
+      <div class="x-tab ${t==='interact'?'on':''}" onclick="Speaking._tab='interact';Speaking.enter()"><span class="ic">🤝</span>互動語</div>
+      <div class="x-tab ${t==='partb'?'on':''}" onclick="Speaking._tab='partb';Speaking.enter()"><span class="ic">🎤</span>Part B</div>
+      <div class="x-tab ${t==='rubric'?'on':''}" onclick="Speaking._tab='rubric';Speaking.enter()"><span class="ic">📋</span>評分準則</div>
+    </div>`;
+  },
+  renderInteract(){
+    const v=Utils.$('#view-speaking');
+    v.innerHTML=`
+      ${Speaking._subTabs()}
+      <div class="dse-tip" style="font-size:12px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">
+        💡 Part A 小組討論佔 Paper 4 大部分分數，而<b>互動技巧（Communication Strategies）係其中一個評分維度</b>。
+        淨係自己講得好唔夠——識邀請人、有禮反對、肯讓步、幫手歸納，先係高分嘅做法。
+      </div>
+      ${P4.INTERACT.map(c=>`
+        <div class="card" style="padding:12px;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:800">${c.c}</div>
+          <div style="font-size:11.5px;color:var(--sub);margin-top:2px;margin-bottom:8px">${c.tip}</div>
+          ${c.items.map(p=>`
+            <div style="border-top:1px dashed var(--border);padding-top:7px;margin-top:7px">
+              <div style="font-size:13.5px;font-weight:700;color:var(--text)">${Utils.esc(p.t)}</div>
+              <div style="font-size:12px;color:var(--sub);margin-top:2px">${Utils.esc(p.m)}</div>
+              <button class="wt-copy" style="margin-top:5px" onclick="WritingToolkit.copy(this,'${p.t.replace(/'/g,"\\'")}')">複製</button>
+            </div>`).join('')}
+        </div>`).join('')}
+    `;
+  },
+  renderPartB(){
+    const v=Utils.$('#view-speaking');
+    if(!Speaking._pb) Speaking._pb=P4.partBQ();
+    const pb=Speaking._pb;
+    v.innerHTML=`
+      ${Speaking._subTabs()}
+      <div class="dse-tip" style="font-size:12px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">
+        ⏱️ <b>Part B 個人短講：1 分鐘，冇準備時間。</b>考官會就 Part A 嘅題目問你一條個人問題。
+        平時練熟下面嘅四句結構，臨場套落去就得。
+      </div>
+      <div class="topic-hero"><div class="tq">${Utils.esc(pb.q)}</div><div class="tg">話題：${Utils.esc(pb.topic.cat)}　｜　${Utils.esc(pb.topic.q)}</div></div>
+      <div class="timer-wrap"><div class="timer-num" id="spTimer">1:00</div>
+        <div class="timer-btn" onclick="Speaking.timer(60)">⏱ 開始 1:00</div>
+        <div class="timer-btn" onclick="Speaking.stop()">⏹ 停</div>
+        <div class="timer-btn" onclick="Speaking._pb=P4.partBQ();Speaking.renderPartB()">🎲 換題</div>
+      </div>
+      <div class="section-title"><span class="dot"></span>60 秒四句結構（約 120–140 字）</div>
+      ${P4.PART_B_STRUCT.map((s,i)=>`
+        <div class="card" style="padding:11px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div style="font-size:13.5px;font-weight:800">${s.s}</div>
+            <div style="font-size:11px;color:#4F46E5;font-weight:700">${s.d}</div>
+          </div>
+          <div style="font-size:12.5px;line-height:1.6;margin-top:6px;background:var(--bg);border-radius:8px;padding:7px 9px;font-style:italic">「${Utils.esc(s.eg)}」</div>
+        </div>`).join('')}
+      <div class="section-title"><span class="dot"></span>臨場貼士</div>
+      <div class="card" style="margin-bottom:12px">${P4.PART_B_TIPS.map(t=>`<div style="font-size:12.5px;line-height:1.7;padding:5px 0;border-bottom:1px dashed var(--border)">${t}</div>`).join('')}</div>
+      <div class="section-title"><span class="dot"></span>呢題可以用嘅片語</div>
+      <div class="card" style="margin-bottom:20px">${pb.topic.ph.map(p=>`<span class="ph-chip">${p}</span>`).join('')}</div>
+    `;
+  },
+  renderRubric(){
+    const v=Utils.$('#view-speaking');
+    v.innerHTML=`
+      ${Speaking._subTabs()}
+      <div class="dse-tip" style="font-size:12px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6;margin-bottom:12px">
+        📋 DSE Paper 4 說話卷（佔全科 <b>10%</b>）分兩部分，用以下<b>四個維度</b>評分。
+        對照「高分做法」自評，搵出自己最弱嗰一項集中練。
+      </div>
+      ${P4.DOMAINS.map(d=>`
+        <div class="card" style="padding:12px;margin-bottom:10px">
+          <div style="font-size:14.5px;font-weight:800">${d.ic} ${d.n}</div>
+          <div style="font-size:11px;color:var(--sub);letter-spacing:.3px">${d.en}</div>
+          <div style="margin-top:8px;border-radius:8px;padding:8px 10px;background:#FEF2F2;font-size:12px;line-height:1.6">
+            <b style="color:#B91C1C">❌ 低分表現</b><br>${d.lo}
+          </div>
+          <div style="margin-top:6px;border-radius:8px;padding:8px 10px;background:#F0FDF4;font-size:12px;line-height:1.6">
+            <b style="color:#047857">✅ 高分表現</b><br>${d.hi}
+          </div>
+        </div>`).join('')}
+      <div class="card" style="margin-bottom:20px;background:#FFFBEB;border:1px solid #FDE68A">
+        <div style="font-size:13px;font-weight:800;color:#B45309">🎯 衝 5** 嘅重點</div>
+        <div style="font-size:12.5px;line-height:1.7;margin-top:6px">
+          大部分考生只練「內容」，但四個維度入面<b>互動技巧最容易拉開差距</b>——
+          因為佢唔需要深生字，只需要識得主動邀請、有禮反對、幫手歸納。
+          去「🤝 互動語」背熟 8 類句式，係 Paper 4 最平嘅加分位。
+        </div>
+      </div>
     `;
   },
   random(){
@@ -4111,7 +5431,7 @@ const Speaking={
     const t=Speaking.TOPICS[i]; Speaking._t=i;
     const v=Utils.$('#view-speaking');
     v.innerHTML=`
-      <button class="btn ghost sm" style="margin-top:10px" onclick="Speaking.enter()">← 返回話題</button>
+      <button class="btn ghost sm" style="margin-top:10px" onclick="Speaking._tab='topic';Speaking.enter()">← 返回話題</button>
       <div class="topic-hero" style="margin-top:10px"><div class="tq">${t.q}</div><div class="tg">分類：${t.cat}　｜　#${i+1} / ${Speaking.TOPICS.length}</div></div>
       <div class="timer-wrap"><div class="timer-num" id="spTimer">1:00</div><div class="timer-btn" id="spPrep" onclick="Speaking.timer(60)">⏱ 準備 1:00</div><div class="timer-btn" id="spTalk" onclick="Speaking.timer(120)">🎤 發言 2:00</div><div class="timer-btn" onclick="Speaking.stop()">⏹ 停</div></div>
       <div class="arg-box pro"><div class="ah">🟢 支持論點</div><ul class="ag">${t.pro.map(p=>'<li>'+p+'</li>').join('')}</ul></div>
