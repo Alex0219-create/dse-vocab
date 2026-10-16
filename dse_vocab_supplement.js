@@ -1,11 +1,68 @@
-/* DSE Vocab 寫作補充層 V1 — 由 build_supplement.py 生成
-   來源：Paper 2 寫作班講義（Case Study 主題詞 + Diction 詞表 + 同義替換 + 論證句式）
+/* DSE Vocab 補充層 V3 — 由 build_supplement.py 生成
+   來源：Paper 2 寫作班講義 + 2024 DSE Paper 1 真題詞表
    *** 唔修改原始詞庫 dse_vocab_data.js ***，呢個係獨立嘅追加層
-   words 補充詞（原詞庫冇嘅）  syn 同義替換群組  pat 論證句式（pos='pat'）
-*/
+   words 補充詞  syn 同義替換群組  notes 用法陷阱／真題提示
+   cat=Part 7 2024 DSE 真題詞 嘅係考場實測出現過嘅詞
+* /
 window.__DSE_SUPPLEMENT = {
- "v": 2,
+ "v": 3,
  "notes": [
+  {
+   "p": "controversial",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>（Part A／B1）。同義升級鏈：controversial → contentious → disputed。寫作想升級就用 <b>contentious</b>。"
+  },
+  {
+   "p": "contentious",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。比 controversial 高一級，形容「容易引起爭論嘅」議題。"
+  },
+  {
+   "p": "catch a glimpse of",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。老師教嘅同義網：catch a glimpse of → get / have / gain fascinating insights into。"
+  },
+  {
+   "p": "congestion",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。同義組：congestion / obstruction / nuisance —— 城市議題（交通、小販阻街）三件套。"
+  },
+  {
+   "p": "hawker",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>（小販主題）。配套詞：hawking（叫賣）、wares（貨品）、fixed-pitch（固定攤位）、obstruction（阻街）、nuisance（滋擾）。"
+  },
+  {
+   "p": "indigenous",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。 indigenous species = 本土物種；indigenous people = 原住民。"
+  },
+  {
+   "p": "imposing",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。an imposing building / presence = 宏偉、氣勢逼人。"
+  },
+  {
+   "p": "ubiquitous",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。= 無處不在（present everywhere）。寫作替代 everywhere / common 嘅升級詞。"
+  },
+  {
+   "p": "behemoth",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。= 龐然大物（巨型機構／企業）。寫作形容大財團、大平台好用。"
+  },
+  {
+   "p": "cease",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。cease to exist / cease operation = 停止、終止。"
+  },
+  {
+   "p": "enforce",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。enforce the law / regulations = 執法、執行。"
+  },
+  {
+   "p": "current",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。⚠️ 多義：current = ① 水流／氣流 ② 當前的（current situation）③ 電流。閱讀卷要睇上文下理。"
+  },
+  {
+   "p": "pharmacist",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>。= 藥劑師（配 pharmacy 藥房、prescription 處方）。"
+  },
+  {
+   "p": "contractor",
+   "w": "📄 <b>2024 DSE Paper 1 出過</b>（你詞表寫「contrator」，正確係 <b>contractor</b> = 承包商）。"
+  },
   {
    "p": "compromise",
    "w": "⚠️ 雙義陷阱字：① 妥協 ② <b>嚴重破壞／損害</b>。原詞庫淨寫咗「妥協」，但 DSE Reading 成日考第二個義——「professional ethics cannot be compromised」= 專業道德唔可以被<b>破壞</b>，唔係「唔可以妥協」。一定要睇上文下理。"
@@ -111,7 +168,7 @@ window.__DSE_SUPPLEMENT = {
    "w": "⚠️ <b>AI 議題考試策略（老師明講）</b>：「考試好耐唔會考 AI <b>正面</b>嘅嘢」—— 全部 AI <b>負面</b>詞要背熟：stifle curiosity、deprive of hands-on learning、undermine independent thinking、erode literacy standards、over-reliance。解決方法就引用<b>挪威例子</b>：tiered / phased approach + teacher supervision 底下可以用。"
   }
  ],
- "src": "Paper 2 Writing Booster / Super Reinforcement（補習班講義）",
+ "src": "Paper 2 Writing Booster（補習班講義）+ 2024 DSE Paper 1 Part A/B1 真題詞",
  "words": [
   {
    "p": "swamped",
@@ -2237,6 +2294,721 @@ window.__DSE_SUPPLEMENT = {
    "t": "A",
    "pri": 72,
    "syn": "kol"
+  },
+  {
+   "p": "arboreal",
+   "m": "樹木的；樹棲的 arboreal species",
+   "s": 5,
+   "pos": "adj",
+   "t": "A",
+   "pri": 76,
+   "syn": "tree",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "gnarled",
+   "m": "（樹幹／手指）多節的；扭曲粗糙的 gnarled branches",
+   "s": 5,
+   "pos": "adj",
+   "t": "A",
+   "pri": 74,
+   "syn": "tree",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "spindly",
+   "m": "細長而瘦弱的（枝幹）spindly saplings",
+   "s": 5,
+   "pos": "adj",
+   "t": "A",
+   "pri": 72,
+   "syn": "tree",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "aerial roots",
+   "m": "氣根（榕樹等由枝幹垂落生根）",
+   "s": 4,
+   "pos": "n",
+   "t": "A",
+   "pri": 74,
+   "syn": "tree",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "timber",
+   "m": "木材；木料（建築／傢俬用）",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 68,
+   "syn": "tree",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "stump",
+   "m": "樹樁；殘幹（砍剩的部分）",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 64,
+   "syn": "tree",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "masonry",
+   "m": "磚石結構；砌築（牆、橋、紀念碑）",
+   "s": 4,
+   "pos": "n",
+   "t": "A",
+   "pri": 72,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "mortar",
+   "m": "砂漿；灰泥（砌磚用）⚠️ 唔係臼／迫擊砲",
+   "s": 4,
+   "pos": "n",
+   "t": "B",
+   "pri": 66,
+   "syn": null,
+   "e": null,
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": "⚠️ 多義陷阱：masonry／mortar 一齊出現時係<b>建築</b>義（砂漿），唔係武器或廚房用具。2024 B1 講古樹破壞磚石結構就係呢個義。"
+  },
+  {
+   "p": "age-old",
+   "m": "古老的；由來已久的 an age-old tradition",
+   "s": 4,
+   "pos": "adj",
+   "t": "A",
+   "pri": 74,
+   "syn": "old",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "longevity",
+   "m": "長壽；長久；持久",
+   "s": 4,
+   "pos": "n",
+   "t": "A",
+   "pri": 72,
+   "syn": "old",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "fecundity",
+   "m": "繁殖力；多產；肥沃（fecund 的名詞）",
+   "s": 5,
+   "pos": "n",
+   "t": "A",
+   "pri": 70,
+   "syn": "old",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "invincibility",
+   "m": "無敵；不可戰勝 a sense of invincibility",
+   "s": 4,
+   "pos": "n",
+   "t": "B",
+   "pri": 66,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "worshipper",
+   "m": "信眾；參拜者",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 64,
+   "syn": null,
+   "e": "Worshippers visit the shrine to pray for longevity.",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "shrine",
+   "m": "神龕；聖地；廟宇（規模細過 temple）",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 68,
+   "syn": "shrine",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "coincidence",
+   "m": "巧合；碰巧 it is no coincidence that ...",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 68,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "midweek",
+   "m": "週中；一週中間（週二至週四）",
+   "s": 2,
+   "pos": "n",
+   "t": "C",
+   "pri": 52,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "trimming",
+   "m": "修剪；修整（樹木／開支）",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 64,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "hawking",
+   "m": "叫賣；兜售（hawker 的動詞／名詞）",
+   "s": 4,
+   "pos": "v",
+   "t": "A",
+   "pri": 72,
+   "syn": "hawk",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "wares",
+   "m": "貨品；商品（叫賣、擺賣的）",
+   "s": 4,
+   "pos": "n",
+   "t": "A",
+   "pri": 72,
+   "syn": "hawk",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "chestnut roaster",
+   "m": "炒栗子（攤檔）",
+   "s": 3,
+   "pos": "n",
+   "t": "C",
+   "pri": 58,
+   "syn": "hawk",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "fixed-pitch",
+   "m": "固定攤位的（fixed-pitch hawker = 固定攤位小販）",
+   "s": 4,
+   "pos": "adj",
+   "t": "B",
+   "pri": 66,
+   "syn": "hawk",
+   "e": null,
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": "💡 你詞表寫「fix-pitched」，正確寫法係 <b>fixed-pitch</b>（固定攤位），對應 itinerant／mobile hawker（流動小販）。"
+  },
+  {
+   "p": "arcade",
+   "m": "商場；拱廊街 shopping arcade",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 64,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "mender",
+   "m": "修補匠；修補者（補鞋、補衫、補鑊）",
+   "s": 3,
+   "pos": "n",
+   "t": "C",
+   "pri": 58,
+   "syn": "craft",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "craft",
+   "m": "工藝；手工藝 ⚠️ 亦係動詞「精心製作」",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 70,
+   "syn": "craft",
+   "e": "The artisan crafted a figurine out of clay.",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": "⚠️ 詞性陷阱：craft 名詞 = 工藝；動詞 = <b>精心製作</b>（craft a story / a policy）。2024 卷兩個義都有機會出現。"
+  },
+  {
+   "p": "figurine",
+   "m": "小雕像；公仔（陶瓷、泥塑）",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 62,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "province",
+   "m": "省；領域",
+   "s": 2,
+   "pos": "n",
+   "t": "C",
+   "pri": 54,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "rummage through",
+   "m": "翻找；翻遍 rummage through a pile of ...",
+   "s": 4,
+   "pos": "phr",
+   "t": "A",
+   "pri": 70,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "pile",
+   "m": "一堆；堆 ⚠️ 亦係動詞「堆積」pile up",
+   "s": 2,
+   "pos": "n",
+   "t": "C",
+   "pri": 58,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "lump sum",
+   "m": "一筆過款項（lump sums = 複數）",
+   "s": 4,
+   "pos": "n",
+   "t": "B",
+   "pri": 68,
+   "syn": null,
+   "e": "Hawkers were offered lump sums to vacate the pitch.",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "veteran",
+   "m": "資深者；老手；退伍軍人 a veteran hawker",
+   "s": 4,
+   "pos": "n",
+   "t": "B",
+   "pri": 68,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "obstruction",
+   "m": "阻礙；障礙物 cause an obstruction",
+   "s": 4,
+   "pos": "n",
+   "t": "A",
+   "pri": 72,
+   "syn": "obstruct",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "nuisance",
+   "m": "滋擾；妨擾（投訴／法律用語）public nuisance",
+   "s": 4,
+   "pos": "n",
+   "t": "A",
+   "pri": 72,
+   "syn": "obstruct",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "premise",
+   "m": "前提 ⚠️ premises = 處所／場地",
+   "s": 4,
+   "pos": "n",
+   "t": "B",
+   "pri": 68,
+   "syn": null,
+   "e": null,
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": "⚠️ 極常見陷阱：<b>premise</b>（單數）= 前提、假定；<b>premises</b>（複數）= <b>處所、場地</b>。小販／店舖題目講「處所」一定要寫 premises。"
+  },
+  {
+   "p": "license",
+   "m": "牌照；許可證 ⚠️ 動詞 = 發牌、批准",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 66,
+   "syn": "license",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "operate",
+   "m": "營運；操作；運作（攤檔、公司、機器都用得）",
+   "s": 3,
+   "pos": "v",
+   "t": "B",
+   "pri": 70,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "a shift of",
+   "m": "…的轉變／轉移 a shift of policy / attitude",
+   "s": 3,
+   "pos": "phr",
+   "t": "B",
+   "pri": 68,
+   "syn": "shift",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "shrinking",
+   "m": "萎縮中的；不斷減少的 a shrinking workforce",
+   "s": 3,
+   "pos": "adj",
+   "t": "B",
+   "pri": 64,
+   "syn": "shrink",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "panel",
+   "m": "專家小組；評審團 a panel of judges ⚠️ 亦係「面板」",
+   "s": 3,
+   "pos": "n",
+   "t": "A",
+   "pri": 72,
+   "syn": null,
+   "e": null,
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": "⚠️ 多義：solar panel = 太陽能板；a panel of experts = 專家小組。閱讀卷兩個義都出現過。"
+  },
+  {
+   "p": "inspect",
+   "m": "檢查；視察（inspection 的動詞）",
+   "s": 3,
+   "pos": "v",
+   "t": "B",
+   "pri": 68,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "cast",
+   "m": "投射（光／影）⚠️ 亦係「鑄造」「演員陣容」",
+   "s": 3,
+   "pos": "v",
+   "t": "B",
+   "pri": 68,
+   "syn": null,
+   "e": "The banyan cast a cool shadow over the square.",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": "⚠️ 多義陷阱：cast a shadow = 投下陰影；cast iron = 鑄鐵；the cast = 演員陣容。2024 卷係「投下」義。"
+  },
+  {
+   "p": "plunge",
+   "m": "暴跌；急降；投入 plunge into",
+   "s": 4,
+   "pos": "v",
+   "t": "A",
+   "pri": 72,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "deface",
+   "m": "損壞外觀；塗污（公物、古蹟）",
+   "s": 4,
+   "pos": "v",
+   "t": "B",
+   "pri": 70,
+   "syn": "damage",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "monument",
+   "m": "紀念碑；古蹟 a declared monument",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 70,
+   "syn": "shrine",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "surreptitiously",
+   "m": "偷偷地；暗中地（surreptitious 的副詞）",
+   "s": 5,
+   "pos": "adv",
+   "t": "A",
+   "pri": 74,
+   "syn": "secret",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "precautionary",
+   "m": "預防性的 precautionary measures",
+   "s": 4,
+   "pos": "adj",
+   "t": "A",
+   "pri": 72,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "outrage",
+   "m": "公憤；暴行 ⚠️ 亦係動詞「激怒」",
+   "s": 4,
+   "pos": "n",
+   "t": "A",
+   "pri": 74,
+   "syn": "outrage",
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "anthropologist",
+   "m": "人類學家（anthropology = 人類學）",
+   "s": 4,
+   "pos": "n",
+   "t": "A",
+   "pri": 70,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "playwright",
+   "m": "劇作家（play + wright 工匠）",
+   "s": 4,
+   "pos": "n",
+   "t": "B",
+   "pri": 66,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "undocumented",
+   "m": "無證件的；未有記錄的 undocumented workers",
+   "s": 4,
+   "pos": "adj",
+   "t": "B",
+   "pri": 70,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "wrap",
+   "m": "包裹；纏繞 ⚠️ 亦係名詞「披肩」",
+   "s": 2,
+   "pos": "v",
+   "t": "C",
+   "pri": 58,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "tie",
+   "m": "聯繫；紐帶 ⚠️ 亦係「領帶」「平局」",
+   "s": 2,
+   "pos": "n",
+   "t": "C",
+   "pri": 58,
+   "syn": null,
+   "e": null,
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": "⚠️ ties（複數）= 聯繫、關係（cultural ties / family ties）。閱讀卷九成係「聯繫」義，唔係領帶。"
+  },
+  {
+   "p": "trick",
+   "m": "訣竅；技巧；把戲",
+   "s": 2,
+   "pos": "n",
+   "t": "C",
+   "pri": 58,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "al fresco",
+   "m": "露天的（户外用餐）dining al fresco",
+   "s": 5,
+   "pos": "adv",
+   "t": "B",
+   "pri": 68,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "spokesperson",
+   "m": "發言人（中性，取代 spokesman／spokeswoman）",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 68,
+   "syn": null,
+   "e": "A spokesperson for the department said the licences would be reviewed.",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
+  },
+  {
+   "p": "profession",
+   "m": "職業；專業（professional 的名詞）",
+   "s": 3,
+   "pos": "n",
+   "t": "B",
+   "pri": 66,
+   "syn": null,
+   "e": "",
+   "cat": "Part 7 2024 DSE 真題詞",
+   "src": "2024DSE",
+   "w": null
   }
  ],
  "syn": [
@@ -2475,6 +3247,169 @@ window.__DSE_SUPPLEMENT = {
     "embed",
     "assimilate",
     "blend into"
+   ]
+  },
+  {
+   "k": "tree",
+   "n": "樹木／枝幹",
+   "w": [
+    "arboreal",
+    "gnarled",
+    "spindly",
+    "timber",
+    "stump",
+    "aerial roots",
+    "branch",
+    "trunk",
+    "banyan",
+    "canopy"
+   ]
+  },
+  {
+   "k": "hawk",
+   "n": "叫賣／小販",
+   "w": [
+    "hawking",
+    "hawker",
+    "hawkers",
+    "wares",
+    "chestnut roaster",
+    "fixed-pitch",
+    "itinerant hawker",
+    "street vendor",
+    "peddler"
+   ]
+  },
+  {
+   "k": "old",
+   "n": "古老／長久",
+   "w": [
+    "age-old",
+    "longevity",
+    "fecundity",
+    "ancient",
+    "time-honoured",
+    "long-standing",
+    "centuries-old"
+   ]
+  },
+  {
+   "k": "shrine",
+   "n": "廟宇／古蹟",
+   "w": [
+    "shrine",
+    "monument",
+    "temple",
+    "heritage site",
+    "declared monument",
+    "place of worship"
+   ]
+  },
+  {
+   "k": "craft",
+   "n": "工藝／修補",
+   "w": [
+    "craft",
+    "craftsmanship",
+    "handicraft",
+    "mender",
+    "artisan",
+    "traditional craftsmanship"
+   ]
+  },
+  {
+   "k": "obstruct",
+   "n": "阻礙／滋擾",
+   "w": [
+    "obstruction",
+    "obstruct",
+    "nuisance",
+    "congestion",
+    "hinder",
+    "impede",
+    "blockage"
+   ]
+  },
+  {
+   "k": "license",
+   "n": "牌照／發牌",
+   "w": [
+    "license",
+    "licence",
+    "licenses",
+    "unlicensed",
+    "permit",
+    "licensed",
+    "authorisation"
+   ]
+  },
+  {
+   "k": "secret",
+   "n": "偷偷／暗中",
+   "w": [
+    "surreptitiously",
+    "surreptitious",
+    "secretly",
+    "covertly",
+    "furtively",
+    "stealthily"
+   ]
+  },
+  {
+   "k": "controversy",
+   "n": "爭議",
+   "w": [
+    "controversial",
+    "contentious",
+    "disputed",
+    "debatable",
+    "polemic"
+   ]
+  },
+  {
+   "k": "outrage",
+   "n": "公憤／激怒",
+   "w": [
+    "outrage",
+    "spark public outrage",
+    "trigger an outrage among netizens",
+    "public fury",
+    "indignation",
+    "outcry"
+   ]
+  },
+  {
+   "k": "damage",
+   "n": "破壞／損毀",
+   "w": [
+    "deface",
+    "vandalize",
+    "demolish",
+    "damage one's eyesight",
+    "assert that consumerism destroys the environment",
+    "ruins"
+   ]
+  },
+  {
+   "k": "shift",
+   "n": "轉變",
+   "w": [
+    "a shift of",
+    "a paradigm shift",
+    "shift",
+    "transition",
+    "change"
+   ]
+  },
+  {
+   "k": "shrink",
+   "n": "萎縮／減少",
+   "w": [
+    "shrinking",
+    "shrink",
+    "a shrinking workforce",
+    "dwindle",
+    "contract"
    ]
   },
   {

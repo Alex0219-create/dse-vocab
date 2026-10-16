@@ -114,6 +114,33 @@ textarea.field{min-height:150px;line-height:1.7}
 .sheet-handle{width:42px;height:4.5px;border-radius:99px;background:var(--border-2);margin:4px auto 14px}
 /* Toast */
 #modalOverlay{z-index:210}
+/* ===== 雲端同步面板 ===== */
+.sync-hero{background:var(--grad-soft);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px}
+.sync-dev{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.sync-dev .sd-ic{font-size:24px}
+.sync-dev .sd-n{font-weight:800;font-size:14px}
+.sync-dev .sd-id{font-size:10.5px;color:var(--faint);font-family:ui-monospace,Menlo,monospace}
+.sync-state{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700}
+.sync-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.sync-dot.ok{background:var(--ok)} .sync-dot.syncing{background:var(--accent);animation:sypulse 1s infinite}
+.sync-dot.conflict{background:var(--warn)} .sync-dot.err{background:var(--err)}
+.sync-dot.idle{background:var(--faint)} .sync-dot.warn{background:var(--warn)}
+@keyframes sypulse{0%,100%{opacity:1}50%{opacity:.35}}
+.sync-cmp{background:var(--bg-soft);border-radius:12px;padding:10px 12px;margin-top:10px;font-size:12.5px}
+.sc-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:4px 0;align-items:center}
+.sc-row .sc-h{font-size:10.5px;font-weight:800;color:var(--faint)}
+.sc-row b{text-align:right;min-width:44px}
+.sc-row span:first-child{color:var(--sub)}
+.sync-log{max-height:230px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sl-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px dashed var(--border);font-size:11.5px}
+.sl-row:last-child{border-bottom:none}
+.sl-ic{width:18px;text-align:center;flex-shrink:0}
+.sl-main{flex:1;min-width:0}
+.sl-n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sl-t{font-size:10.5px;color:var(--faint)}
+.sl-cnt{color:var(--sub);flex-shrink:0;font-variant-numeric:tabular-nums}
+.sync-tip{font-size:11px;color:var(--sub);line-height:1.65;background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;margin-top:10px}
+.sync-badge{font-size:15px!important}
 /* ===== 全域命令面板（Ctrl/Cmd+K） ===== */
 .pal-wrap{position:fixed;inset:0;z-index:220;display:none}
 .pal-wrap.show{display:block}
@@ -510,6 +537,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
   <header class="header">
     <h1>📘 DSE Vocab <span class="sub">V5.14.2</span></h1>
     <div class="hd-right">
+      <span id="syncBadge"></span>
       <button class="icon-btn" onclick="Pal.open_()" aria-label="搜尋">🔍</button>
       <button class="icon-btn" id="themeBtn" onclick="App.toggleTheme()">🌙</button>
       <button class="icon-btn" onclick="App.go('stats')">📊</button>
@@ -643,6 +671,17 @@ const Utils = {
   dw(stars){ return ({1:0.8,2:0.9,3:1.0,4:1.1,5:1.2})[stars]||1; },
   lvOldScore(sc){ return sc<=10 ? Math.min(100, Math.round(sc*10)) : sc; },
   daysSince(ts){ if(!ts) return null; const n=Date.now(); return Math.max(0, Math.floor((n-ts)/86400000)); },
+  timeAgo(ts){
+    if(!ts) return '未知時間';
+    const d=Date.now()-ts;
+    if(d<0) return '啱啱';
+    const m=Math.floor(d/60000), h=Math.floor(d/3600000), dd=Math.floor(d/86400000);
+    if(m<1) return '啱啱';
+    if(m<60) return m+' 分鐘前';
+    if(h<24) return h+' 小時前';
+    if(dd<30) return dd+' 日前';
+    return new Date(ts).toLocaleDateString('zh-HK');
+  },
   dseDays(){ const target=Store.state.dseDate||'2027-04-06'; const t=new Date(target+'T00:00:00'), n=new Date(); n.setHours(0,0,0,0); return Math.max(0, Math.round((t-n)/86400000)); },
   masteryScore(){
     const s=Store.state;
@@ -782,6 +821,34 @@ const Utils = {
 const Storage = {
   /* 寫入結果：舊版 catch(e){} 靜默吞掉，儲存失敗用戶完全唔知 —— 最危險嘅 bug */
   lastError:'',
+  /* 裝置身份：每部機一個 id，用嚟判斷「雲端嗰份係邊部機寫嘅」
+   * 唔可以放喺 state 入面 —— 否則一同步，兩部機就變咗同一個 id。 */
+  devId(){
+    let v=Storage.get('dse_dev');
+    if(!v){
+      v='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+      Storage.set('dse_dev', v);
+    }
+    return v;
+  },
+  devName(){
+    let v=Storage.get('dse_devname');
+    if(!v){
+      const ua=(typeof navigator!=='undefined'&&navigator.userAgent)||'';
+      const p=(typeof navigator!=='undefined'&&navigator.platform)||'';
+      let n='裝置';
+      if(/iPhone/i.test(ua)) n='iPhone';
+      else if(/iPad/i.test(ua)) n='iPad';
+      else if(/Android/i.test(ua)&&/Mobile/i.test(ua)) n='Android 手機';
+      else if(/Android/i.test(ua)) n='Android 平板';
+      else if(/Mac/i.test(p)) n='Mac';
+      else if(/Win/i.test(p)) n='Windows';
+      else if(/Linux/i.test(p)) n='Linux';
+      v=n;
+    }
+    return v;
+  },
+  setDevName(n){ Storage.set('dse_devname', String(n||'').slice(0,24)); },
   get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
   set(k,v){
     try{ localStorage.setItem(k,v); Storage.lastError=''; return true; }
@@ -873,6 +940,8 @@ const Pal = {
     ['📤','匯出備份','下載 JSON 備份檔','App.exportDialog()'],
     ['🌙','切換深色／淺色','即時切換主題','App.toggleTheme()'],
     ['🧟','難詞管理','睇反覆忘記嘅詞','More.showLeech()'],
+    ['☁️','雲端同步','多裝置共用同一個存檔','App.syncPanel()'],
+    ['🔄','立即同步','手動推／拉雲端','App.syncNow()'],
     ['🗂️','備份與還原','時間點還原','App.showBackups()'],
     ['🎓','應試設定','目標等級 × 卷三 B1/B2','More.render()'],
     ['⌨️','鍵盤快捷鍵','睇全部快捷鍵','Pal.help()']
@@ -1117,8 +1186,9 @@ const Store = {
     sched:{}, history:{}, goal:20, mode:'all', dark:false,
     day:{d:'',learn:0,review:0,quiz:0},
     quizCount:0, onboarded:false, dseDate:'', lvTest:null, essay:{ apiKey:'', provider:'deepseek', model:'deepseek-chat', useApi:false },
-    essayCount:0, streak:0, streakDay:'', lastActive:'', achievements:[], fontSize:16, quizBest:0, customWords:[], webdav:{url:'',token:''},
-    lastExport:0, favWrite:[], _savedAt:0, lastView:'home'
+    essayCount:0, streak:0, streakDay:'', lastActive:'', achievements:[], fontSize:16, quizBest:0, customWords:[],
+    webdav:{url:'',token:'',lastSync:0,auto:false,interval:10},
+    lastExport:0, favWrite:[], _savedAt:0, lastView:'home', modified:0
   }; },
   init(){
     const raw=Storage.get('dse_state');
@@ -1129,7 +1199,8 @@ const Store = {
       prod:new Set(saved?.prod||[]), prodWrong:new Set(saved?.prodWrong||[]),
       leech:new Set(saved?.leech||[]), rlog:saved?.rlog||[],
       target:saved?.target||'5**', p3Level:saved?.p3Level||'B2',
-      sched:saved?.sched||{}, history:saved?.history||{}, day:saved?.day||{d:'',learn:0,review:0,quiz:0}, essay:{ ...d.essay, ...(saved?.essay||{}) }, webdav:{ ...d.webdav, ...(saved?.webdav||{}) }
+      sched:saved?.sched||{}, history:saved?.history||{}, day:saved?.day||{d:'',learn:0,review:0,quiz:0}, essay:{ ...d.essay, ...(saved?.essay||{}) },
+      webdav:{ ...d.webdav, ...(saved?.webdav||{}) }
     };
     this.state=st;
     // 舊版 Level 測試數據遷移：舊制（score<=10 且無 pct）轉百分制
@@ -1159,24 +1230,32 @@ const Store = {
    */
   SAVE_VER:5, BAK_MAX:10,
   SETS:['known','wrong','fav','tomo','prod','prodWrong','leech','achievements'],
-  FIELDS:['sched','history','day','rlog','target','p3Level','goal','mode','dark','quizCount','lastView',
+  FIELDS:['sched','history','day','rlog','target','p3Level','goal','mode','dark','quizCount','lastView','modified',
           'onboarded','dseDate','lvTest','essay','essayCount','streak','streakDay','lastActive',
           'fontSize','quizBest','customWords','favWrite','webdav','lastExport'],
   /* dropKey=true：匯出檔案唔包 API Key（預設，避免外洩） */
   snapshot(dropKey){
     const s=this.state;
     const o={ app:'dse_vocab', v:Store.SAVE_VER, t:Date.now() };
+    // writer：雲端要知道「呢份係邊部機寫嘅」，先判斷到係咪自己寫嘅
+    try{ o.dev=Storage.devId(); o.devName=Storage.devName(); }catch(e){}
     Store.SETS.forEach(k=>{ o[k]=[...(s[k]||[])]; });
     Store.FIELDS.forEach(k=>{ o[k]=s[k]; });
     if(dropKey && o.essay) o.essay=Object.assign({}, o.essay, {apiKey:''});
     return o;
   },
-  persist(){
+  /* noTouchMod=true：寫入但唔刷新 modified —— 同步收尾時用，
+   * 否則 persist 自己刷新 modified，會令下次同步誤判「本機改過」。 */
+  persist(noTouchMod){
     const s=this.state;
+    if(!noTouchMod) s.modified=Date.now();             // 衝突偵測用：本機最後改動時間
     const snap=Store.snapshot(false);                 // 本機儲存保留 API Key
     const str=JSON.stringify(snap);
     const ok=Storage.set('dse_state', str);
-    if(ok){ s._savedAt=Date.now(); Storage.bakSave(str); }   // 輪替備份（非同步，唔阻塞）
+    if(ok){
+      s._savedAt=Date.now(); Storage.bakSave(str);           // 輪替備份（非同步，唔阻塞）
+      try{ if(typeof Sync!=='undefined') Sync.markDirty(); }catch(e){}
+    }
     return ok;
   },
   /* 首頁備份提醒：只喺「有嘢值得唔見」且「耐冇備份」時先出現，唔好長期騷擾 */
@@ -1202,6 +1281,28 @@ const Store = {
           <button class="btn sm ghost" style="flex:1" onclick="Store.snoozeNag()">7 日後再提</button>
         </div>
       </div>`;
+  },
+  /* 雲端提醒：只喺「啟用咗但從未成功同步」時出現 */
+  syncNag(){
+    try{
+      if(typeof Sync==='undefined'||!Sync.on()) return '';
+      const c=Store.state.webdav||{};
+      if(c.lastSync) return '';                       // 同步過就唔提
+      if(Sync._st==='syncing') return '';
+      return `
+        <div class="card" style="margin-bottom:12px;background:#EFF6FF;border:1px solid #BFDBFE">
+          <div style="display:flex;align-items:center;gap:9px">
+            <div style="font-size:22px">☁️</div>
+            <div style="flex:1;font-size:12.5px;line-height:1.6;color:#1E40AF">
+              雲端同步已設定，但<b>仲未成功同步過</b>。<br>而家嘅進度淨係喺呢部機。
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn sm" style="flex:1;background:#2563EB;color:#fff;border:none" onclick="App.syncNow()">立即同步</button>
+            <button class="btn sm ghost" style="flex:1" onclick="App.syncPanel()">查看設定</button>
+          </div>
+        </div>`;
+    }catch(e){ return ''; }
   },
   snoozeNag(){ this.state.lastExport=Date.now(); this.persist(); Utils.toast('好，7 日後再提你'); if(typeof App!=='undefined') App.go('home'); },
   /* 備份清單（畀 UI 顯示） */
@@ -1254,6 +1355,19 @@ const Store = {
     Object.keys(snap.history||{}).forEach(d=>{
       s.history[d]=Math.max(s.history[d]||0, snap.history[d]||0);
     });
+    /* 今日計數器跨裝置：同一日 A 機溫 10 個、B 機溫 12 個 → 應該係 22
+     * 但同一份檔案匯入兩次唔可以重複加 —— 所以用 devs 記低邊啲機貢獻過 */
+    const iday=snap.day, cday=s.day;
+    if(iday && cday && iday.d===cday.d && iday.d){
+      const wdev=snap.dev||'';
+      cday.devs=Array.isArray(cday.devs)?cday.devs:[];
+      if(wdev && cday.devs.indexOf(wdev)<0){
+        cday.devs.push(wdev);
+        cday.learn=(cday.learn||0)+(iday.learn||0);
+        cday.review=(cday.review||0)+(iday.review||0);
+        cday.quiz=(cday.quiz||0)+(iday.quiz||0);
+      }
+    }
     s.streak=Math.max(s.streak||0, snap.streak||0);
     s.quizBest=Math.max(s.quizBest||0, snap.quizBest||0);
     s.essayCount=Math.max(s.essayCount||0, snap.essayCount||0);
@@ -1293,6 +1407,306 @@ const Store = {
   }
 };
 /* ===== 詞庫載入 ===== */
+/* =====================================================================
+ * 雲端同步引擎（多裝置共用一個存檔）
+ *
+ * 舊版嘅問題：得「上傳」同「下載」兩個手動掣。
+ *   - 唔記得撳上傳 → 第部機攞到舊數據
+ *   - 唔知雲端嗰份係邊部機寫嘅 → 盲目覆蓋
+ *   - 冇衝突偵測 → 兩邊都改過就實會唔見嘢
+ *
+ * 而家：開 app 自動拉、改動後 debounce 推、定期輪詢，
+ * 並用 (lastSync, localModified, cloud.t) 三方時間戳判斷邊個新。
+ * ===================================================================== */
+const Sync = {
+  _t:null, _busy:false, _pending:null, _log:[],
+
+  cfg(){ return Store.state.webdav||{}; },
+  on(){ const c=Sync.cfg(); return !!c.url; },
+  auto(){ const c=Sync.cfg(); return !!c.url && !!c.auto; },
+
+  /* ---- 同步記錄（本機，唔上雲，避免兩部機互相追加無限增長） ---- */
+  log(n, dir, extra){
+    try{
+      const raw=Storage.get('dse_synclog');
+      Sync._log = raw?JSON.parse(raw):(Sync._log||[]);
+    }catch(e){ Sync._log=Sync._log||[]; }
+    const m=Store.summary(Store.snapshot(false));
+    Sync._log.unshift({ t:Date.now(), dir, dev:extra&&extra.dev||'', devName:extra&&extra.devName||'', known:m.known, sched:m.sched, note:(extra&&extra.note)||'' });
+    Sync._log=Sync._log.slice(0,20);
+    try{ Storage.set('dse_synclog', JSON.stringify(Sync._log)); }catch(e){}
+  },
+  logList(){ try{ const r=Storage.get('dse_synclog'); return r?JSON.parse(r):[]; }catch(e){ return []; } },
+
+  /* ---- HTTP（帶逾時，避免 WebDAV 無回應時 hang 死 UI） ---- */
+  async _req(url, opt){
+    const c=Sync.cfg();
+    const h=Object.assign({}, opt.headers||{});
+    if(c.token) h['Authorization']=c.token;
+    const ac=(typeof AbortController!=='undefined')?new AbortController():null;
+    const to=setTimeout(()=>{ if(ac) ac.abort(); }, 20000);
+    try{
+      const res=await fetch(url, Object.assign({}, opt, {headers:h, signal:ac?ac.signal:undefined}));
+      clearTimeout(to);
+      return res;
+    }catch(e){ clearTimeout(to); throw e; }
+  },
+
+  async pull(){
+    const c=Sync.cfg();
+    const res=await Sync._req(c.url, {method:'GET'});
+    if(res.status===404) return null;                  // 雲端仲未有任何嘢
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const snap=await res.json();
+    const err=Store.validate(snap);
+    if(err) throw new Error(err);
+    return snap;
+  },
+
+  async push(snap){
+    const c=Sync.cfg();
+    const body=JSON.stringify(snap||Store.snapshot(true));   // 雲端唔上傳 API Key
+    const res=await Sync._req(c.url, {method:'PUT', headers:{'Content-Type':'application/json'}, body});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return true;
+  },
+
+  /* ---- 核心：一次完整同步 ----
+   * 三種情況：
+   *   A 雲端冇變、本機有變  → 推上去
+   *   B 雲端有變、本機冇變  → 合併落嚟（再推返合併結果）
+   *   C 兩邊都有變          → 衝突，問用戶
+   */
+  /* 完成一次同步：記低「雲端嗰份嘅 t」同「本機嗰陣嘅 modified」
+   * 關鍵：唔可以用絕對時間比較 —— 兩部機嘅時鐘可以差幾分鐘，
+   * 用「雲端 t 係咪等如上次見到嘅 t」就唔會受時差影響。 */
+  _finish(cloudT){
+    const c=Sync.cfg();
+    Store.persist();                                   // 先寫入最新改動（會刷新 modified）
+    const m=Store.state.modified||Date.now();
+    c.lastCloudT=(cloudT!==undefined&&cloudT!==null)?cloudT:(c.lastCloudT||0);
+    c.syncedMod=m;                                     // 記低「同步嗰陣本機嘅 modified」
+    c.lastSync=Date.now();
+    Store.persist(true);                               // 再寫一次，但唔好改動 modified
+  },
+  async run(opts){
+    opts=opts||{};
+    if(!Sync.on()){ if(!opts.silent) Utils.toast('請先設定雲端同步'); return {ok:false, r:'no-config'}; }
+    if(Sync._busy) return {ok:false, r:'busy'};
+    if(typeof navigator!=='undefined' && navigator.onLine===false){ if(!opts.silent) Utils.toast('離線中，未能同步'); return {ok:false, r:'offline'}; }
+    Sync._busy=true;
+    Sync.setStatus('syncing');
+    try{
+      const s=Store.state, c=Sync.cfg();
+      const snap=await Sync.pull();
+
+      // 雲端完全冇嘢 → 第一次，直接推
+      if(!snap){
+        const p=Store.snapshot(true);
+        await Sync.push(p);
+        Sync._finish(p.t);
+        Sync.log('push','push',{note:'首次上傳'});
+        Sync.setStatus('ok');
+        if(!opts.silent) Utils.toast('☁️ 已建立雲端存檔 ✅');
+        return {ok:true, r:'created'};
+      }
+
+      const mine=Store.summary(Store.snapshot(false));
+      const cm=Store.summary(snap);
+      const cloudChanged = (c.lastCloudT===undefined||c.lastCloudT===null) ? true : (snap.t !== c.lastCloudT);
+      const localChanged = (c.syncedMod===undefined||c.syncedMod===null) ? true : ((s.modified||0) !== c.syncedMod);
+      const cloudIsMe = !!snap.dev && snap.dev===Storage.devId();
+      const firstTime = (c.lastCloudT===undefined||c.lastCloudT===null);
+
+      // 安全檢查：雲端空但本機好多 → 好可能係錯 URL，唔好亂合併
+      if(!cloudIsMe && mine.sched>50 && cm.sched===0 && cm.known===0){
+        Sync.setStatus('warn');
+        if(!confirm('⚠️ 雲端嗰份係空的（0 個詞），但本機有 '+mine.sched+' 個詞嘅排程。\n\n可能連咗去錯嘅檔案。\n確定要用本機覆蓋雲端？')){
+          Sync.setStatus('idle'); if(!opts.silent) Utils.toast('已取消，冇改動');
+          return {ok:false, r:'aborted'};
+        }
+      }
+
+      /* A0：第 2 部機第一次開（從未同步 + 本機空白）→ 直接收雲端
+       * 唔處理嘅話會一開就彈衝突。 */
+      if(firstTime){
+        const localEmpty = (mine.known===0 && mine.sched===0 && mine.days===0);
+        if(localEmpty){
+          Store.mergeSnapshot(snap);
+          const p2=Store.snapshot(true); await Sync.push(p2);
+          Sync._finish(p2.t);
+          Sync.log('pull','pull',{dev:snap.dev, devName:snap.devName, note:'新機首次同步'});
+          Sync.setStatus('ok');
+          if(!opts.silent) Utils.toast('☁️ 已同步雲端進度 ✅');
+          return {ok:true, r:'pulled', snap};
+        }
+      }
+
+      /* A0b：雲端係自己寫嘅 → 永遠唔算衝突
+       * 本機繼續改就推上去；冇改就當冇嘢做。 */
+      if(cloudIsMe){
+        if(localChanged){
+          const p3=Store.snapshot(true); await Sync.push(p3);
+          Sync._finish(p3.t);
+          Sync.log('push','push',{note:'雲端係本機寫嘅，推更新'});
+          Sync.setStatus('ok');
+          if(!opts.silent) Utils.toast('☁️ 已上傳本機進度 ✅');
+          return {ok:true, r:'pushed'};
+        }
+        if(!cloudChanged){                    // 真係冇嘢做 —— 唔好浪費一次上傳
+          Sync._finish(snap.t);
+          Sync.setStatus('ok');
+          if(!opts.silent) Utils.toast('☁️ 已經係最新');
+          return {ok:true, r:'fresh'};
+        }
+        // 罕見：雲端係自己 id 但內容變咗（例如同一瀏覽器開咗第二個分頁）
+        Store.mergeSnapshot(snap);
+        const p3b=Store.snapshot(true); await Sync.push(p3b);
+        Sync._finish(p3b.t);
+        Sync.setStatus('ok');
+        if(!opts.silent) Utils.toast('☁️ 已同步雲端進度 ✅');
+        return {ok:true, r:'pulled', snap};
+      }
+
+      // A：淨本機改咗
+      if(localChanged && !cloudChanged){
+        const p4=Store.snapshot(true); await Sync.push(p4);
+        Sync._finish(p4.t);
+        Sync.log('push','push',{note:'本機較新'});
+        Sync.setStatus('ok');
+        if(!opts.silent) Utils.toast('☁️ 已上傳本機進度 ✅');
+        return {ok:true, r:'pushed'};
+      }
+
+      // B：淨雲端改咗 → 合併落嚟，再推返合併結果
+      if(cloudChanged && !localChanged){
+        Store.mergeSnapshot(snap);
+        const p5=Store.snapshot(true); await Sync.push(p5);
+        Sync._finish(p5.t);
+        Sync.log('pull','pull',{dev:snap.dev, devName:snap.devName, note:'雲端較新'});
+        Sync.setStatus('ok');
+        if(!opts.silent) Utils.toast('☁️ 已同步雲端進度 ✅');
+        return {ok:true, r:'pulled', snap};
+      }
+
+      // 兩邊都冇變
+      if(!cloudChanged && !localChanged){
+        Sync._finish(snap.t);
+        Sync.setStatus('ok');
+        if(!opts.silent) Utils.toast('☁️ 已經係最新');
+        return {ok:true, r:'fresh'};
+      }
+
+      // C：衝突
+      Sync.setStatus('conflict');
+      Sync.log('conflict','conflict',{dev:snap.dev, devName:snap.devName});
+      window.__syncSnap=snap;
+      Sync.conflictModal(snap);
+      return {ok:false, r:'conflict', snap};
+    }catch(e){
+      Sync.setStatus('err');
+      Sync.log('err','err',{note:e.message||'失敗'});
+      if(!opts.silent) Utils.toast('☁️ 同步失敗：'+(e&&e.message||e));
+      return {ok:false, r:'error', err:e};
+    }finally{
+      Sync._busy=false;
+      if(typeof Stats!=='undefined' && UI.current==='stats'){ try{ Stats.render(); }catch(e){} }
+      Sync.paintBadge();
+    }
+  },
+
+
+  conflictModal(snap){
+    const m=Store.summary(snap), cur=Store.summary(Store.snapshot(false));
+    const who=snap.devName||(snap.dev?'另一部裝置':'雲端');
+    const when=snap.t?new Date(snap.t).toLocaleString('zh-HK'):'未知時間';
+    UI.modal('⚠️ 兩部機都改過', `
+      <div style="font-size:12.5px;line-height:1.75">
+        <b>${Utils.esc(who)}</b> 喺 ${when} 改過雲端存檔，<br>而你呢部機之後都有改動 —— 要揀點處理：
+      </div>
+      <div class="sync-cmp">
+        <div class="sc-row"><span></span><span class="sc-h">雲端（${Utils.esc(who)}）</span><span class="sc-h">本機</span></div>
+        <div class="sc-row"><span>已掌握</span><b>${m.known}</b><b>${cur.known}</b></div>
+        <div class="sc-row"><span>排程中</span><b>${m.sched}</b><b>${cur.sched}</b></div>
+        <div class="sc-row"><span>學習日數</span><b>${m.days}</b><b>${cur.days}</b></div>
+        <div class="sc-row"><span>連續打卡</span><b>${m.streak}</b><b>${cur.streak}</b></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+        <button class="btn" onclick="Sync.resolve('merge')">➕ 合併兩邊（推薦，唔會唔見嘢）</button>
+        <button class="btn soft" onclick="Sync.resolve('cloud')">☁️ 用雲端覆蓋本機</button>
+        <button class="btn soft" onclick="Sync.resolve('local')">📱 用本機覆蓋雲端</button>
+        <button class="btn ghost" onclick="Sync.resolve('later')">稍後再算</button>
+      </div>
+      <div style="font-size:11px;color:var(--sub);line-height:1.6;margin-top:10px">
+        合併 = 詞彙取聯集、排程取學得更好嗰份、計數取大。多數情況啱用。
+      </div>`);
+  },
+
+  async resolve(mode){
+    const snap=window.__syncSnap;
+    UI.close();
+    if(mode==='later'){ window.__syncSnap=null; Sync.setStatus('idle'); Utils.toast('好，下次同步再問'); return; }
+    try{
+      if(mode==='merge'){ Store.mergeSnapshot(snap); }
+      else if(mode==='cloud'){ Store.importSnapshot(snap); }
+      // 'local' 唔使改本機
+      const p=Store.snapshot(true); await Sync.push(p);   // 推返結果，等第部機都攞到
+      Sync._finish(p.t);
+      Sync.log(mode,'resolve',{dev:snap&&snap.dev, devName:snap&&snap.devName, note:'衝突解決：'+mode});
+      Sync.setStatus('ok');
+      window.__syncSnap=null;
+      Utils.toast('☁️ 衝突已解決 ✅');
+      if(typeof App!=='undefined' && UI.current==='home') App.go('home');
+      if(typeof Stats!=='undefined'){ try{ Stats.render(); }catch(e){} }
+    }catch(e){ Sync.setStatus('err'); Utils.toast('解決失敗：'+(e.message||e)); }
+    Sync.paintBadge();
+  },
+
+  /* ---- 狀態徽章（header） ---- */
+  setStatus(st){ Sync._st=st; Sync.paintBadge(); },
+  badgeHtml(){
+    const st=Sync._st||'idle';
+    if(!Sync.on()) return '';
+    const map={ ok:['🟢','已同步'], syncing:['🔄','同步中…'], conflict:['⚠️','有衝突'], err:['🔴','同步失敗'], warn:['🟡','注意'], idle:['⚪','待同步'] };
+    const m=map[st]||map.idle;
+    return `<button class="icon-btn sync-badge" onclick="App.syncPanel()" title="雲端同步">${m[0]}</button>`;
+  },
+  paintBadge(){
+    const host=Utils.$('#syncBadge'); if(!host) return;
+    host.innerHTML=Sync.badgeHtml();
+  },
+
+  /* ---- 自動同步 ----
+   * 改動後 debounce 25 秒先推（避免溫一個詞就打一次 HTTP）；
+   * 開 app 同切返前景都會拉一次。
+   */
+  markDirty(){
+    if(!Sync.auto()) return;
+    clearTimeout(Sync._t);
+    Sync._t=setTimeout(()=>{ Sync.run({silent:true}); }, 25000);
+  },
+  startTimer(){
+    clearInterval(Sync._iv);
+    if(!Sync.auto()) return;
+    const min=Math.max(2, parseInt(Sync.cfg().interval,10)||10);
+    Sync._iv=setInterval(()=>{ Sync.run({silent:true}); }, min*60000);
+  },
+  init(){
+    // 開 app：有設定就拉一次（靜默，失敗唔騷擾）
+    if(Sync.auto()) setTimeout(()=>{ Sync.run({silent:true}); }, 1500);
+    Sync.startTimer();
+    // 切返前景 / 重新上線 → 同步
+    if(typeof document!=='undefined'){
+      document.addEventListener('visibilitychange', ()=>{
+        if(!document.hidden && Sync.auto()) Sync.run({silent:true});
+      });
+    }
+    if(typeof window!=='undefined'){
+      window.addEventListener('online', ()=>{ if(Sync.auto()) Sync.run({silent:true}); });
+    }
+  }
+};
+
 /* =====================================================================
  * 應考增強層（讀取 dse_vocab_enhance.js；唔到手唔影響原本功能）
  * ===================================================================== */
@@ -1403,10 +1817,11 @@ const Sup = {
     this.D.words.forEach((x,i)=>{
       if(idx.has(String(x.p).trim().toLowerCase())) return;   // 原詞庫已有就唔重複加
       const w={ id:baseN+added.length, phrase:x.p, meaning:x.m, stars:x.s,
-                category:'Part 6 寫作補充', pos:x.pos||'', supp:true, syn:x.syn||null, eg:x.e||'' };
+                category:x.cat||'Part 6 寫作補充', pos:x.pos||'', supp:true, syn:x.syn||null, eg:x.e||'',
+                src:x.src||'' };
       added.push(w);
       idx.set(String(x.p).trim().toLowerCase(), w);
-      this.byId.set(w.id, {pri:x.pri||70, tier:x.t||'A', syn:x.syn||null, eg:x.e||'', trap:x.w||null});
+      this.byId.set(w.id, {pri:x.pri||70, tier:x.t||'A', syn:x.syn||null, eg:x.e||'', trap:x.w||null, src:x.src||''});
     });
     if(!added.length) return 0;
     Data.raw=[...Data.raw, ...added];
@@ -1455,7 +1870,10 @@ const Sup = {
   trap(w){ const x=this.byId.get(w&&w.id); return (x&&x.trap)?x.trap:null; },
   pri(w){ const x=this.byId.get(w&&w.id); return x?(x.pri||70):0; },
   tier(w){ const x=this.byId.get(w&&w.id); return x?(x.tier||'A'):''; },
-  isPat(w){ return !!(w && (w.pos==='pat' || (this.byId.get(w.id)&&w.pos==='pat'))); }
+  isPat(w){ return !!(w && (w.pos==='pat' || (this.byId.get(w.id)&&w.pos==='pat'))); },
+  /* 2024 DSE 真題標記：cat 或補充詞自帶 src 都算 */
+  src24(w){ return !!(w && (w.src==='2024DSE' || w.category==='Part 7 2024 DSE 真題詞')); },
+  count24(){ return Data.raw.filter(w=>Sup.src24(w)).length; }
 };
 const Data = {
   raw:[], byId:new Map(), index:new Map(), __src:'', baseCount:0,
@@ -2115,7 +2533,8 @@ const Home = {
       </div>
       ${ach.length?`<div class="ach-row" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px">${ach.map(a=>`<div style="flex:0 0 auto;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;text-align:center;min-width:64px"><div style="font-size:18px">${a.ic}</div><div style="font-size:10px;font-weight:700;margin-top:2px">${a.t}</div></div>`).join('')}</div>`:''}
       ${ExamCfg.card()}
-      ${Store.backupNag()}
+      ${Store.backupNag()||''}
+      ${Store.syncNag()||''}
       ${SM2.reviewHealth()}
       ${Mission.render()}
       ${Curve.mini()}
@@ -2164,11 +2583,16 @@ const Home = {
         <div class="dse-mid">
           <div class="dse-count" style="color:#fff">S 級必考 ${sk} / ${S} 詞</div>
           <div class="dse-bar"><div class="dse-fill" style="width:${S?Math.round(sk/S*100):0}%;background:#fff"></div></div>
-          <div class="dse-txt" style="color:rgba(255,255,255,.85)">S 級 ${S} · A 級 ${A} · B 級 ${B} · 真題高頻 ${Enh.path().filter(w=>Enh.isFreq(w)).length}${Sup.on()?` · 寫作補充 ${Data.raw.filter(w=>w.supp).length}`:''}</div>
+          <div class="dse-txt" style="color:rgba(255,255,255,.85)">S 級 ${S} · A 級 ${A} · B 級 ${B} · 真題高頻 ${Enh.path().filter(w=>Enh.isFreq(w)).length}${Sup.on()?` · 寫作補充 ${Data.raw.filter(w=>w.supp&&!Sup.src24(w)).length}`:''}${Sup.count24()?` · 24 真題 ${Sup.count24()}`:''}</div>
         </div>
         <div class="dse-right"><button class="btn sm" style="background:#fff;color:#6366f1" onclick="App.startPath()">開始</button></div>
       </div>`;})():''}
-      ${Sup.on()&&Data.raw.some(w=>w.supp)?`<div class="card" style="margin-bottom:10px;padding:10px 12px">
+      ${Sup.count24()?`<div class="card" style="margin-bottom:10px;padding:10px 12px;background:#FEF2F2;border:1px solid #FECACA">
+        <div style="font-size:12px;color:#B91C1C;font-weight:800;margin-bottom:4px">🎯 2024 DSE Paper 1 真題詞 <b>${Sup.count24()}</b> 個</div>
+        <div style="font-size:11px;color:#991B1B;line-height:1.6;margin-bottom:8px">考場實測出現過（Part A + B1）。係「真出過」，權重高過任何預測詞表。</div>
+        <button class="btn sm" style="width:100%;background:#DC2626;color:#fff;border:none" onclick="App.go('browse');Browse.setCat('📄 2024 DSE 真題')">集中溫呢 ${Sup.count24()} 個 →</button>
+      </div>`:''}
+      ${Sup.on()&&Data.raw.some(w=>w.supp&&!Sup.src24(w))?`<div class="card" style="margin-bottom:10px;padding:10px 12px">
         <div style="font-size:12px;color:var(--sub);margin-bottom:4px">✍️ 寫作補充層（Paper 2 講義：缺詞 + 論證句式）</div>
         <div style="font-size:12px;color:var(--faint)">共 ${Data.raw.filter(w=>w.supp).length} 條 · 同義替換群組 ${Sup.synList.length} 組</div>
       </div>`:''}
@@ -3119,6 +3543,18 @@ const SENTENCE_STRUCTURES = {
  * ===================================================================== */
 const Stats = {
   /* 儲存狀態：上次儲存時間 + 空間用量 + 備份提醒 */
+  /* 雲端同步狀態一覽（放喺數據管理卡入面） */
+  syncLine(){
+    const c=Store.state.webdav||{};
+    if(!c.url) return `<div style="font-size:11px;color:var(--sub);line-height:1.5">⚪ 未設定雲端同步 —— 換機／兩部機溫要手動匯出匯入</div>`;
+    const last=c.lastSync?Utils.timeAgo(c.lastSync):'未曾同步';
+    const dot=(Sync._st==='err')?'err':(Sync._st==='conflict')?'conflict':(Sync._st||'idle');
+    const txt={ok:'已同步',syncing:'同步中…',conflict:'有衝突未處理',err:'上次失敗',warn:'注意',idle:'待同步'}[dot]||'待同步';
+    return `<div style="font-size:11px;color:var(--sub);line-height:1.6">
+      <span class="sync-dot ${dot}" style="display:inline-block;margin-right:5px"></span>
+      ${Utils.esc(Storage.devName())} · ${txt} · 上次 ${last}${c.auto?' · 自動開':''}
+    </div>`;
+  },
   saveStatus(){
     const s=Store.state;
     const savedAgo=s._savedAt?Utils.daysSince(s._savedAt):null;
@@ -3195,16 +3631,12 @@ const Stats = {
           <button class="btn ghost sm" onclick="App.showBackups()">🗂️ 本機備份（時間點還原）</button>
           <button class="btn soft sm" onclick="App.exportDialog()">📤 匯出備份檔案</button>
           <label class="btn ghost sm" style="cursor:pointer">📥 匯入備份<input type="file" accept=".json" style="display:none" onchange="App.importData(this)"></label>
-          <button class="btn ghost sm" onclick="App.webdavSetup()">☁️ WebDAV 設置</button>
-          <div style="display:flex;gap:8px">
-            <button class="btn ghost sm" style="flex:1" onclick="App.exportWebDAV()">☁️ 上傳備份</button>
-            <button class="btn ghost sm" style="flex:1" onclick="App.importWebDAV()">☁️ 下載導入</button>
-          </div>
-          <div style="font-size:11px;color:var(--sub);line-height:1.5" id="webdavStatus">${Store.state.webdav&&Store.state.webdav.url?('🟢 已設置：'+Utils.esc(Store.state.webdav.url)+(Store.state.webdav.lastSync?'<br>上次同步：'+new Date(Store.state.webdav.lastSync).toLocaleString():'<br>尚未同步過')):'⚪ 未設置 WebDAV（可選）'}</div>
+          <button class="btn soft sm" onclick="App.syncPanel()">☁️ 雲端同步（多裝置共用）</button>
+          ${Stats.syncLine()}
           <button class="btn danger sm" onclick="App.resetData()">🗑️ 重置所有數據</button>
         </div>
       </div>
-      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6">💾 每次改動即時儲存到本機，並自動保留 10 份時間點備份。但<b>清網站資料／換機／無痕模式都會冇</b> —— 考前一星期請務必匯出一次檔案。</div>
+          <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.6">💾 每次改動即時儲存到本機，並自動保留 10 份時間點備份。但<b>清網站資料／換機／無痕模式都會冇</b> —— 想電話同電腦共用同一個存檔，去<b>「☁️ 雲端同步」</b>；考前亦建議匯出一次檔案。</div>
     `;
   }
 };
@@ -3578,7 +4010,8 @@ const Browse = {
     if(c==='📘 B級基礎') return Enh.tier(w)==='B';
     if(c==='🏆 DSE真題高頻') return Enh.isFreq(w);
     if(c==='✍️ 寫作句型') return w.pos==='pat';
-    if(c==='🆕 寫作補充') return !!w.supp;
+    if(c==='🆕 寫作補充') return !!w.supp && !Sup.src24(w);
+    if(c==='📄 2024 DSE 真題') return Sup.src24(w);
     return w.category===c;
   },
   apply(base){
@@ -3622,7 +4055,7 @@ const Browse = {
     const k=Store.key(w);const tm=Store.state.tomo.has(k);
     const cs=Curve.status(w);
     return `<div class="list-item" id="li-${w.id}" data-word="${Utils.esc(w.phrase)}" onclick="App.openDetail('${w.id}')" oncontextmenu="event.preventDefault();App.toggleFavFromList('${w.id}')">
-      <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}${Enh.on()&&Enh.tier(w)?`<span class="m-badge" style="background:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}1a;color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]};border-color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}33">${Enh.tier(w)} 級</span>`:''}${Enh.isFreq(w)?`<span class="m-badge" style="background:#10B9811a;color:#10B981;border-color:#10B98133">DSE${Enh.dse(w)}/${Enh.nD()}</span>`:''}${w.pos==='pat'?`<span class="m-badge" style="background:#A855F71a;color:#A855F7;border-color:#A855F733">句型</span>`:''}${Enh.syn(w)?`<span class="m-badge" style="background:#8B5CF61a;color:#8B5CF6;border-color:#8B5CF633">同義×${Enh.syn(w).members.length}</span>`:''}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}<span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33">${cs.t}</span></div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
+      <div class="li-main"><div class="li-ph">${Utils.esc(w.phrase)} ${Utils.posTag(w)}${Enh.on()&&Enh.tier(w)?`<span class="m-badge" style="background:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}1a;color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]};border-color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[Enh.tier(w)]}33">${Enh.tier(w)} 級</span>`:''}${Enh.isFreq(w)?`<span class="m-badge" style="background:#10B9811a;color:#10B981;border-color:#10B98133">DSE${Enh.dse(w)}/${Enh.nD()}</span>`:''}${w.pos==='pat'?`<span class="m-badge" style="background:#A855F71a;color:#A855F7;border-color:#A855F733">句型</span>`:''}${Enh.syn(w)?`<span class="m-badge" style="background:#8B5CF61a;color:#8B5CF6;border-color:#8B5CF633">同義×${Enh.syn(w).members.length}</span>`:''}${Sup.src24(w)?`<span class="m-badge" style="background:#DC26261a;color:#DC2626;border-color:#DC262633">24DSE</span>`:''}<span class="li-phon" data-ph="1"></span><button class="phon-mini" title="UK 發音" onclick="event.stopPropagation();Dict.playUK('${String(w.phrase).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">🔊</button><button class="tomo-mini ${tm?'on':''}" title="明日優先複習" onclick="event.stopPropagation();App.toggleTomo('${w.id}')">⏰</button> ${w.stars>=4?'<span class="li-stars">'+'★'.repeat(Math.min(w.stars,5))+'</span>':''}<span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33">${cs.t}</span></div><div class="li-mean">${Utils.esc(w.meaning)}</div></div>
       <div class="li-fav">${Store.state.fav.has(k)?'★':''}</div>
     </div>`;
   },
@@ -3630,7 +4063,11 @@ const Browse = {
     const v=Utils.$('#view-browse');
     const st=v.scrollTop;
     const extra=[];
-    if(Sup.on()){ if(Data.raw.some(w=>w.pos==='pat')) extra.push('✍️ 寫作句型'); if(Data.raw.some(w=>w.supp)) extra.push('🆕 寫作補充'); }
+    if(Sup.on()){
+      if(Sup.count24()) extra.push('📄 2024 DSE 真題');
+      if(Data.raw.some(w=>w.pos==='pat')) extra.push('✍️ 寫作句型');
+      if(Data.raw.some(w=>w.supp&&!Sup.src24(w))) extra.push('🆕 寫作補充');
+    }
     const cats=Enh.on()?['🎯 S級必考','🔥 A級衝刺','📘 B級基礎','🏆 DSE真題高頻',...extra,'全部','★5','未掌握',...[...new Set(Data.raw.map(w=>w.category))]]:['全部','★5','未掌握',...extra,...[...new Set(Data.raw.map(w=>w.category))]];
     const tomoCount=Store.state.tomo.size;
     const list=Browse.filtered.slice(0, Browse._page*Browse._pageSize);
@@ -4593,7 +5030,8 @@ const More = {
         <div class="setting-row"><div class="st-info"><div class="st-t">🧟 難詞管理</div><div class="st-d">反覆忘記 ${Store.state.leech.size||0} 個 · 換方法</div></div><button class="btn sm ghost" onclick="More.showLeech()">查看</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">🗂️ 備份與還原</div><div class="st-d">${Store.state.lastExport?('上次匯出 '+Utils.daysSince(Store.state.lastExport)+' 日前'):'⚠️ 從未匯出'}</div></div><button class="btn sm ghost" onclick="App.showBackups()">管理</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">AI 評分設置</div><div class="st-d">API Key ／模型</div></div><button class="btn sm ghost" onclick="EssayGrader.renderSettings();App.go('essay')">設置</button></div>
-        <div class="setting-row"><div class="st-info"><div class="st-t">數據備份</div><div class="st-d">匯出／匯入／WebDAV</div></div><button class="btn sm ghost" onclick="App.go('stats')">管理</button></div>
+        <div class="setting-row"><div class="st-info"><div class="st-t">數據備份</div><div class="st-d">匯出／匯入／本機還原</div></div><button class="btn sm ghost" onclick="App.go('stats')">管理</button></div>
+        <div class="setting-row"><div class="st-info"><div class="st-t">☁️ 雲端同步</div><div class="st-d">${(Store.state.webdav&&Store.state.webdav.url)?(Store.state.webdav.auto?'多裝置自動共用 ✅':'已設定，自動同步閂咗'):'未設定 —— 換機進度會冇'}</div></div><button class="btn sm ${(Store.state.webdav&&Store.state.webdav.url)?'ghost':'soft'}" onclick="App.syncPanel()">設定</button></div>
       </div>
       <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.7;margin-bottom:12px">📌 V5.14.2：AI 作文評分、全新 UI、效能優化。<br>記憶曲線、進階工具會持續更新，敬請期待。</div>
     `;
@@ -4831,11 +5269,13 @@ const App = {
         <div class="d-stars">${'★'.repeat(Math.min(w.stars,5))}${w.stars>5?'（高階）':''}</div>
         <div class="d-mean">${Utils.esc(w.meaning)}</div>
         ${Utils.isExamWord(w)?'<div class="d-ex" style="color:#F59E0B;font-weight:700">📌 DSE 真題高頻詞</div>':''}
+        ${Sup.src24(w)?`<div class="d-ex" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:9px 11px;color:#B91C1C">🎯 <b>2024 DSE Paper 1 真題詞</b>（Part A / B1）<br><span style="font-size:11px;color:#991B1B">考場實測出現過 —— 權重高過預測詞表，務必熟。</span></div>`:''}
         ${Enh.on()?(()=>{const t=Enh.tier(w),th=Enh.themes(w);return `<div style="display:flex;flex-wrap:wrap;gap:5px;margin:8px 0">
           ${t?`<span class="m-badge" style="background:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[t]}1a;color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[t]};border-color:${({S:'#10B981',A:'#0EA5E9',B:'#F59E0B',C:'#94A3B8'})[t]}33">應考 ${t} 級 · 優先度 ${Enh.pri(w)}</span>`:''}
           ${th.map(x=>`<span class="m-badge" style="background:var(--bg-soft);color:var(--sub);border-color:var(--border)">${Utils.esc(x)}</span>`).join('')}
           ${Enh.evidence(w)}
         </div>
+        ${Enh.on()&&(Enh.dse(w)||Enh.ale(w))?`<div class="d-ex" style="color:var(--sub)">📄 歷屆卷證據：DSE Paper 1 出現 <b>${Enh.dse(w)}</b> / ${Enh.nD()} 份${Enh.ale(w)?`（HKALE UE 另出現 ${Enh.ale(w)} / ${Enh.nA()} 年）`:''}</div>`:''}${Enh.isGeo(w)?'<div class="d-ex" style="color:var(--faint)">🗺️ 地名／專有名詞：DSE 極少直接考，唔使花時間背。</div>':''}${Enh.isDup(w)?'<div class="d-ex" style="color:var(--faint)">🔁 詞庫入面有重複詞條，應考路線只會計一次。</div>':''}`;})():''}
         ${w.eg?`<div class="d-ex" style="color:var(--sub)">✍️ 例句：${Utils.esc(w.eg)}</div>`:''}
         ${Enh.note(w)?`<div style="margin-top:10px;background:#B453090f;border:1px solid #FDE68A;border-radius:10px;padding:9px 11px;font-size:12px;line-height:1.65;color:var(--text)">${Enh.note(w)}</div>`:''}
         ${(()=>{ const g=Enh.syn(w); if(!g) return '';
@@ -4844,7 +5284,6 @@ const App = {
             <div style="font-size:12px;color:var(--faint);margin-bottom:5px">🔄 同義替換（${g.n}）—— 寫作避免重複用同一個詞</div>
             <div style="display:flex;flex-wrap:wrap;gap:5px">${others.map(x=>`<button class="m-badge" style="background:#8B5CF61a;color:#8B5CF6;border-color:#8B5CF633;cursor:pointer" onclick="App.openDetail('${x.id}')">${Utils.esc(x.phrase)}</button>`).join('')}</div>
           </div>`;})()}
-        ${Enh.on()&&(Enh.dse(w)||Enh.ale(w))?`<div class="d-ex" style="color:var(--sub)">📄 歷屆卷證據：DSE Paper 1 出現 <b>${Enh.dse(w)}</b> / ${Enh.nD()} 份${Enh.ale(w)?`（HKALE UE 另出現 ${Enh.ale(w)} / ${Enh.nA()} 年）`:''}</div>`:''}${Enh.isGeo(w)?'<div class="d-ex" style="color:var(--faint)">🗺️ 地名／專有名詞：DSE 極少直接考，唔使花時間背。</div>':''}${Enh.isDup(w)?'<div class="d-ex" style="color:var(--faint)">🔁 詞庫入面有重複詞條，應考路線只會計一次。</div>':''}`;})():''}
         ${(()=>{const cs=Curve.status(w);const r=Curve.retention(w);const x=Store.state.sched[Store.key(w)];return `<div class="d-curve"><span class="m-badge" style="background:${cs.c}1a;color:${cs.c};border-color:${cs.c}33;font-size:10px">${cs.t}</span><span style="font-size:11px;color:var(--sub)">記憶強度 <b style="color:var(--txt)">${r}%</b>${x?` · 間隔 ${x.int} 天 · 複習 ${x.rep} 次`:' · 尚未複習'}</span></div>`;})()}
         ${w.example?`<div class="d-ex">📝 ${Utils.esc(w.example)}</div>`:''}
         ${Utils.synonymsHtml(w)}
@@ -5011,6 +5450,176 @@ const App = {
     Utils.toast(mode==='replace'?'匯入成功 ✅':'合併成功 ✅');
     App.go('home');
   },
+  /* ---- 雲端同步面板 ---- */
+  syncPanel(){
+    const v=Utils.$('#view-sub');
+    v.innerHTML=`<button class="btn ghost sm" style="margin-top:10px" onclick="App.go('more')">← 返回更多</button>
+      <div class="section-title"><span class="dot"></span>☁️ 雲端同步</div>
+      <div class="card"><div style="font-size:12px;color:var(--sub)">載入中…</div></div>`;
+    UI.go('sub');
+    App._renderSync();
+  },
+  _renderSync(){
+    const v=Utils.$('#view-sub'); if(!v) return;
+    const c=Store.state.webdav||{};
+    const set=!!c.url;
+    const dot=Sync._st||'idle';
+    const txt={ok:'已同步',syncing:'同步中…',conflict:'有衝突未處理',err:'上次失敗',warn:'注意',idle:'待同步'}[dot]||'待同步';
+    const last=c.lastSync?new Date(c.lastSync).toLocaleString('zh-HK'):'未曾同步';
+    const mine=Store.summary(Store.snapshot(false));
+    const logs=Sync.logList();
+
+    v.innerHTML=`<button class="btn ghost sm" style="margin-top:10px" onclick="App.go('more')">← 返回更多</button>
+      <div class="section-title"><span class="dot"></span>☁️ 雲端同步</div>
+
+      <div class="sync-hero">
+        <div class="sync-dev">
+          <span class="sd-ic">📱</span>
+          <div style="flex:1;min-width:0">
+            <div class="sd-n">${Utils.esc(Storage.devName())} <button class="btn ghost sm" style="padding:1px 7px;font-size:10.5px" onclick="App.renameDev()">改名</button></div>
+            <div class="sd-id">${Utils.esc(Storage.devId())}</div>
+          </div>
+        </div>
+        <div class="sync-state">
+          <span class="sync-dot ${dot}"></span><span>${txt}</span>
+          <span style="font-weight:400;color:var(--sub);font-size:11.5px">上次 ${Utils.esc(last)}</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--sub);margin-top:7px;line-height:1.6">
+          本機：已掌握 <b>${mine.known}</b> 詞 · 排程 <b>${mine.sched}</b> 詞 · 學習 <b>${mine.days}</b> 日
+        </div>
+      </div>
+
+      ${!set?`
+        <div class="card" style="margin-bottom:12px">
+          <div style="font-size:12.5px;line-height:1.75;color:var(--sub)">
+            <b style="color:var(--text)">做乜用？</b><br>
+            設定一次之後，<b>電話同電腦可以共用同一個存檔</b>：<br>
+            · 開 app 自動拉最新進度<br>
+            · 溫完詞 25 秒後自動推上雲<br>
+            · 兩邊都改過會問你點合併，唔會靜靜雞唔見嘢
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+            <button class="btn" onclick="App.webdavSetup()">🔗 設定雲端（WebDAV）</button>
+            <button class="btn ghost sm" onclick="App.syncHelp()">❓ WebDAV 係乜？邊度有免費嘅？</button>
+          </div>
+        </div>
+      `:`
+        <div class="card" style="margin-bottom:12px">
+          <div class="section-title" style="margin-top:0"><span class="dot"></span>操作</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button class="btn" style="flex:1" onclick="App.syncNow()">🔄 立即同步</button>
+            <button class="btn ghost sm" style="flex:0 0 auto" onclick="App.webdavSetup()">⚙️ 設定</button>
+          </div>
+          <div class="setting-row">
+            <div class="st-info"><div class="st-t">自動同步</div><div class="st-d">開 app、改動後、定期都會自動同步</div></div>
+            <label class="switch"><input type="checkbox" ${c.auto?'checked':''} onchange="App.toggleAutoSync(this.checked)"><span></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="st-info"><div class="st-t">同步間隔</div><div class="st-d">每幾分鐘檢查一次雲端</div></div>
+            <select class="field" style="width:auto;padding:5px 8px;font-size:12px" onchange="App.setSyncInterval(this.value)">
+              ${[5,10,15,30,60].map(m=>`<option value="${m}" ${(c.interval||10)==m?'selected':''}>${m} 分鐘</option>`).join('')}
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn ghost sm" style="flex:1" onclick="App.copySyncLink()">🔗 複製設定連結（畀第 2 部機）</button>
+          </div>
+          <div style="font-size:11px;color:var(--sub);margin-top:8px;line-height:1.6">
+            喺第 2 部機開呢條連結，就<b>唔使重新打 URL 同 Token</b>。
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="section-title" style="margin-top:0"><span class="dot"></span>同步記錄（最近 ${logs.length} 次）</div>
+          ${logs.length?`<div class="sync-log">${logs.map(l=>{
+            const ic={push:'⬆️',pull:'⬇️',resolve:'🔀',conflict:'⚠️',err:'🔴'}[l.dir]||'☁️';
+            const lab={push:'上傳本機進度',pull:'下載雲端進度',resolve:'解決衝突',conflict:'偵測到衝突',err:'同步失敗'}[l.dir]||'同步';
+            return `<div class="sl-row"><span class="sl-ic">${ic}</span>
+              <span class="sl-main"><span class="sl-n">${lab}${l.devName?' · '+Utils.esc(l.devName):''}</span><br>
+              <span class="sl-t">${new Date(l.t).toLocaleString('zh-HK')}${l.note?' · '+Utils.esc(l.note):''}</span></span>
+              <span class="sl-cnt">${l.known} 詞</span></div>`;
+          }).join('')}</div>`:`<div class="empty" style="padding:16px"><div class="e-icon">📋</div>仲未同步過</div>`}
+        </div>
+      `}
+
+      <div class="sync-tip">
+        <b>點解要雲端？</b><br>
+        本機儲存（localStorage）係<b>跟瀏覽器</b>嘅：清網站資料、換機、用無痕模式都會冇晒。
+        雲端同步係唯一可以令電話／電腦／平板<b>共用同一個存檔</b>嘅方法。<br><br>
+        <b>安全：</b>AI 作文評分嘅 API Key <b>唔會</b>上雲。存檔只放喺你自己揀嘅 WebDAV，唔經我哋。
+      </div>`;
+  },
+  syncNow(){
+    Utils.toast('🔄 同步中…');
+    Sync.run({}).then(r=>{ App._renderSync(); Sync.paintBadge(); });
+  },
+  toggleAutoSync(on){
+    const c=Store.state.webdav||{}; c.auto=!!on; Store.state.webdav=c; Store.persist();
+    if(on){ Sync.startTimer(); Sync.run({silent:true}); } else clearInterval(Sync._iv);
+    App._renderSync(); Sync.paintBadge();
+    Utils.toast(on?'自動同步已開 ✅':'自動同步已閂');
+  },
+  setSyncInterval(m){
+    const c=Store.state.webdav||{}; c.interval=parseInt(m,10)||10; Store.state.webdav=c; Store.persist();
+    Sync.startTimer(); App._renderSync(); Utils.toast('每 '+c.interval+' 分鐘檢查一次');
+  },
+  renameDev(){
+    const n=prompt('呢部機叫咩名？（例如「電話」「屋企電腦」）', Storage.devName());
+    if(n===null) return;
+    Storage.setDevName(n.trim()||'裝置'); App._renderSync(); Sync.paintBadge();
+  },
+  /* 設定連結：第 2 部機開咗就自動設定好，唔使再打 URL + Token */
+  copySyncLink(){
+    const c=Store.state.webdav||{};
+    if(!c.url){ Utils.toast('請先設定雲端'); return; }
+    let link='';
+    try{
+      const base=location.origin+location.pathname;
+      const payload=btoa(unescape(encodeURIComponent(c.url+'\u0001'+(c.token||''))));
+      link=base+'#sync='+encodeURIComponent(payload);
+    }catch(e){ Utils.toast('產生連結失敗'); return; }
+    const done=()=>Utils.toast('已複製設定連結 🔗\n喺第 2 部機開佢就得');
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(link).then(done, ()=>App._fallbackCopy(link, done));
+    } else App._fallbackCopy(link, done);
+  },
+  _fallbackCopy(txt, done){
+    const ta=document.createElement('textarea'); ta.value=txt;
+    ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand('copy'); done(); }catch(e){ prompt('複製呢條連結：', txt); }
+    ta.remove();
+  },
+  syncHelp(){
+    UI.modal('❓ WebDAV 邊度搵', `
+      <div style="font-size:12.5px;line-height:1.8">
+        WebDAV 係一種網絡儲存協定。免費嘅選擇：<br><br>
+        <b>1. Nutstore（堅果雲）</b> — 免費版有 WebDAV，最易用<br>
+        <b>2. Synology / QNAP NAS</b> — 屋企有 NAS 直接開 WebDAV<br>
+        <b>3. ownCloud / Nextcloud</b> — 自建或租<br>
+        <b>4. Box / 4shared</b> — 部分支援<br><br>
+        設定時要填嘅係「<b>檔案完整 URL</b>」，例如：<br>
+        <code style="font-size:11px;background:var(--bg-soft);padding:2px 5px;border-radius:4px">https://dav.jianguoyun.com/dav/dse_vocab_backup.json</code><br><br>
+        檔案唔使自己建立 —— 第一次同步時系統會幫你開。
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" onclick="UI.close()">知啦</button></div>`);
+  },
+  /* hash 設定：第 2 部機開 #sync=... 就自動配好 */
+  _hashSetup(){
+    try{
+      const m=location.hash.match(/[#&]sync=([^&]+)/);
+      if(!m) return false;
+      const raw=decodeURIComponent(m[1]);
+      const parts=decodeURIComponent(escape(atob(raw))).split('\u0001');
+      const url=(parts[0]||'').trim(), token=(parts[1]||'').trim();
+      if(!url) return false;
+      Store.state.webdav={ url, token, lastSync:0, auto:true, interval:10 };
+      Store.persist();
+      history.replaceState(null,'',location.pathname+location.search);
+      Utils.toast('☁️ 雲端設定已匯入，開始同步…');
+      setTimeout(()=>{ Sync.run({silent:true}).then(()=>{ Sync.paintBadge(); }); }, 400);
+      return true;
+    }catch(e){ return false; }
+  },
+
   webdavSetup(){
     const cur=Store.state.webdav||{url:'',token:''};
     const url=prompt('WebDAV 檔案完整 URL（例如 https://dav.example.com/dse_vocab_backup.json）\n留空並確定 = 清除設置', cur.url||'');
@@ -5018,9 +5627,14 @@ const App = {
     if(url&&!/^https?:\/\//i.test(url)){ Utils.toast('URL 格式錯誤，需以 http(s):// 開頭'); return; }
     const token=prompt('Authorization Token（冇就留空）', cur.token||'');
     if(token===null) return;
-    Store.state.webdav={ url:url.trim(), token:(token||'').trim(), lastSync:cur.lastSync||0 };
+    Store.state.webdav={ url:url.trim(), token:(token||'').trim(), lastSync:cur.lastSync||0, auto:cur.auto!==false, interval:cur.interval||10 };
     Store.persist(); Stats.render();
-    Utils.toast(Store.state.webdav.url?'WebDAV 設置已保存 ✅':'已清除 WebDAV 設置');
+    if(typeof Sync!=='undefined'){ Sync.startTimer(); Sync.paintBadge(); }
+    if(UI.current==='sub') App._renderSync();
+    if(Store.state.webdav.url){
+      Utils.toast('WebDAV 設置已保存 ✅ 開始同步…');
+      setTimeout(()=>{ Sync.run({}).then(()=>{ if(UI.current==='sub') App._renderSync(); }); }, 300);
+    } else Utils.toast('已清除 WebDAV 設置');
   },
   async exportWebDAV(){
     const wd=Store.state.webdav||{};
@@ -5154,6 +5768,10 @@ const App = {
   async boot(){
     window.onerror=(msg)=>{ Utils.toast('⚠️ '+msg); };
     try{ Keys.init(); }catch(e){}
+    // 第 2 部機開 #sync= 連結 → 自動配好雲端
+    try{ if(typeof App!=='undefined' && App._hashSetup) App._hashSetup(); }catch(e){}
+    // 雲端同步：開 app 拉一次 + 啟動定期輪詢
+    try{ if(typeof Sync!=='undefined'){ Sync.init(); Sync.paintBadge(); } }catch(e){}
     // 還原上次位置：唔好每次開 app 都回落首頁
     try{
       const lv=Store.state.lastView;
