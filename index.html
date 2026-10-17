@@ -8,10 +8,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>DSE Vocab V5.14.2</title>
+<title>DSE Vocab V15.0.0</title>
 <style>
 /* =====================================================================
-   DSE Vocab V5.14.2 — 全新設計系統
+   DSE Vocab V15.0.0 — 全新設計系統
    ===================================================================== */
 :root{
   --brand-1:#6366F1; --brand-2:#8B5CF6; --brand-3:#A855F7;
@@ -27,7 +27,8 @@
   --radius:20px; --radius-sm:14px; --radius-xs:10px;
   --nav-h:66px; --header-h:58px;
   --safe-b:env(safe-area-inset-bottom,0px);
-  /* V5.11.9 UK 讀音（音標 + UK 發音） */
+}
+/* V15 修正：以下 13 條舊版本誤插入 :root 內，已還原為頂層規則 */
   .exam-overlay{position:fixed;inset:0;z-index:9999;background:var(--card);display:flex;flex-direction:column;padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(10px,env(safe-area-inset-bottom))}
   .exam-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
   .exam-timer{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800;font-size:19px;padding:5px 12px;border-radius:10px;background:var(--bg-soft);color:var(--brand-1);min-width:76px;text-align:center}
@@ -41,7 +42,6 @@
   .exam-progress{flex:1;height:8px;border-radius:6px;background:var(--bg-soft);overflow:hidden}
   .exam-progress .exam-fill{height:100%;border-radius:6px;background:var(--grad);transition:width .3s}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}
-}
 html[data-theme="dark"]{
   --brand-1:#818CF8; --brand-2:#A78BFA; --brand-3:#C084FC;
   --accent:#38BDF8; --ok:#34D399; --warn:#FBBF24; --err:#F87171;
@@ -308,6 +308,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 .cat-chips::-webkit-scrollbar{display:none}
 .cat-chip{flex-shrink:0;font-size:12px;font-weight:700;padding:7px 15px;border-radius:99px;background:var(--card);border:1.5px solid var(--border-2);color:var(--sub);transition:all .2s}
 .cat-chip.active{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 4px 12px rgba(99,102,241,.3)}
+.p3b-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:9px}
+.p3b-row{display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:7px}
+.x-tabs2::-webkit-scrollbar{display:none}
+.tomo-mode{margin-bottom:9px}
+.tomo-mode .tm-row{display:flex;gap:7px;align-items:center;overflow-x:auto;padding:2px 2px 7px;scrollbar-width:none}
+.tomo-mode .tm-row::-webkit-scrollbar{display:none}
+.tomo-mode .tm-row .cat-chip{padding:5px 12px;font-size:11.5px}
+.tm-n{margin-left:auto;font-size:11px;font-weight:800;color:#F59E0B;flex-shrink:0}
+.tm-row2{display:flex;gap:6px;align-items:center;font-size:10.5px;color:var(--sub);padding:0 2px 2px;overflow-x:auto;scrollbar-width:none}
+.tm-row2::-webkit-scrollbar{display:none}
+.tm-row2 .cat-chip{padding:3px 10px;font-size:10.5px}
+.tm-note{font-size:10.5px;color:var(--sub);padding:0 2px 2px;line-height:1.5}
 /* ===== 寫作 & 作文評分 ===== */
 .wt-genre{margin:16px 0 8px;font-size:13px;font-weight:800;color:var(--brand-1);letter-spacing:.4px}
 .wt-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
@@ -546,7 +558,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <body>
 <div class="app">
   <header class="header">
-    <h1>📘 DSE Vocab <span class="sub">V5.14.2</span></h1>
+    <h1>📘 DSE Vocab <span class="sub js-ver">V15.0.0</span></h1>
     <div class="hd-right">
       <span id="syncBadge"></span>
       <button class="icon-btn" onclick="Pal.open_()" aria-label="搜尋">🔍</button>
@@ -606,7 +618,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
   <div class="guide-card" id="guideCard">
     <button class="guide-skip" id="guideSkip" onclick="event.stopPropagation();App.closeGuide()">✕</button>
     <div class="g-ic">🎓</div>
-    <h2>歡迎使用 DSE Vocab V5.14.2</h2>
+    <h2>歡迎使用 DSE Vocab <span class="js-ver">V15.0.0</span></h2>
     <p>全新設計介面 × 底層重構 × 新增 AI 作文評分系統<br>同你並肩衝刺 DSE 英文科！</p>
     <button class="guide-start" onclick="App.closeGuide()">立即開始 🚀</button>
   </div>
@@ -639,10 +651,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <script>
 'use strict';
 /* =====================================================================
- * DSE Vocab V5.14.2 — 底層架構
+ * DSE Vocab V15.0.0 — 底層架構
+ * 版本號統一來源：改 APP_VERSION 一處，介面全數跟隨
  * ===================================================================== */
+const APP_VERSION = 'V15.0.0';
+const APP_VERSION_N = 15;
 const Utils = {
   $: s => document.querySelector(s),
+  syncVersion(){
+    try{
+      document.title='DSE Vocab '+APP_VERSION;
+      document.querySelectorAll('.js-ver').forEach(el=>{ el.textContent=APP_VERSION; });
+    }catch(e){}
+  },
   $$: s => [...document.querySelectorAll(s)],
   esc: s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
   /* 拼寫歸一化：小寫 + 去標點 + 壓縮空格（用於聽寫比對） */
@@ -936,7 +957,7 @@ const Pal = {
     ['browse','🔍','詞庫總覽','11K 詞隨時查'],
     ['writing','✍️','寫作工具箱','句式 × 連接詞 × 詞庫寫作詞 × 升級替換'],
     ['essay','🤖','AI 作文評分','即時評分反饋'],
-    ['listening','🎧','聆聽綜合','Paper 3 訓練'],
+    ['listening','🎧','聆聽綜合 · Paper 3B','Data File 拆解 × 八大文體 × 語域 × 5** 對照'],
     ['speaking','🗣️','口語特訓','Paper 4 框架'],
     ['debate','⚖️','辯論訓練','立論 × 駁論'],
     ['reading','📖','閱讀訓練','Paper 1 題型'],
@@ -945,6 +966,7 @@ const Pal = {
   ],
   ACTIONS: [
     ['🎯','排今日應考路線','由 S 級開始排 20 詞','App.startPath()'],
+    ['🎧','Paper 3 Part B 訓練','Data File × 八大文體 × 語域','App.go(\'listening\')'],
     ['⚡','開始閃卡','直接進入複習','App.go(\'flash\')'],
     ['📝','開始測驗','10 題即時測','Quiz.enter()'],
     ['✏️','調整每日目標','改每日學幾多詞','App.setGoal()'],
@@ -1193,6 +1215,7 @@ const Store = {
   },
   defaultState(){ return {
     v:4, known:new Set(), wrong:new Set(), fav:new Set(), tomo:new Set(),
+    tomoMode:'first', tomoCap:30,
     prod:new Set(), prodWrong:new Set(), leech:new Set(), rlog:[], target:'5**', p3Level:'B2',
     sched:{}, history:{}, goal:20, mode:'all', dark:false,
     day:{d:'',learn:0,review:0,quiz:0},
@@ -1226,6 +1249,9 @@ const Store = {
     st.achievements=new Set(st.achievements||[]);
     if(typeof st.fontSize!=='number') st.fontSize=16;
     if(typeof st.quizBest!=='number') st.quizBest=0;
+    // V5.15 明日優先顯示模式遷移
+    if(!['first','only','off'].includes(st.tomoMode)) st.tomoMode='first';
+    if(typeof st.tomoCap!=='number') st.tomoCap=30;
     // 相容舊版 key
     ['known','wrong','fav'].forEach(k=>{ const v=Storage.get(k); if(v){ try{ const arr=JSON.parse(v); if(Array.isArray(arr)) this.state[k]=new Set(arr); }catch(e){} } });
     const dk=Storage.get('dark'); if(dk==='1' && !saved) this.state.dark=true;
@@ -1243,7 +1269,8 @@ const Store = {
   SETS:['known','wrong','fav','tomo','prod','prodWrong','leech','achievements'],
   FIELDS:['sched','history','day','rlog','target','p3Level','goal','mode','dark','quizCount','lastView','modified',
           'onboarded','dseDate','lvTest','essay','essayCount','streak','streakDay','lastActive',
-          'fontSize','quizBest','customWords','favWrite','webdav','lastExport'],
+          'fontSize','quizBest','customWords','favWrite','webdav','lastExport',
+          'tomoMode','tomoCap'],
   /* dropKey=true：匯出檔案唔包 API Key（預設，避免外洩） */
   snapshot(dropKey){
     const s=this.state;
@@ -1920,6 +1947,7 @@ const Data = {
     Data.raw=words; Data.byId=new Map(words.map(w=>[w.id,w]));
     Data.baseCount=words.length;      // 原始詞庫數量（增強層對齊用）
     Data._buildIndex();
+    try{ Data._hygiene(); }catch(e){}   // V15 資料清潔（標記重複／截斷，唔改 ID）
     Data._mergeCustom();
     try{ await Enh.load(); }catch(e){}
     try{ if(await Sup.load()) Sup.merge(Data.baseCount); }catch(e){}
@@ -1950,6 +1978,26 @@ const Data = {
     if(w) w._topics=hit;
     return hit;
   },
+
+  /* ================= V15 資料清潔層 =================
+   * - 重複詞條：相同（片語＋釋義）只計一次，其餘標 _dup
+   * - 截斷片語：英文含 '=' 或 '……' 位符（原庫匯出時被切斷），標 _trunc
+   * 兩者都只做標記、唔刪除，ID 保持穩定，增強層對齊唔受影響
+   */
+  _hygiene(){
+    const seen=new Map(); let dup=0, trunc=0;
+    Data.raw.forEach(w=>{
+      const p=String(w.phrase||'').trim();
+      const m=String(w.meaning||'').trim();
+      const k=(p+'\u0000'+m).toLowerCase();
+      if(seen.has(k)){ w._dup=true; dup++; }
+      else seen.set(k, w.id);
+      if(/=/.test(p) || /\u2026\u2026/.test(p) || /=$/.test(p)){ w._trunc=true; trunc++; }
+    });
+    Data.hygiene={dup:dup, trunc:trunc, checked:true};
+  },
+  isDupEntry(w){ return !!w._dup; },
+  isTruncEntry(w){ return !!w._trunc; },
   _buildIndex(){
     const idx=new Map();
     const add=(tok,id)=>{ if(!tok)return; let a=idx.get(tok); if(!a){ a=[]; idx.set(tok,a); } if(a[a.length-1]!==id) a.push(id); };
@@ -2251,8 +2299,15 @@ const SM2 = {
   /* 卡片類型：畀 UI 顯示，亦令學生知道而家溫緊邊一類 */
   type(w){
     const s=Store.state, k=Store.key(w);
-    if(s.tomo.has(k)) return {t:'⏰ 明日優先', c:'#F59E0B'};
     const x=s.sched[k];
+    if(s.tomo.has(k)){
+      let ex='';
+      if(x&&x.due<=Date.now()){ const od=Math.floor((Date.now()-x.due)/86400000); ex=od>0?`（逾期 ${od} 日）`:`（今日到期）`; }
+      else if(s.leech.has(k)) ex='（難詞）';
+      else if(s.wrong.has(k)) ex='（錯詞）';
+      else if(!x) ex='（未學過）';
+      return {t:'⏰ 明日優先'+ex, c:'#F59E0B'};
+    }
     if(!x) return {t:'🆕 新學', c:'#10B981'};
     if(x.due<=Date.now()){
       const od=Math.floor((Date.now()-x.due)/86400000);
@@ -2309,34 +2364,65 @@ const SM2 = {
         ${warn.lv!=='ok'?`<div style="font-size:11.5px;line-height:1.6;margin-top:7px;padding:8px 10px;border-radius:9px;background:${warn.lv==='high'?'#FEF2F2':'#FFFBEB'};color:${warn.lv==='high'?'#B91C1C':'#92400E'}">${warn.msg}</div>`:''}
       </div>`;
   },
-  duePool(cat, star){
+  /* 明日優先嘅內部排序：到期 → 難詞 → 錯詞 → 應考等級 → 星級
+   * 原本係 Data.raw 順序（即係詞庫排法，頭批仲係地名），完全冇優先度可言。 */
+  tomoOrder(a,b){
+    const s=Store.state, now=Date.now();
+    const p=w=>{
+      const k=Store.key(w), x=s.sched[k];
+      let sc=0;
+      if(x&&x.due<=now) sc+=1000+Math.min(290, Math.floor((now-x.due)/86400000)*10);
+      if(s.leech.has(k)) sc+=400;
+      if(s.wrong.has(k)) sc+=200;
+      const t=Enh.on()?Enh.tier(w):null;
+      sc+=({S:100,A:70,B:40,C:10})[t]||0;
+      sc+=(w.stars||0)*5;
+      return sc;
+    };
+    return p(b)-p(a);
+  },
+  tomoList(pool){
     const s=Store.state;
+    return pool.filter(w=>s.tomo.has(Store.key(w))).sort(SM2.tomoOrder);
+  },
+  /* opt: {tomoMode:'first'|'only'|'off', tomoCap:N(0=全部)}
+   *   first（預設）明日優先排最前，最多 cap 個，超額嘅排喺隊列尾（等溫完到期／新詞）
+   *   only  淨係出明日優先
+   *   off   當普通詞，跟到期／錯詞／新詞邏輯排
+   */
+  duePool(cat, star, opt){
+    const o=opt||{};
+    const s=Store.state;
+    const mode=['first','only','off'].includes(o.tomoMode||s.tomoMode)?(o.tomoMode||s.tomoMode):'first';
+    const cap=(typeof o.tomoCap==='number')?o.tomoCap:(typeof s.tomoCap==='number'?s.tomoCap:30);
     const now=Date.now();
     const K=w=>Store.key(w);
     const all=cat==='all'?Data.raw:Data.raw.filter(w=>w.category===cat);
     let pool=star>1?all.filter(w=>w.stars>=star):all;
     if(Enh.on()) pool=pool.filter(w=>!Enh.isDup(w)&&!Enh.isGeo(w));
+    if(Data.hygiene&&Data.hygiene.checked) pool=pool.filter(w=>!w._dup);
 
-    const tomo=pool.filter(w=>s.tomo.has(K(w)));
+    const tomo=SM2.tomoList(pool);
     const isDue=w=>{ const x=s.sched[K(w)]; return !!x&&x.due<=now; };
-    // 到期：逾期愈耐排愈前
-    const due=pool.filter(w=>isDue(w)&&!s.tomo.has(K(w)))
+    // off 模式下明日優先只係標記，唔提升排序，所以其他層照食呢啲詞
+    const keep = mode==='off' ? (()=>true) : (w=>!s.tomo.has(K(w)));
+    const due=pool.filter(w=>isDue(w)&&keep(w))
                   .sort((a,b)=>s.sched[K(a)].due-s.sched[K(b)].due);
-    // 錯詞（未到期）即時重溫，但要限額，避免霸佔成個隊列
-    const wrong=Utils.shuffle(pool.filter(w=>s.wrong.has(K(w))&&!isDue(w)&&!s.tomo.has(K(w))&&s.sched[K(w)]&&!s.leech.has(K(w))));
-    // 難詞：反覆忘記，要穩定少量咁磨，但唔可以霸佔成個隊列
-    const leech=Utils.shuffle(pool.filter(w=>s.leech.has(K(w))&&!isDue(w)&&!s.tomo.has(K(w))));
-    // 新詞：嚴格按每日配額，並按應考優先度排（唔係隨機）
-    const fresh=pool.filter(w=>{ const k=K(w); return !s.sched[k]&&!s.known.has(k)&&!s.tomo.has(k); });
+    const wrong=Utils.shuffle(pool.filter(w=>s.wrong.has(K(w))&&!isDue(w)&&keep(w)&&s.sched[K(w)]&&!s.leech.has(K(w))));
+    const leech=Utils.shuffle(pool.filter(w=>s.leech.has(K(w))&&!isDue(w)&&keep(w)));
+    const fresh=pool.filter(w=>{ const k=K(w); return !s.sched[k]&&!s.known.has(k)&&keep(w); });
     const freshOrdered=Enh.on()?fresh.slice().sort(Enh.cmp):Utils.shuffle(fresh);
 
     const q=[]; const seen=new Set();
     const push=arr=>arr.forEach(w=>{ const k=K(w); if(!seen.has(k)){ seen.add(k); q.push(w); } });
-    push(tomo);
+    if(mode==='only'){ push(tomo); return q; }
+    if(mode==='first') push(cap>0?tomo.slice(0,cap):tomo);
     push(due.slice(0, SM2.dueLeft()));
     push(wrong.slice(0, Math.max(10, Math.round((s.goal||20)/2))));
     push(leech.slice(0, 8));
     push(freshOrdered.slice(0, SM2.newLeft()));
+    // 超額嘅明日優先排喺最後：等到期／新詞溫完先輪到，但唔會被完全吞掉
+    if(mode==='first'&&cap>0&&tomo.length>cap) push(tomo.slice(cap));
     return q;
   }
 };
@@ -2649,6 +2735,15 @@ const Flash = {
     const wrap=Utils.$('#flashWrap');
     if(!Flash.queue.length){
       const dq=Store.day(), gg=Store.state.goal||20, st=SM2.stats();
+      const tm=Store.state.tomoMode||'first', tn=Store.state.tomo.size;
+      if(tm==='only'&&!tn){
+        wrap.innerHTML=`<div class="fc-empty"><div class="ic">⏰</div><div>仲未標記任何「明日優先」詞<br><span style="font-size:11.5px;color:var(--sub)">去詞庫撳個 ⏰ 掣，聽日開 app 就會優先出</span></div><div class="btn sm" onclick="Flash.setTomoMode('first')">轉返「⏰ 優先」</div><div class="btn sm ghost" onclick="App.go('browse')">去詞庫</div></div>`;
+        return;
+      }
+      if(tn&&tm!=='only'){
+        wrap.innerHTML=`<div class="fc-empty"><div class="ic">⏰</div><div>呢一節溫完喇 🎉<br><span style="font-size:11.5px;color:var(--sub)">仲有 ${tn} 個「明日優先」詞未溫</span></div><div class="btn sm" onclick="Flash.setTomoMode('only')">🎯 淨溫嗰 ${tn} 個</div><div class="btn sm ghost" onclick="App.go('browse')">去詞庫</div></div>`;
+        return;
+      }
       const msg=(dq.learn||0)>=gg ? `今日 ${gg} 個新詞配額已完成 🎉<br>聽日再學，或者去溫錯詞`
         : st.due>0 ? `今日到期嘅 ${st.due} 個詞已全部溫完 🎉`
         : `暫時冇到期要溫嘅詞 🎉<br>去詞庫揀詞，或者用「應考路線」排今日進度`;
@@ -2665,6 +2760,7 @@ const Flash = {
         <span style="font-size:11px;color:var(--sub)">今日 學 ${d.learn||0}/${g} · 複習 ${d.review||0}</span>
         <label class="star-tog"><input type="checkbox" ${Flash.star>1?'checked':''} onchange="Flash.setStar(this.checked)"> 只睇 ★${Flash.star>1?'':'≥'}${Flash.star>1?'':''}</label>
       </div>
+      ${Flash._tomoBar()}
       <div style="text-align:center;margin-bottom:8px"><span class="m-badge" style="background:${tp.c}1a;color:${tp.c};border-color:${tp.c}33">${tp.t}</span></div>
       ${Flash._lastMsg?`<div class="flash-msg">${Flash._lastMsg}</div>`:''}
       ${Flash._undo?`<div class="flash-undo" onclick="Flash.undo()">↩ 還原上一題（啱啱評咗「${Flash._undo.label}」）</div>`:''}
@@ -2690,6 +2786,37 @@ const Flash = {
     try{ Flash.bindSwipe(); }catch(e){}
   },
   flip(){ Flash.flipped=!Flash.flipped; Flash.render(); },
+  _tomoBar(){
+    const s=Store.state;
+    const n=s.tomo.size;
+    const mode=s.tomoMode||'first';
+    const cap=(typeof s.tomoCap==='number')?s.tomoCap:30;
+    const M=[['first','⏰ 優先'],['only','🎯 只溫'],['off','➖ 唔優先']];
+    const C=[[20,'20'],[30,'30'],[50,'50'],[0,'全部']];
+    return `<div class="tomo-mode">
+      <div class="tm-row">
+        ${M.map(m=>`<button class="cat-chip ${mode===m[0]?'active':''}" onclick="Flash.setTomoMode('${m[0]}')">${m[1]}</button>`).join('')}
+        <span class="tm-n">⏰ ${n}</span>
+      </div>
+      ${mode==='first'?`<div class="tm-row2"><span style="flex-shrink:0">每節最多</span>${C.map(c=>`<button class="cat-chip ${cap===c[0]?'active':''}" onclick="Flash.setTomoCap(${c[0]})">${c[1]}</button>`).join('')}${cap&&n>cap?`<span style="flex-shrink:0">· 其餘 ${n-cap} 個排喺最後</span>`:''}</div>`:''}
+      ${mode==='off'&&n?`<div class="tm-note">明日優先只當標記，跟到期／錯詞／新詞正常排。</div>`:''}
+      ${mode==='only'?`<div class="tm-note">淨係出嗰 ${n} 個已標記嘅詞，直到你撳「⏰ 優先」轉返。</div>`:''}
+    </div>`;
+  },
+  setTomoMode(m){
+    Store.state.tomoMode=m;
+    Store.persist();
+    Flash._again=[]; Flash._round=0; Flash._undo=null;
+    Flash._load();
+    Utils.toast(m==='only'?'🎯 只溫明日優先':m==='off'?'➖ 明日優先唔再插隊':'⏰ 明日優先排最前');
+  },
+  setTomoCap(c){
+    Store.state.tomoCap=c;
+    Store.persist();
+    Flash._again=[]; Flash._round=0; Flash._undo=null;
+    Flash._load();
+    Utils.toast(c?'每節最多 '+c+' 個明日優先':'每節全部明日優先');
+  },
   setStar(on){ Flash.star=on?2:1; Flash._load(); },
   _LABEL:{0:'Again 唔記得',3:'Hard 要諗一陣',4:'Good 記得',5:'Easy 一眼認得'},
   /* q: 0=Again 3=Hard 4=Good 5=Easy（SM-2 標準質量） */
@@ -4372,7 +4499,7 @@ const Browse = {
       <div class="search-bar"><input class="field" id="browseSearch" placeholder="🔍 搜尋詞彙／中文意思…" value="${Utils.esc(Browse.q)}" oninput="Browse.search(this.value)"></div>
       <div class="cat-chips">${cats.map(c=>`<button class="cat-chip ${Browse.cat===c?'active':''}" onclick="Browse.setCat('${c.replace(/'/g,"\\'")}')">${c}</button>`).join('')}</div>
       ${Enh.on()?`<div class="cat-chips">${(Enh.D.themes||[]).map(t=>`<button class="cat-chip ${Browse.theme===t?'active':''}" style="${Browse.theme===t?'background:var(--grad);color:#fff;border-color:transparent':''}" onclick="Browse.setTheme('${t}')">${t}</button>`).join('')}</div>`:''}
-      ${tomoCount?`<div class="tomo-bar"><span>⏰ 明日優先複習：${tomoCount} 詞</span><button class="btn sm ghost" onclick="App.clearTomo()">清除全部</button></div>`:''}
+      ${tomoCount?`<div class="tomo-bar"><span>⏰ 明日優先複習：${tomoCount} 詞</span><span style="display:flex;gap:6px;flex-shrink:0"><button class="btn sm" onclick="App.startTomo()">▶ 開始溫</button><button class="btn sm ghost" onclick="App.clearTomo()">清除全部</button></span></div>`:''}
       <div style="font-size:11px;color:var(--faint);margin:2px 2px 10px">共 ${Browse.filtered.length} 詞 · 長按可收藏</div>
       <div id="browseList">${list.map(w=>Browse._row(w)).join('')||`<div class="empty"><div class="e-icon">🔍</div>搵唔到相關詞彙</div>`}</div>
       ${Browse.filtered.length>list.length?`<div class="browse-more" onclick="Browse.loadMore()">▼ 顯示更多</div>`:''}
@@ -5217,7 +5344,7 @@ To conclude, social media is neither entirely beneficial nor wholly harmful. If 
       ${tips.length?`<div class="grade-section"><h4><span class="gs-ic">💡</span>提升建議</h4><ul>${tips.map(s=>`<li>${Utils.esc(s)}</li>`).join('')}</ul></div>`:''}
       ${r.mode==='local'&&r.stats&&r.stats.upgrades&&r.stats.upgrades.length?(()=>{
         const typeName={adj:'形容詞',v:'動詞',adv:'副詞',n:'名詞'};
-        return `<div class="grade-section"><h4><span class="gs-ic">⬆️</span>詞彙升級建議（V5.11.6）</h4>
+        return `<div class="grade-section"><h4><span class="gs-ic">⬆️</span>詞彙升級建議</h4>
           <div style="font-size:12px;color:var(--sub);margin-bottom:8px">將平淡詞換成高分詞，即時提升 Language 分：</div>
           <div style="display:flex;flex-direction:column;gap:8px">${r.stats.upgrades.map(u=>`
             <div style="background:var(--bg-soft);border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -5334,7 +5461,7 @@ const More = {
         <div class="setting-row"><div class="st-info"><div class="st-t">數據備份</div><div class="st-d">匯出／匯入／本機還原</div></div><button class="btn sm ghost" onclick="App.go('stats')">管理</button></div>
         <div class="setting-row"><div class="st-info"><div class="st-t">☁️ 雲端同步</div><div class="st-d">${(Store.state.webdav&&Store.state.webdav.url)?(Store.state.webdav.auto?'多裝置自動共用 ✅':'已設定，自動同步閂咗'):'未設定 —— 換機進度會冇'}</div></div><button class="btn sm ${(Store.state.webdav&&Store.state.webdav.url)?'ghost':'soft'}" onclick="App.syncPanel()">設定</button></div>
       </div>
-      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.7;margin-bottom:12px">📌 V5.14.2：AI 作文評分、全新 UI、效能優化。<br>記憶曲線、進階工具會持續更新，敬請期待。</div>
+      <div class="dse-tip" style="font-size:11px;color:var(--sub);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:11px;line-height:1.7;margin-bottom:12px">📌 ${APP_VERSION}：版本號統一、資料清潔層、模擬考場樣式修復。<br>Paper 3 Part B 訓練器開發中。</div>
     `;
   },
   showReview(){
@@ -5640,6 +5767,13 @@ const App = {
     Store.persist();
     if(UI.current==='browse') Browse.renderList();
     App.openDetail(w.id);
+  },
+  startTomo(){
+    if(!Store.state.tomo.size){ Utils.toast('仲未標記任何明日優先詞'); return; }
+    Store.state.tomoMode='only';
+    Store.persist();
+    App.go('flash');
+    Utils.toast('🎯 只溫 '+Store.state.tomo.size+' 個明日優先詞');
   },
   clearTomo(){
     Store.state.tomo.clear();
@@ -6067,6 +6201,7 @@ const App = {
   },
   closeGuide(){ Utils.$('#guide').classList.remove('show'); Store.state.onboarded=true; Storage.set('onboarded','1'); },
   async boot(){
+    try{ Utils.syncVersion(); }catch(e){}
     window.onerror=(msg)=>{ Utils.toast('⚠️ '+msg); };
     try{ Keys.init(); }catch(e){}
     // 第 2 部機開 #sync= 連結 → 自動配好雲端
@@ -6481,6 +6616,438 @@ const Debate={
   }
 };
 
+
+/* ================= V15 Paper 3 Part B 整合寫作訓練器 =================
+ * 語料：HKEAA 官方 Sample Paper + Practice Paper（Part A 卷首 General Instructions）
+ * 官方原文："Candidates attempting Part A and B2 will be able to attain the full
+ * range of levels, while Level 4 will be the highest level attainable for
+ * candidates attempting Part A and B1."  ← 揀 B1 = 全科上限 L4，5** 無份
+ */
+const P3B = {
+  _tab: 'struct',
+  /* ---- 卷三結構：時間分配（官方 2 小時全卷）---- */
+  STRUCT: [
+    { k: 'Part A', n: 'Tasks 1–4', t: '聆聽（必考）', m: '約 55 分鐘', d: '全部人都要做。填寫 notes／表格／短答，聽錄音作答。' },
+    { k: 'Part B1', n: 'Tasks 5–7', t: '較易（二選一）', m: '約 65 分鐘', d: '寫作量較少（約 150 words）。⚠️ 揀 B1 全科上限 Level 4。' },
+    { k: 'Part B2', n: 'Tasks 8–10', t: '較難（二選一）', m: '約 65 分鐘', d: '寫作量較多（約 200 words）。✅ 可達 5**，衝高分必選。' }
+  ],
+  /* ---- Data File 材料類型（實例取自官方卷）---- */
+  DATATYPES: [
+    { t: '📧 Email／Memo', ex: 'Email from Michael Jones to David Chan', tip: '一定有「要做啲乜」嘅指令。睇 Subject 行，動作動詞（please / need to / must）就係任務。', pit: '電郵嘅語氣 = 你嘅語氣基準。上司寫畀你 → 你對外用正式。' },
+    { t: '✉️ Letter of complaint', ex: 'Letter from Gracie Ma to the Campus Services Department', tip: '投訴信 = 免費嘅「問題清單」。每投訴一項，就係一個 point。', pit: '回信要逐點回應，漏一點就扣 Task Completion 分。' },
+    { t: '📰 Newspaper / Magazine article', ex: 'The Hong Kong Clarion – Entertainment Page', tip: '提供背景同第三方觀點。攞事實（數字、日期、名稱），唔好攞opinion 當 fact。', pit: '報章語氣偏正式，引用時要 paraphrase，唔好照抄。' },
+    { t: '📊 Data / Statistics', ex: 'Ad.research.com data on ‘Flatmates’', tip: '圖表題必考 trend 詞：surge / plummet / plateau / fluctuate。', pit: '要寫「邊個數字對比邊個數字」，淨寫數字冇比較 = 冇分析。' },
+    { t: '💰 Cost breakdown / Budget', ex: 'Cableline TV – Cost breakdown', tip: '搵最大項同異常項（overspend / under budget）。', pit: '錢嘅單位睇清楚（HK$ / per episode / total）。' },
+    { t: '📁 Personnel file', ex: 'Extracts from the personnel file', tip: '人名、職位、日期、資格。寫正式文書要用全名＋職銜。', pit: '私隱資料（身分證、地址）唔好寫入正式文件。' },
+    { t: '🗒️ Meeting minutes / Notes', ex: 'Excerpt from the notes of the Programme Planning Group meeting', tip: '會議記錄 = 決定同跟進行動。Action items 直接變建議。', pit: '會議記錄入面嘅「建議」唔等如「已決定」，寫時要分清楚。' },
+    { t: '🎙️ Transcript', ex: 'Transcript: interview from ‘Entertainment Weekly’ radio show', tip: '訪問稿有直接引語。攞說話者立場，用 reportedly / according to 轉述。', pit: '口語稿有 fillers（um, you know），唔好照抄。' },
+    { t: '🌐 Webpage / Onlinepedia entry', ex: 'Onlinepedia entry for Top Chef Challenge TV Show', tip: '背景資料＋官方自述。自述會偏正面，要中立處理。', pit: '網頁資料可能過時，要對照日期。' },
+    { t: '🗺️ Map / Timetable / Directions', ex: 'Extract from MTR fare table', tip: '實用資訊題（交通、路線、收費）。答案通常要具體數字。', pit: '睇清楚係單程定來回、平日定假日。' }
+  ],
+  /* ---- 八大文體（B2 標準 ~200 words）---- */
+  GENRES: [
+    {
+      k: 'Report', ic: '📊', n: '報告 Report', w: '約 200 words',
+      ex: 'Task 6 – Complete the report on ‘Flatmates’（19 marks，Sample Paper）',
+      when: '畀上級／管理層睇，要客觀、有數據、有建議',
+      struct: ['Title（報告標題，講明主題同對象）', 'Introduction：目的＋背景（1 段）', 'Findings：分點列數據，每點一個發現', 'Recommendations：建議要對應返發現', 'Conclusion（如需要）'],
+      open: ['The purpose of this report is to examine ...', 'This report was prepared at the request of ...', 'The findings below are based on ...'],
+      close: ['In the light of these findings, it is recommended that ...', 'A follow-up review should be conducted in ...', 'Urgent action is needed if the trend is to be reversed.'],
+      tips: ['報告書要客觀：用數據講嘢，唔好寫 I feel / I think', '發現同建議要對應 —— 每條建議都要有發現支持', '有小標題（Introduction / Findings / Recommendations）閱卷員易搵分'],
+      reg: 'formal'
+    },
+    {
+      k: 'Proposal', ic: '📋', n: '建議書 Proposal', w: '約 200 words',
+      ex: 'Task 10 – Write a proposal for the new reality show（19 marks，Sample Paper）',
+      when: '提出新計劃爭取批准，要有可行性',
+      struct: ['Title + Submitted by（邊個提交、畀邊個）', 'Background：點解要做（用數據／觀察支持）', 'Proposal：分點列明（目的、做法、負責人）', 'Expected outcomes + Timeline', '結尾請對方批准'],
+      open: ['The aim of this proposal is to ...', 'This proposal outlines a three-month plan to address ...', 'Submitted by ... for your consideration.'],
+      close: ['In view of the above, we respectfully seek your approval to proceed.', 'We are confident that this scheme will yield tangible benefits.', 'We would be happy to discuss the details at your convenience.'],
+      tips: ['要有明確推行時間表同負責人，否則會被當空談', '提預算／資源限制，顯得諗得周到', '用分點（1. / 2.）同小標題'],
+      reg: 'formal'
+    },
+    {
+      k: 'Letter', ic: '✉️', n: '書信 Letter（回覆／投訴／邀請）', w: '約 200 words',
+      ex: 'Task 9 – Write a letter of reply to the complaint（19 marks，Sample Paper）',
+      when: '對外溝通，要講身份、目的、具體行動',
+      struct: ['Dear + 稱呼（對方全名／職銜）', '第一段：講明回應乜嘢 + 連日期／編號', '正文：逐點回應，每點一段', '結尾：具體跟進行動 + 期望回覆', 'Sign-off（Yours sincerely / faithfully）'],
+      open: ['I am writing in response to your letter dated ...', 'Thank you for bringing this matter to our attention.', 'I refer to your email of ... regarding ...'],
+      close: ['I trust this addresses your concerns.', 'Please do not hesitate to contact me should you require further information.', 'Yours sincerely,'],
+      tips: ['投訴回信要逐點回應 —— 漏一點就扣 Task Completion', '要有具體跟進行動（幾時、邊個做），唔好淨係道歉', '稱呼錯 = 語域錯，直接扣分'],
+      reg: 'formal'
+    },
+    {
+      k: 'Feature', ic: '📰', n: '專題文章 Feature article', w: '約 200 words',
+      ex: 'B2 Task 10 – Feature article for the HK Metro U Campus News（18 marks，~200 words）',
+      when: '畀公眾／讀者睇，要有吸引力又有資訊',
+      struct: ['Headline（吸引眼球，可以玩字）', 'Lead：用 hook（問題／故事／數據）開場', 'Body：2–3 段，每段一個角度，配例子或引語', '結尾：回扣主題或留一句畀人反思'],
+      open: ['Few topics have sparked as much debate as ...', 'Picture this: ...', 'In recent years, ... has become a contentious issue in Hong Kong.'],
+      close: ['Only time will tell whether ...', 'The point worth remembering is that ...', 'What happens next is up to all of us.'],
+      tips: ['Feature article 要有 hook —— 平淡開場直接低分', '可以引用訪問內容（according to / as ... puts it）', '唔好寫到好似報告書 —— 要流暢、有節奏'],
+      reg: 'semi-formal'
+    },
+    {
+      k: 'Profile', ic: '👤', n: '人物簡介 Profile', w: '視題目指定',
+      ex: 'Task 8 – Brief profile of each of the participants（15 marks，Sample Paper）',
+      when: '介紹一個人畀讀者認識',
+      struct: ['姓名＋身份一句講清', '背景／經歷（時序或重要性排）', '成就／特點（配具體例子）', '一句總結或展望'],
+      open: ['... is best known for ...', 'A native of ..., ... has spent ... years ...', 'Few people embody ... quite like ...'],
+      close: ['... shows no sign of slowing down.', 'With ..., ... is set to ...', 'It will be fascinating to see what ... does next.'],
+      tips: ['要揀最有代表性嘅 2–3 件事，唔好寫流水帳', '用具體細節（年份、數字、地點）代替空泛形容', '每人一段，長度要均衡'],
+      reg: 'semi-formal'
+    },
+    {
+      k: 'Speech', ic: '🎤', n: '演講辭 Speech', w: '約 200 words',
+      ex: '常見於 Part B2（邀請嘉賓／開幕致辭）',
+      when: '對聽眾講嘢，要口語化、有互動',
+      struct: ['稱呼聽眾（Fellow students / Teachers and classmates）', '開場 hook（問題／故事／數據）', '正文 2–3 個論點，用口語化連接', '結尾重申核心訊息 + 行動呼籲 + 致謝'],
+      open: ['It is a great honour to speak to you today about ...', 'Let me begin with a question: ...', 'Picture this: ...'],
+      close: ['The point I want to leave you with is that ...', 'I urge you all to take that first step today.', 'Thank you for your attention.'],
+      tips: ['演講辭要口語化：短句、問句、直接講 you', '開場一定要有 hook', '結尾要有一句可以畀人引用嘅金句'],
+      reg: 'semi-formal'
+    },
+    {
+      k: 'Email', ic: '📧', n: '電郵 Email（內部）', w: '視題目指定',
+      ex: '常見於 Part B2（畀同事／上司／部門）',
+      when: '內部溝通，可以比書信短，但都要清楚',
+      struct: ['To / From / Sent / Subject（要填啱）', '第一行講明寫信原因', '正文分點（用 bullet 都得）', '結尾：跟進行動 + 禮貌收結'],
+      open: ['I am writing to follow up on ...', 'Further to our conversation, I would like to ...', 'Please find below the information you requested.'],
+      close: ['I would be grateful if you could ...', 'Please let me know if you need anything further.', 'Regards,'],
+      tips: ['Subject 行要寫 —— 空白 Subject 會扣分', '內部電郵可以親切，但對上司要保持禮貌', '要寫具體跟進行動（deadline、負責人）'],
+      reg: 'semi-formal'
+    },
+    {
+      k: 'Announcement', ic: '📢', n: '公告 Announcement', w: '視題目指定',
+      ex: '2019 B2 – Announcement for Prize Giving Ceremony, Youth by Youth Short Video Competition',
+      when: '向公眾／特定對象宣布一件事（活動、結果、改動）',
+      struct: ['標題（講明係乜活動／乜事）', '開場：一句講清 5W（What / When / Where / Who / Why）', '正文：細節（流程、參加資格、獎項、注意事項）', '結尾：行動呼籲（點報名／去邊度睇）＋聯絡方法'],
+      open: ['We are pleased to announce that ...', 'Following the overwhelming response to ..., ...', 'The results of ... are now available.'],
+      close: ['For enquiries, please contact ...', 'We look forward to seeing you there.', 'Do not miss this opportunity — register by ...'],
+      tips: ['公告一定要齊 5W —— 缺一個就扣 Task Completion', '日期、時間、地點要寫到最具體（幾點、邊間房）', '要有明確行動呼籲（報名／出席／查詢）'],
+      reg: 'semi-formal'
+    },
+    {
+      k: 'Script', ic: '🎬', n: '影片／廣播腳本 Script', w: '視題目指定',
+      ex: '2020 B2 – Script for the Planet Tarkov Problem-Solving Activity introductory video',
+      when: '為影片或錄音寫旁白／對白',
+      struct: ['Scene / Shot 標示（如適用）', '開場 hook（問題或震撼事實）', '主體：按畫面順序分段旁白', '結尾：總結或行動呼籲'],
+      open: ['Welcome to ...', 'Have you ever wondered what it would be like to ...?', 'In the next few minutes, we will ...'],
+      close: ['Thank you for watching.', 'So, what are you waiting for?', 'Join us on this journey.'],
+      tips: ['腳本係「聽」嘅唔係「睇」嘅 —— 用短句、口語', '要配合畫面寫（例如「As you can see ...」）', '語速預算：200 words ≈ 1.5 分鐘'],
+      reg: 'semi-formal'
+    },
+    {
+      k: 'Webcopy', ic: '🌐', n: '網站／場刊內容 Web copy / Short text', w: '視題目指定',
+      ex: '2022 B2 – Short history of Shiny Diamond Lighting Ltd for the company website；2019 – ‘The Electronic Durian’ for festival programme',
+      when: '為網站、場刊、小冊子寫介紹文字',
+      struct: ['標題（公司名／活動名）', '開場：一句定位（係乜、有咩特別）', '主體：歷史／特色／亮點（按時序或重要性）', '結尾：展望或邀請'],
+      open: ['Founded in ..., ... has grown into ...', '... is a ... that ...', 'Since ..., ... has been ...'],
+      close: ['Today, ... continues to ...', 'Come and discover ... for yourself.', 'We look forward to welcoming you.'],
+      tips: ['網站內容要正面 —— 用褒義詞（renowned / pioneering / award-winning）', '按時序寫歷史最清晰（Founded → expanded → today）', '篇幅通常短，每段 2–3 句就夠'],
+      reg: 'semi-formal'
+    },
+    {
+      k: 'Blog', ic: '📝', n: '網誌／論壇帖 Blog post', w: '視題目指定',
+      ex: '常見於 Part B2（個人分享／回應討論）',
+      when: '個人聲音，最口語化，但都要有結構',
+      struct: ['吸引嘅標題', '開場用個人經歷或問題', '正文 2–3 點，用口語連接', '結尾抛問題畀讀者（互動）'],
+      open: ['So, this happened to me the other day ...', 'Have you ever wondered why ...?', 'I have been thinking a lot about ... lately.'],
+      close: ['What do you think? Let me know in the comments.', 'Anyway, that is my two cents.', 'Until next time!'],
+      tips: ['Blog 最口語，可以用縮寫（don\'t / it\'s）同直接問句', '但要保持有結構 —— 唔好寫成意識流', '可以加個人感受，但都要有 reasoning'],
+      reg: 'informal'
+    }
+  ],
+  /* ---- 語域配對：Part B 最常扣分位 ---- */
+  REGISTERS: [
+    { r: 'formal', ic: '🎩', n: '正式 Formal', to: '上司、管理層、客戶、政府部門、傳媒（Letter to the Editor）', yes: ['完整句、避免縮寫（do not 唔好寫 don\'t）', '被動式可用（It was found that ...）', 'I would be grateful if / It is recommended that', '稱呼用全名＋職銜（Dear Mr. Mak）'], no: ['縮寫（don\'t / can\'t / gonna）', '口語（a lot of / get / stuff）', '直接命令（You must ...）', '感嘆號'], ex: 'Report 畀 Senior Management、Letter of reply 畀投訴人' },
+    { r: 'semi-formal', ic: '👔', n: '半正式 Semi-formal', to: '同事、同學會、校內刊物、演講聽眾', yes: ['完整句為主，可偶爾用縮寫', '直接稱呼（you / we）', '實用連接詞（However / Therefore / Also）', '語氣友善但專業'], no: ['太生硬嘅官腔（pursuant to / herewith）', '太隨意嘅 slang', '過度情緒化用語', '喺寫畀上司時用命令式'], ex: 'Feature article 畀 Campus News、Email 畀同事、Speech' },
+    { r: 'informal', ic: '👕', n: '親切 Informal', to: '朋友、網誌讀者、論壇網民', yes: ['縮寫、短句、直接問句', '個人感受（I think / I feel）', '口語連接（So / Anyway / Plus）', '互動（What do you think?）'], no: ['喺正式 task 用呢個語域 ❌', '過度粗俗或無禮', '完全冇結構', '通篇 slang 令人睇唔明'], ex: 'Blog post、Forum post（只限題目明確要求）' }
+  ],
+  /* ---- Level 4 → 5** 對照（考評局四個評分維度）---- */
+  RUBRIC: [
+    {
+      d: 'Task Completion<br>（完成任務）', w: '最重要',
+      l4: ['有寫到重點，但漏 1–2 個 Data File 要點', '字數不足或超出太多', '文體格式唔完全啱（例如報告書冇小標題）', '角色／對象混淆（寫畀上司用咗朋友語氣）'],
+      l5: ['全部 Data File 要點都覆蓋，且有發展', '字數符合要求（B2 ~200 words）', '文體格式完全正確', '角色、對象、目的三者一致'],
+      how: ['動筆前用 5 分鐘圈起 task 入面嘅每一個 instruction（通常 3–5 個）', '每個 instruction 對應 Data File 邊一份材料，寫低頁數', '寫完對返 checklist 逐項 tick']
+    },
+    {
+      d: 'Language<br>（語言運用）', w: '拉開差距',
+      l4: ['基本準確，偶有錯誤唔影響理解', '詞彙簡單（good / bad / big / make）', '句式單一（全部 SVO）', '串法錯、時態錯'],
+      l5: ['準確且有變化，錯誤極少', '用精準詞（beneficial / detrimental / implement）', '句式多變（強調句、分詞、倒裝）', '用啱嘅 collocation'],
+      how: ['用升級替換（very important → crucial / indispensable）', '一篇文用 3 個唔同句式結構', '溫習 Part 5B 進階短語（而家詞庫有 1,359 條）']
+    },
+    {
+      d: 'Organisation<br>（組織結構）', w: '易攞分',
+      l4: ['有分段但邏輯唔清晰', '段與段之間冇連接', '一個 point 散落喺唔同段'],
+      l5: ['分段清晰，每段一個主旨', '用連接詞串起段落（However / Furthermore / Therefore）', '有主題句（Topic Sentence）'],
+      how: ['每段開頭寫主題句', '用 🔀 連接詞 tab 嗰 44 個（however 而家搜到）', '按重要性或時序排 point']
+    },
+    {
+      d: 'Coherence<br>（連貫一致）', w: '整體印象',
+      l4: ['語域飄忽（一時正式一時口語）', '代詞指代唔清（it / they 唔知講邊個）', '語氣唔一致'],
+      l5: ['全篇語域一致', '代詞、連接清楚', '語氣配合角色同對象'],
+      how: ['落筆前決定語域，全篇跟住', '每次用 it / they 之前確認指代對象', '唔好喺正式文書插入口語詞']
+    }
+  ],
+  /* ---- 限時模擬：Part B 時間分配 ---- */
+  PLAN: [
+    { t: '0–5 分鐘', n: '讀題 + 掃 Data File', d: 'Task instruction 圈起所有 instruction；Data File 淨係睇目錄＋各材料標題，記低邊份有乜。⚠️ 唔好喺呢個階段細讀。' },
+    { t: '5–10 分鐘', n: '聽錄音 + 做 Note sheet', d: 'Note sheet 係你嘅寫作藍本。聽到嘅嘢用關鍵字記，唔使寫完整句。' },
+    { t: '10–15 分鐘', n: '配對：instruction ↔ 材料', d: '每個 instruction 對應邊幾份材料，喺材料上面寫低 task 編號。呢步係 5** 嘅分水嶺。' },
+    { t: '15–55 分鐘', n: '寫作', d: '按文體框架寫。200 words 大概 4–5 段。每段：主題句 → 證據 → 小結。' },
+    { t: '55–65 分鐘', n: '覆檢', d: '對返 checklist：要點冇漏？字數啱？語域一致？串法？' }
+  ],
+  /* ---- 真題文體實例（官方 Sample Paper + Practice Paper）---- */
+  REAL: [
+    { y: '2013 B2', t: 'Task', g: 'Feature article', n: 'Travel and tourism in Hong Kong in the past', m: '—', w: '雜誌專題' },
+    { y: '2013 B2', t: 'Task', g: 'Email', n: 'Email to Queenie Lau about the article she has sent', m: '—', w: '電郵回覆' },
+    { y: '2019 B2', t: 'Task', g: 'Announcement', n: 'Prize Giving Ceremony, Youth by Youth Short Video Competition', m: '—', w: '公告' },
+    { y: '2019 B2', t: 'Task', g: 'Short text', n: '‘The Electronic Durian’ for Visual Media Festival programme', m: '—', w: '場刊短文' },
+    { y: '2020 B2', t: 'Task', g: 'Script', n: 'Planet Tarkov Problem-Solving Activity introductory video', m: '—', w: '影片腳本' },
+    { y: '2020 B2', t: 'Task', g: 'Incident report', n: 'What happened on the M...（事故報告）', m: '—', w: '事故報告' },
+    { y: '2020 B2', t: 'Task', g: 'Email', n: 'Email replying to the Locae Foundation', m: '—', w: '電郵回覆' },
+    { y: '2021 B2', t: 'Task', g: 'Letter to the editor', n: 'Letter to the editor of the Hong Kong Press & Journal', m: '—', w: '致編輯信' },
+    { y: '2021 B2', t: 'Task', g: 'Email', n: 'Email to Refugee Sanctuary', m: '—', w: '電郵' },
+    { y: '2022 B2', t: 'Task', g: 'Short history', n: 'History of Shiny Diamond Lighting Ltd for the company website', m: '—', w: '公司網站簡介' },
+    { y: '2022 B2', t: 'Task', g: 'Email', n: 'Email responding to the Wan Yuen Estate Residents’ Association', m: '—', w: '電郵回覆' },
+    { y: 'Sample', t: 'Task 6', g: 'Report', n: 'Report on ‘Flatmates’', m: 19, w: '填充式報告' },
+    { y: 'Sample', t: 'Task 9', g: 'Letter of reply', n: 'Reply to Mr. Mak’s complaint', m: 19, w: '回覆投訴' },
+    { y: 'Sample', t: 'Task 10', g: 'Proposal', n: 'Programme proposal for new reality show', m: 19, w: '表格式建議書' },
+    { y: 'Practice B1', t: 'Task 7', g: 'Letter of reply', n: 'Reply to Hong Kong Journal', m: 18, w: '~150 words' },
+    { y: 'Practice B2', t: 'Task 10', g: 'Feature article', n: 'Feature for HK Metro U Campus News', m: 18, w: '~200 words' }
+  ],
+  /* ---- 歷屆卷統計（2013 / 2019 / 2020 / 2021 / 2022 / 2023 OCR 語料）---- */
+  STATS: {
+    years: '2013 · 2019 · 2020 · 2021 · 2022 · 2023',
+    insight: 'Email 喺每一年嘅 Part B2 都出現 —— 係最穩定嘅必考文體。',
+    freq: [['Email','每年都有','最穩定必考'],['Feature article','2013 · Practice','雜誌專題'],
+           ['Letter to the editor','2021','致編輯信'],['Report','2020 · Sample','事故／成效報告'],
+           ['Announcement','2019 · 2021','活動公告'],['Script','2020','影片腳本'],
+           ['Short text / history','2019 · 2022','場刊／網站內容'],['Proposal','Sample','建議書']]
+  },
+  /* ---- 我唔能夠提供嘅（誠實披露）---- */
+  LIMITS: [
+    'Part A 需要真實聽力音頻 —— 我冇 HKEAA 版權，自己合成假錄音（口音、語速唔對）反而有害，所以唔做。',
+    '呢度嘅 Data File 材料類型同文體框架係由官方卷嘅結構抽取，唔係逐份卷嘅完整原文。',
+    'AI 作文評分唔係官方 rubric，只可以當參考，唔好當真實分數。'
+  ],
+
+  /* ================= 渲染 ================= */
+  enter(){
+    P3B._tab = P3B._tab || 'struct';
+    const v = Utils.$('#view-listening');
+    if(!v) return;
+    const T = [['struct','📋','卷三結構'],['data','🗂️','Data File'],['genre','📝','八大文體'],
+               ['reg','🎭','語域配對'],['rubric','📊','L4→5**'],['plan','⏱️','限時策略']];
+    v.innerHTML = `
+      <div class="x-toolbar">
+        <div class="x-tab on"><span class="ic">🎧</span>Paper 3</div>
+        <div class="x-tab" onclick="App.go('speaking')"><span class="ic">🗣️</span>口語</div>
+        <div class="x-tab" onclick="App.go('reading')"><span class="ic">📖</span>閱讀</div>
+        <div class="x-tab" onclick="App.go('writing')"><span class="ic">✍️</span>寫作</div>
+      </div>
+      <div class="x-tabs2" style="display:flex;gap:7px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none">
+        ${T.map(t=>`<button class="cat-chip ${P3B._tab===t[0]?'active':''}" onclick="P3B.tab('${t[0]}')">${t[1]}${t[2]}</button>`).join('')}
+      </div>
+      <div id="p3bBody"></div>`;
+    P3B.render();
+  },
+  tab(t){ P3B._tab=t; P3B.enter(); },
+  render(){
+    const el = Utils.$('#p3bBody');
+    if(!el) return;
+    el.innerHTML = ({struct:P3B._struct, data:P3B._data, genre:P3B._genre,
+                     reg:P3B._reg, rubric:P3B._rubric, plan:P3B._plan}[P3B._tab])();
+  },
+
+  _struct(){
+    const lv = (Store.state.p3Level||'B2');
+    const warn = lv==='B1' ? `<div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:12px;padding:11px;color:#B91C1C;font-size:12px;line-height:1.65;margin-bottom:12px">
+      ⚠️ <b>你而家設定係 B1 —— 全科上限 Level 4，5 / 5* / 5** 全部冇份。</b><br>
+      呢個唔係能力問題，係制度上限。衝 5** 一定要轉 B2。
+      <button class="btn sm" style="margin-top:8px;width:100%" onclick="P3B.toB2()">轉做 B2（可達 5**）</button></div>` : '';
+    return `
+      ${warn}
+      <div class="section-title"><span class="dot"></span>Paper 3 結構（全卷 2 小時，佔全科 30%）</div>
+      ${P3B.STRUCT.map(s=>`
+        <div class="p3b-card" style="border-left:3px solid ${s.k==='Part B2'?'#10B981':s.k==='Part B1'?'#F59E0B':'#6366F1'}">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+            <div style="font-weight:800;font-size:13.5px">${s.k} <span style="font-weight:600;color:var(--sub);font-size:11.5px">${s.n}</span></div>
+            <div style="font-size:11px;color:var(--sub);flex-shrink:0">${s.m}</div>
+          </div>
+          <div style="font-size:12px;color:var(--sub);margin-top:3px">${s.t}</div>
+          <div style="font-size:12px;line-height:1.6;margin-top:6px">${s.d}</div>
+        </div>`).join('')}
+      <div class="section-title" style="margin-top:14px"><span class="dot"></span>📈 歷屆卷統計（${P3B.STATS.years}）</div>
+      <div class="dse-tip" style="font-size:11.5px;background:rgba(99,102,241,.08);border-radius:10px;padding:9px;line-height:1.65;margin-bottom:9px">
+        💡 <b>${Utils.esc(P3B.STATS.insight)}</b>
+      </div>
+      ${P3B.STATS.freq.map(f=>`
+        <div class="p3b-row">
+          <span style="flex:1;font-size:12.5px;font-weight:700">${Utils.esc(f[0])}</span>
+          <span style="font-size:11px;color:var(--sub);flex-shrink:0">${Utils.esc(f[1])}</span>
+          <span class="m-badge" style="flex-shrink:0">${Utils.esc(f[2])}</span>
+        </div>`).join('')}
+      <div class="dse-tip" style="font-size:11px;background:rgba(16,185,129,.08);border:1px dashed #10B981;border-radius:12px;padding:11px;line-height:1.7;margin-top:10px">
+        📜 <b>考評局官方原文（Practice Paper Part A 卷首）：</b><br>
+        "Candidates attempting Part A and <b>B2</b> will be able to attain the <b>full range of levels</b>,
+        while <b>Level 4 will be the highest level attainable</b> for candidates attempting Part A and <b>B1</b>."
+      </div>
+      <div class="section-title" style="margin-top:14px"><span class="dot"></span>官方真題文體實例</div>
+      ${P3B.REAL.map(r=>`
+        <div class="p3b-row">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12.5px;font-weight:700">${r.g} — ${Utils.esc(r.n)}</div>
+            <div style="font-size:11px;color:var(--sub);margin-top:2px">${r.y} · ${r.t} · ${r.m} marks</div>
+          </div>
+          <span class="m-badge" style="flex-shrink:0">${Utils.esc(r.w)}</span>
+        </div>`).join('')}
+      <div class="section-title" style="margin-top:14px"><span class="dot"></span>⚠️ 呢個工具做唔到嘅</div>
+      ${P3B.LIMITS.map(l=>`<div style="font-size:11.5px;line-height:1.65;color:var(--sub);padding:6px 2px;border-bottom:1px dashed var(--border)">• ${Utils.esc(l)}</div>`).join('')}`;
+  },
+
+  _data(){
+    return `
+      <div class="dse-tip" style="font-size:11.5px;line-height:1.7;margin-bottom:12px">
+        Part B 最大嘅失分位<b>唔係英文差，係漏 point</b> —— 唔知 Data File 邊份材料有你要嘅嘢。<br>
+        官方卷嘅 Data File 通常由 <b>7–9 份唔同類型嘅材料</b>組成。下面係逐種嘅定位技巧。
+      </div>
+      <div class="section-title"><span class="dot"></span>Data File 材料類型（10 種）</div>
+      ${P3B.DATATYPES.map((d,i)=>`
+        <div class="p3b-card">
+          <div style="font-weight:800;font-size:13px">${d.t}</div>
+          <div style="font-size:11px;color:var(--faint);margin-top:2px">例：${Utils.esc(d.ex)}</div>
+          <div style="font-size:12px;line-height:1.6;margin-top:7px"><b style="color:#10B981">✓ 點用：</b>${Utils.esc(d.tip)}</div>
+          <div style="font-size:11.5px;line-height:1.6;margin-top:5px;color:#B45309"><b>⚠️ 陷阱：</b>${Utils.esc(d.pit)}</div>
+        </div>`).join('')}`;
+  },
+
+  _genre(){
+    return `
+      <div class="dse-tip" style="font-size:11.5px;line-height:1.7;margin-bottom:12px">
+        按 <b>B2 標準（~200 words）</b>設計。每種文體都有：適用時機、結構、開場白、結尾句、注意事項。
+      </div>
+      <div class="section-title"><span class="dot"></span>八大文體框架</div>
+      ${P3B.GENRES.map((g,i)=>`
+        <div class="p3b-card" onclick="P3B.openGenre(${i})" style="cursor:pointer">
+          <div style="display:flex;gap:9px;align-items:flex-start">
+            <span style="font-size:22px">${g.ic}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:800;font-size:13.5px">${g.n}</div>
+              <div style="font-size:11px;color:var(--sub);margin-top:2px">${Utils.esc(g.when)}</div>
+              <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+                <span class="m-badge">${Utils.esc(g.w)}</span>
+                <span class="m-badge" style="background:#A855F71a;color:#A855F7;border-color:#A855F733">${g.reg}</span>
+              </div>
+            </div>
+            <span style="color:var(--faint);font-size:16px">›</span>
+          </div>
+        </div>`).join('')}`;
+  },
+  openGenre(i){
+    const g = P3B.GENRES[i];
+    const v = Utils.$('#view-listening');
+    v.innerHTML = `
+      <button class="btn ghost sm" style="margin-top:10px" onclick="P3B.tab('genre')">← 返回八大文體</button>
+      <div class="topic-hero" style="margin-top:10px">
+        <div class="tq">${g.ic} ${g.n}</div>
+        <div class="tg">${Utils.esc(g.when)} · ${Utils.esc(g.w)}</div>
+      </div>
+      <div class="dse-tip" style="font-size:11px;background:var(--bg-soft);border-radius:10px;padding:9px;line-height:1.6;margin-bottom:12px">
+        📄 真題例：${Utils.esc(g.ex)}
+      </div>
+      <div class="section-title"><span class="dot"></span>結構</div>
+      ${g.struct.map((s,i)=>`<div class="p3b-row"><span class="m-badge" style="flex-shrink:0">${i+1}</span><span style="font-size:12.5px;line-height:1.55">${Utils.esc(s)}</span></div>`).join('')}
+      <div class="section-title" style="margin-top:14px"><span class="dot"></span>開場白</div>
+      ${g.open.map(o=>`<div class="p3b-row"><span style="flex:1;font-size:12.5px;line-height:1.55">${Utils.esc(o)}</span><button class="wt-copy" onclick="Listening.copy(this,${JSON.stringify(o).replace(/"/g,'&quot;')})">複製</button></div>`).join('')}
+      <div class="section-title" style="margin-top:14px"><span class="dot"></span>結尾句</div>
+      ${g.close.map(o=>`<div class="p3b-row"><span style="flex:1;font-size:12.5px;line-height:1.55">${Utils.esc(o)}</span><button class="wt-copy" onclick="Listening.copy(this,${JSON.stringify(o).replace(/"/g,'&quot;')})">複製</button></div>`).join('')}
+      <div class="section-title" style="margin-top:14px"><span class="dot"></span>⚠️ 注意事項</div>
+      ${g.tips.map(t=>`<div style="font-size:12px;line-height:1.65;padding:6px 2px;border-bottom:1px dashed var(--border)">• ${Utils.esc(t)}</div>`).join('')}`;
+    v.scrollTop = 0;
+  },
+
+  _reg(){
+    return `
+      <div class="dse-tip" style="font-size:11.5px;line-height:1.7;margin-bottom:12px">
+        Part B 最常扣分位：<b>語域錯配</b> —— 寫畀校長用咗寫畀朋友嘅 tone。
+        落筆前先確定語域，全篇跟住。
+      </div>
+      ${P3B.REGISTERS.map(r=>`
+        <div class="p3b-card" style="border-left:3px solid ${r.r==='formal'?'#6366F1':r.r==='semi-formal'?'#0EA5E9':'#F59E0B'}">
+          <div style="font-weight:800;font-size:13.5px">${r.ic} ${r.n}</div>
+          <div style="font-size:11.5px;color:var(--sub);margin-top:3px">對象：${Utils.esc(r.to)}</div>
+          <div style="font-size:11px;color:var(--faint);margin-top:3px">例：${Utils.esc(r.ex)}</div>
+          <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+            <div style="flex:1;min-width:150px">
+              <div style="font-size:11px;font-weight:800;color:#047857;margin-bottom:4px">✓ 要</div>
+              ${r.yes.map(y=>`<div style="font-size:11.5px;line-height:1.55;padding:2px 0">• ${Utils.esc(y)}</div>`).join('')}
+            </div>
+            <div style="flex:1;min-width:150px">
+              <div style="font-size:11px;font-weight:800;color:#B91C1C;margin-bottom:4px">✗ 唔好</div>
+              ${r.no.map(y=>`<div style="font-size:11.5px;line-height:1.55;padding:2px 0">• ${Utils.esc(y)}</div>`).join('')}
+            </div>
+          </div>
+        </div>`).join('')}`;
+  },
+
+  _rubric(){
+    return `
+      <div class="dse-tip" style="font-size:11.5px;line-height:1.7;margin-bottom:12px">
+        你而家 B2 得 Level 4。下面係四個評分維度嘅 <b>4 級 vs 5** 級</b> 對照，
+        同埋「點樣由 4 上到 5**」嘅具體做法。
+      </div>
+      ${P3B.RUBRIC.map(r=>`
+        <div class="p3b-card">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+            <div style="font-weight:800;font-size:13px">${r.d}</div>
+            <span class="m-badge" style="flex-shrink:0">${r.w}</span>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:9px;flex-wrap:wrap">
+            <div style="flex:1;min-width:150px;background:#FEF2F2;border-radius:9px;padding:8px 10px">
+              <div style="font-size:11px;font-weight:800;color:#B91C1C;margin-bottom:5px">Level 4</div>
+              ${r.l4.map(x=>`<div style="font-size:11.5px;line-height:1.55;padding:2px 0">• ${Utils.esc(x)}</div>`).join('')}
+            </div>
+            <div style="flex:1;min-width:150px;background:#ECFDF5;border-radius:9px;padding:8px 10px">
+              <div style="font-size:11px;font-weight:800;color:#047857;margin-bottom:5px">Level 5**</div>
+              ${r.l5.map(x=>`<div style="font-size:11.5px;line-height:1.55;padding:2px 0">• ${Utils.esc(x)}</div>`).join('')}
+            </div>
+          </div>
+          <div style="margin-top:8px;background:var(--bg-soft);border-radius:9px;padding:8px 10px">
+            <div style="font-size:11px;font-weight:800;margin-bottom:5px">🚀 點樣升</div>
+            ${r.how.map(x=>`<div style="font-size:11.5px;line-height:1.55;padding:2px 0">→ ${Utils.esc(x)}</div>`).join('')}
+          </div>
+        </div>`).join('')}`;
+  },
+
+  _plan(){
+    return `
+      <div class="section-title"><span class="dot"></span>Part B 時間分配（約 65 分鐘）</div>
+      ${P3B.PLAN.map(p=>`
+        <div class="p3b-row" style="align-items:flex-start">
+          <span class="m-badge" style="flex-shrink:0;background:#6366F11a;color:#6366F1;border-color:#6366F133">${p.t}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12.5px;font-weight:700">${p.n}</div>
+            <div style="font-size:11.5px;line-height:1.6;color:var(--sub);margin-top:3px">${Utils.esc(p.d)}</div>
+          </div>
+        </div>`).join('')}
+      <div class="dse-tip" style="font-size:11.5px;line-height:1.75;margin-top:12px;background:rgba(245,158,11,.1);border:1px dashed #F59E0B;border-radius:12px;padding:11px">
+        💡 <b>最關鍵嘅一步：第 10–15 分鐘嘅「配對」。</b><br>
+        大部份人一聽完錄音就即刻寫，結果漏 point。5** 嘅人會先用 5 分鐘做
+        <b>instruction ↔ Data File 材料</b> 嘅配對，喺每份材料上面寫低對應邊個 task 編號。
+        呢 5 分鐘值幾分。
+      </div>`;
+  },
+
+  toB2(){
+    Store.state.p3Level='B2';
+    Store.persist();
+    Utils.toast('已轉做 B2 —— 可達 5** ✅');
+    P3B.enter();
+  }
+};
+
 /* ================= V5.1 閱讀拆題 ReadingTool ================= */
 const ReadingTool={
   GENRES:[
@@ -6594,6 +7161,7 @@ const P3B_PICKS = [
 const Listening={
   _cur:null,
   enter(){
+    if(typeof P3B!=='undefined' && !Listening._classic){ return P3B.enter(); }
     const v=Utils.$('#view-listening');
     v.innerHTML=`
       <div class="x-toolbar"><div class="x-tab on"><span class="ic">🎧</span>聆聽綜合</div><div class="x-tab" onclick="App.go('speaking')"><span class="ic">🗣️</span>口語</div><div class="x-tab" onclick="App.go('reading')"><span class="ic">📖</span>閱讀</div></div>
@@ -6679,6 +7247,10 @@ const Listening={
     v.innerHTML=`
       <button class="btn ghost sm" style="margin-top:10px" onclick="Listening.vocab()">← 返回分類</button>
       <div class="section-title"><span class="dot"></span>${cat}（顯示 ${words.length} 詞）</div>
+      ${(()=>{const hg=Data.hygiene;if(!hg||!hg.checked)return '';
+      const bits=[];if(hg.dup)bits.push('已略過 '+hg.dup+' 個重複詞');
+      if(hg.trunc)bits.push(hg.trunc+' 條片語原文截斷');
+      return bits.length?`<div style="font-size:11px;color:var(--faint);margin-top:4px">🧹 ${bits.join(' · ')}</div>`:'';})()}
       <div class="card" style="margin-bottom:12px">${words.map(w=>'<div class="list-item" onclick="Listening.word(\''+w.id+'\')"><div class="li-main"><div class="li-ph">'+Utils.esc(w.phrase)+' <span class="pos-tag">'+Utils.esc(w.pos||'')+'</span></div><div class="li-mean">'+Utils.esc(w.meaning)+'</div></div><div class="li-fav" style="font-size:15px">🔊</div></div>').join('')}</div>
     `;
   },
